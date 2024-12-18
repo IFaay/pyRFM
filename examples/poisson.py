@@ -25,11 +25,11 @@ def f(x):
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     domain = pyrfm.Square2D(center=[0, 0], radius=[1, 1])
-    model = pyrfm.RFMBase(dim=2, n_hidden=100, domain=domain, n_subdomains=4)
+    model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=4)
 
-    x_in = domain.in_sample(100, with_boundary=False)
+    x_in = domain.in_sample(20000, with_boundary=False)
 
-    x_on = domain.on_sample(400)
+    x_on = domain.on_sample(1600)
 
     A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
     A_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1).cat(dim=1)

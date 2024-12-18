@@ -306,6 +306,7 @@ class Square2D(GeometryBase):
         return [x_min, x_max, y_min, y_max]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        num_samples = int(num_samples ** (1 / 2))
         if with_boundary:
             x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
                                num_samples)
@@ -380,6 +381,8 @@ class Square3D(GeometryBase):
         return [x_min, x_max, y_min, y_max, z_min, z_max]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        # FIXME: wrong use with meshgrid
+        num_samples = int(num_samples ** (1 / 2))
         if with_boundary:
             x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
                                num_samples)
@@ -445,6 +448,7 @@ class Cube3D(GeometryBase):
         return [x_min, x_max, y_min, y_max, z_min, z_max]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        num_samples = int(num_samples ** (1 / 3))
         if with_boundary:
             samples = []
             for square in self.boundary:
