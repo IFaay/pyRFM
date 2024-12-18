@@ -5,7 +5,6 @@ Created on 2024/12/13
 @author: Yifei Sun
 """
 import torch
-from mpmath import residual
 
 from .geometry import GeometryBase
 from .utils import *
@@ -384,29 +383,34 @@ class RFMBase(ABC):
         self.pou_functions = Tensor(pou_functions, shape=n_subdomains)
 
         self.W: Union[Tensor, List, torch.tensor] = None
+        self.A: Optional[torch.tensor] = None
+        self.A_norm: Optional[torch.tensor] = None
+        self.tau: Optional[torch.tensor] = None
 
     def __call__(self, x, *args, **kwargs):
         return self.forward(x)
 
-    def Train(self, A: torch.Tensor, b: torch.Tensor):
+    def compute(self, A):
         A = A.to(dtype=self.dtype, device=self.device)
+        self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+        A /= self.A_norm
+        print("Decompose the problem size of A: ", A.shape, "with solver QR")
+        self.A, self.tau = torch.geqrf(A)
+        return self
+
+    def solve(self, b: torch.Tensor):
+        # self.W = torch.linalg.lstsq(self.A, b, driver='gelsy').solution
         b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
-        if A.shape[0] != b.shape[0]:
+        if self.A.shape[0] != b.shape[0]:
             raise ValueError("Input dimension mismatch.")
 
-        A_norm = torch.linalg.norm(A, ord=torch.inf, dim=1, keepdim=True)
-        A = A / A_norm
-        b = b / A_norm
+        b /= self.A_norm
+        y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
+        self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+        b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
 
-        print("Solving the problem size of A: ", A.shape, "with solver QR")
-
-        result = torch.linalg.lstsq(A, b, driver='gelsy')
-        self.W = result.solution
-        residual = torch.norm(torch.matmul(A, self.W) - b) / torch.norm(b)
-        rank = result.rank
-        singular_values = result.singular_values
-
-        print(f"Residuals: {residual:.4e}, Rank: {rank}, Singular Values: {singular_values}")
+        residual = torch.norm(b_ - b) / torch.norm(b)
+        print(f"Relative residual: {residual:.4e}")
 
     def forward(self, x):
         if self.W is None:
