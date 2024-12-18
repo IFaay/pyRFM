@@ -23,6 +23,7 @@ def f(x):
 
 
 if __name__ == '__main__':
+    torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     domain = pyrfm.Square2D(center=[0, 0], radius=[1, 1])
     model = pyrfm.RFMBase(dim=2, n_hidden=100, domain=domain, n_subdomains=4)
 
