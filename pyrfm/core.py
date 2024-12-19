@@ -505,7 +505,7 @@ class RFMBase(ABC):
 
         :param x: Input tensor.
         :param use_sparse: Whether to use sparse tensors.
-        :return: Features tensor.
+        :return: Features Tensor.
         """
         features = []
         pou_coefficients = self.pou_coefficients(x)
@@ -523,7 +523,7 @@ class RFMBase(ABC):
         :param x: Input tensor.
         :param axis: Axis along which to compute the derivative.
         :param use_sparse: Whether to use sparse tensors.
-        :return: Feature derivative tensor.
+        :return: Feature derivative Tensor.
         """
         features_derivative = []
         pou_coefficients = self.pou_coefficients(x)
@@ -547,7 +547,7 @@ class RFMBase(ABC):
         :param axis1: First axis along which to compute the derivative.
         :param axis2: Second axis along which to compute the derivative.
         :param use_sparse: Whether to use sparse tensors.
-        :return: Feature second derivative tensor.
+        :return: Feature second derivative Tensor.
         """
         features_second_derivative = []
         pou_coefficients = self.pou_coefficients(x)
@@ -639,7 +639,7 @@ class RFMBase(ABC):
 
         :param x: Input tensor.
         :param axis: Axis along which to compute the derivative.
-        :return: POU derivative tensor.
+        :return: POU derivative Tensor.
         """
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
@@ -664,7 +664,7 @@ class RFMBase(ABC):
         :param x: Input tensor.
         :param axis1: First axis along which to compute the derivative.
         :param axis2: Second axis along which to compute the derivative.
-        :return: POU second derivative tensor.
+        :return: POU second derivative Tensor.
         """
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
@@ -707,7 +707,7 @@ class RFMBase(ABC):
 
         :param x: Input tensor.
         :param order: Order of the derivative as a tensor or list.
-        :return: POU higher-order derivative tensor.
+        :return: POU higher-order derivative Tensor.
         """
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
