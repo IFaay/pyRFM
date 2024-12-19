@@ -97,7 +97,8 @@ if __name__ == '__main__':
     vyy = uyy
     vxy = uxy
 
-    A_in = pyrfm.concat_blocks([[-a * (uxx + b * uyy), -a * c * vxy], [-a * c * uxy, -a * (vyy + b * vxx)]])
+    A_in = pyrfm.concat_blocks([[-a * (uxx + b * uyy), -a * c * vxy],
+                                [-a * c * uxy, -a * (vyy + b * vxx)]])
 
     x_on = domain.on_sample(400)
     u = model.features(x_on).cat(dim=1)

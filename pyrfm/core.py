@@ -55,6 +55,30 @@ class RFBase(ABC):
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        pass
+
+
+class RFTanH(RFBase):
+    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
+                 n_hidden: int,
+                 gen: torch.Generator = None,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None):
+        super().__init__(dim, center, radius, nn.Tanh(), n_hidden, gen, dtype, device)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
         if isinstance(self.activation, nn.Tanh):
@@ -67,7 +91,6 @@ class RFBase(ABC):
         else:
             return self.activation(torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
 
-    @abstractmethod
     def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
@@ -86,7 +109,6 @@ class RFBase(ABC):
         else:
             pass
 
-    @abstractmethod
     def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
@@ -111,7 +133,6 @@ class RFBase(ABC):
         else:
             pass
 
-    @abstractmethod
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
         if isinstance(order, List):
             order = torch.tensor(order, dtype=self.dtype, device=self.device)
@@ -146,27 +167,6 @@ class RFBase(ABC):
 
         else:
             pass
-
-
-class RFTanH(RFBase):
-    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
-                 n_hidden: int,
-                 gen: torch.Generator = None,
-                 dtype: torch.dtype = None,
-                 device: torch.device = None):
-        super().__init__(dim, center, radius, nn.Tanh(), n_hidden, gen, dtype, device)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return super().forward(x)
-
-    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
-        return super().first_derivative(x, axis)
-
-    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
-        return super().second_derivative(x, axis1, axis2)
-
-    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
-        return super().higher_order_derivative(x, order)
 
 
 class POUBase(ABC):
@@ -339,6 +339,14 @@ class RFMBase(ABC):
                        Example for 3D: [x_min, x_max, y_min, y_max, z_min, z_max]
         :param n_subdomains: Either an integer (uniform subdivisions in all dimensions)
                              or a list/tuple specifying the subdivisions per dimension.
+        :param overlap: Overlap between subdomains, must be between 0 (inclusive) and 1 (exclusive).
+        :param rf: Random Feature class, must be a subclass of RFBase.
+        :param pou: Partition of Unity class, must be a subclass of POUBase.
+        :param centers: Optional tensor specifying the centers of subdomains.
+        :param radii: Optional tensor specifying the radii of subdomains.
+        :param seed: Random seed for reproducibility.
+        :param dtype: Data type for tensors.
+        :param device: Device to run the computations on.
         """
         self.dtype = dtype if dtype is not None else torch.get_default_dtype()
         self.device = device if device is not None else torch.get_default_device()
@@ -395,13 +403,28 @@ class RFMBase(ABC):
         self.tau: Optional[torch.tensor] = None
 
     def empty_cache(self):
+        """
+        Empty the cache for all submodels.
+        """
         for submodel in self.submodels.flat_data:
             submodel.empty_cache()
 
     def __call__(self, x, *args, **kwargs):
+        """
+        Make the class callable and forward the input tensor.
+
+        :param x: Input tensor.
+        :return: Output tensor after forward pass.
+        """
         return self.forward(x)
 
     def compute(self, A):
+        """
+        Compute the QR decomposition of matrix A.
+
+        :param A: Input matrix.
+        :return: Self.
+        """
         A = A.to(dtype=self.dtype, device=self.device)
         self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
         A /= self.A_norm
@@ -412,7 +435,11 @@ class RFMBase(ABC):
         return self
 
     def solve(self, b: torch.Tensor):
-        # self.W = torch.linalg.lstsq(self.A, b, driver='gelsy').solution
+        """
+        Solve the linear system Ax = b using the QR decomposition.
+
+        :param b: Right-hand side tensor.
+        """
         b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             raise ValueError("Input dimension mismatch.")
@@ -432,16 +459,29 @@ class RFMBase(ABC):
             raise ValueError("The output weight mismatch.")
 
     def forward(self, x):
+        """
+        Forward pass of the model.
+
+        :param x: Input tensor.
+        :return: Output tensor after forward pass.
+        """
         if self.W is None:
             raise ValueError("Weights have not been computed yet.")
         elif isinstance(self.W, Tensor):
-            self.W = self.W.cat(dim=0)
+            self.W = self.W.cat(dim=1)
         elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
-            self.W = torch.cat(self.W, dim=0)
+            self.W = torch.cat(self.W, dim=1)
 
         return torch.matmul(self.features(x).cat(dim=1), self.W)
 
     def dForward(self, x, order: Union[torch.Tensor, List]):
+        """
+        Compute the derivative of the forward pass.
+
+        :param x: Input tensor.
+        :param order: Order of the derivative.
+        :return: Derivative tensor.
+        """
         order = torch.tensor(order, dtype=self.dtype, device=self.device).view(1, -1)
         if order.shape[1] != self.dim:
             raise ValueError("Order dimension mismatch.")
@@ -545,7 +585,6 @@ class RFMBase(ABC):
                              or a list/tuple specifying the subdivisions per dimension.
         :return: Tuple of centers and radii as tensors.
         """
-
         centers_list = []
         radii_list = []
 

@@ -13,12 +13,26 @@ import time
 from abc import ABC, abstractmethod
 from typing import Optional, Any, Union, Tuple, List, Callable
 from collections import Counter
+from enum import Enum
 
 torch.set_default_dtype(torch.float64)
 torch.set_default_device(torch.device("cpu"))
 
 
 class Tensor:
+    """
+        A Tensor class that acts as a multi-dimensional container similar to a list.
+
+        Note:
+        This class is **not** `torch.Tensor`. It is a standalone implementation
+        designed for handling multi-dimensional data using nested Python lists.
+
+        This class supports:
+          - Multi-dimensional indexing: Elements can be accessed and modified using indices for each dimension.
+          - Shape definition: Allows defining the shape of the tensor explicitly or inferring it from the provided data.
+          - Flattened and nested representations: Maintains both a nested structure (for easy access) and a flat list (for efficient operations).
+    """
+
     def __init__(self, data=None, shape=None):
         """
         Initialize the Tensor object. By default, initializes an empty tensor.

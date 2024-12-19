@@ -7,14 +7,70 @@ Created on 2024/12/15
 from .utils import *
 
 
+class State(Enum):
+    """
+    Enum class for the state of a point with respect to a geometry.
+
+    Attributes:
+    ----------
+    isIn : int
+        Represents that the point is inside the geometry.
+    isOut : int
+        Represents that the point is outside the geometry.
+    isOn : int
+        Represents that the point is on the boundary of the geometry.
+    isUnknown : int
+        Represents an undefined or indeterminate state of the point.
+    """
+    isIn = 0
+    isOut = 1
+    isOn = 2
+    isUnknown = 3
+
+
 class GeometryBase(ABC):
+    """
+    Abstract base class for geometric objects.
+
+    Attributes:
+    ----------
+    dim : int
+        The dimension of the geometry.
+    intrinsic_dim : int
+        The intrinsic dimension of the geometry.
+    boundary : list
+        The boundary of the geometry.
+    """
+
     def __init__(self, dim: Optional[int] = None, intrinsic_dim: Optional[int] = None):
+        """
+        Initialize the GeometryBase object.
+
+        Args:
+        ----
+        dim : int, optional
+            The dimension of the geometry.
+        intrinsic_dim : int, optional
+            The intrinsic dimension of the geometry.
+        """
         self.dim = dim if dim is not None else 0
         self.intrinsic_dim = intrinsic_dim if intrinsic_dim is not None else dim
         self.boundary: List = []
 
     def __eq__(self, other):
-        # Check that the topology of the two geometries is the same (allowing for different orientations)
+        """
+        Check if two geometries are equal.
+
+        Args:
+        ----
+        other : GeometryBase
+            Another geometry object.
+
+        Returns:
+        -------
+        bool
+            True if the geometries are equal, False otherwise.
+        """
         if not isinstance(other, self.__class__):
             return False
 
@@ -31,7 +87,10 @@ class GeometryBase(ABC):
     def get_bounding_box(self):
         """
         Get the bounding box of the geometry.
-        :return:
+
+        Returns:
+        -------
+        list
             For 2D: [x_min, x_max, y_min, y_max];
             For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];
         """
@@ -41,22 +100,37 @@ class GeometryBase(ABC):
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         """
         Generate samples within the geometry.
+
         Args:
-            num_samples: The number of samples to generate.
-            with_boundary: Whether to include boundary points in the samples.
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_boundary : bool, optional
+            Whether to include boundary points in the samples.
+
         Returns:
-            A list of points sampled from the geometry, where each point is a tuple of coordinates.
+        -------
+        torch.Tensor
+            A tensor of points sampled from the geometry.
         """
         pass
 
     @abstractmethod
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
         Generate samples on the boundary of the geometry.
+
         Args:
-            num_samples: The number of samples to generate.
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_normal : bool, optional
+            Whether to include normal vectors.
+
         Returns:
-            A list of points sampled from the boundary of the geometry, where each point is a tuple of coordinates.
+        -------
+        torch.Tensor or tuple
+            A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.
         """
         pass
 
@@ -64,35 +138,122 @@ class GeometryBase(ABC):
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         """
         Compute the intersection of this geometry with another geometry.
+
         Args:
-            other: Another geometry object.
+        ----
+        other : GeometryBase
+            Another geometry object.
+
         Returns:
+        -------
+        GeometryBase or None
             A new GeometryBase object representing the intersection, or None if no intersection exists.
         """
         pass
 
 
 class Point1D(GeometryBase):
+    """
+    Class representing a 1D point.
+
+    Attributes:
+    ----------
+    x : torch.float64
+        The x-coordinate of the point.
+    """
+
     def __init__(self, x: torch.float64):
+        """
+        Initialize the Point1D object.
+
+        Args:
+        ----
+        x : torch.float64
+            The x-coordinate of the point.
+        """
         super().__init__(dim=1, intrinsic_dim=0)
         self.x = x
 
     def get_bounding_box(self):
+        """
+        Get the bounding box of the point.
+
+        Returns:
+        -------
+        list
+            The bounding box of the point.
+        """
         return [self.x, self.x]
 
     def __eq__(self, other):
+        """
+        Check if two points are equal.
+
+        Args:
+        ----
+        other : Point1D
+            Another point object.
+
+        Returns:
+        -------
+        bool
+            True if the points are equal, False otherwise.
+        """
         if not isinstance(other, Point1D):
             return False
 
         return self.x == other.x
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Generate samples within the point.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_boundary : bool, optional
+            Whether to include boundary points in the samples.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of points sampled from the point.
+        """
         return torch.tensor([[self.x]] * num_samples)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """
+        Generate samples on the boundary of the point.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_normal : bool, optional
+            Whether to include normal vectors.
+
+        Returns:
+        -------
+        torch.Tensor or tuple
+            A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
+        """
         return torch.tensor([[self.x]] * num_samples)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
+        """
+        Compute the intersection of this point with another geometry.
+
+        Args:
+        ----
+        other : GeometryBase
+            Another geometry object.
+
+        Returns:
+        -------
+        GeometryBase or None
+            A new GeometryBase object representing the intersection, or None if no intersection exists.
+        """
         if isinstance(other, Point1D):
             if self.x == other.x:
                 return self
@@ -103,27 +264,112 @@ class Point1D(GeometryBase):
 
 
 class Point2D(GeometryBase):
+    """
+    Class representing a 2D point.
+
+    Attributes:
+    ----------
+    x : torch.float64
+        The x-coordinate of the point.
+    y : torch.float64
+        The y-coordinate of the point.
+    """
+
     def __init__(self, x: torch.float64, y: torch.float64):
+        """
+        Initialize the Point2D object.
+
+        Args:
+        ----
+        x : torch.float64
+            The x-coordinate of the point.
+        y : torch.float64
+            The y-coordinate of the point.
+        """
         super().__init__(dim=2, intrinsic_dim=0)
         self.x = x
         self.y = y
 
     def get_bounding_box(self):
+        """
+        Get the bounding box of the point.
+
+        Returns:
+        -------
+        list
+            The bounding box of the point.
+        """
         return [self.x, self.x, self.y, self.y]
 
     def __eq__(self, other):
+        """
+        Check if two points are equal.
+
+        Args:
+        ----
+        other : Point2D
+            Another point object.
+
+        Returns:
+        -------
+        bool
+            True if the points are equal, False otherwise.
+        """
         if not isinstance(other, Point2D):
             return False
 
         return self.x == other.x and self.y == other.y
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Generate samples within the point.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_boundary : bool, optional
+            Whether to include boundary points in the samples.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of points sampled from the point.
+        """
         return torch.tensor([[self.x, self.y]] * num_samples)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """
+        Generate samples on the boundary of the point.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_normal : bool, optional
+            Whether to include normal vectors.
+
+        Returns:
+        -------
+        torch.Tensor or tuple
+            A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
+        """
         return torch.tensor([[self.x, self.y]] * num_samples)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
+        """
+        Compute the intersection of this point with another geometry.
+
+        Args:
+        ----
+        other : GeometryBase
+            Another geometry object.
+
+        Returns:
+        -------
+        GeometryBase or None
+            A new GeometryBase object representing the intersection, or None if no intersection exists.
+        """
         if isinstance(other, Point2D):
             if self.x == other.x and self.y == other.y:
                 return self
@@ -134,28 +380,117 @@ class Point2D(GeometryBase):
 
 
 class Point3D(GeometryBase):
+    """
+    Class representing a 3D point.
+
+    Attributes:
+    ----------
+    x : torch.float64
+        The x-coordinate of the point.
+    y : torch.float64
+        The y-coordinate of the point.
+    z : torch.float64
+        The z-coordinate of the point.
+    """
+
     def __init__(self, x: torch.float64, y: torch.float64, z: torch.float64):
+        """
+        Initialize the Point3D object.
+
+        Args:
+        ----
+        x : torch.float64
+            The x-coordinate of the point.
+        y : torch.float64
+            The y-coordinate of the point.
+        z : torch.float64
+            The z-coordinate of the point.
+        """
         super().__init__(dim=3, intrinsic_dim=0)
         self.x = x
         self.y = y
         self.z = z
 
     def get_bounding_box(self):
+        """
+        Get the bounding box of the point.
+
+        Returns:
+        -------
+        list
+            The bounding box of the point.
+        """
         return [self.x, self.x, self.y, self.y, self.z, self.z]
 
     def __eq__(self, other):
+        """
+        Check if two points are equal.
+
+        Args:
+        ----
+        other : Point3D
+            Another point object.
+
+        Returns:
+        -------
+        bool
+            True if the points are equal, False otherwise.
+        """
         if not isinstance(other, Point3D):
             return False
 
         return self.x == other.x and self.y == other.y and self.z == other.z
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Generate samples within the point.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_boundary : bool, optional
+            Whether to include boundary points in the samples.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of points sampled from the point.
+        """
         return torch.tensor([[self.x, self.y, self.z]] * num_samples)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """
+        Generate samples on the boundary of the point.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_normal : bool, optional
+            Whether to include normal vectors.
+
+        Returns:
+        -------
+        torch.Tensor or tuple
+            A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
+        """
         return torch.tensor([[self.x, self.y, self.z]] * num_samples)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
+        """
+        Compute the intersection of this point with another geometry.
+
+        Args:
+        ----
+        other : GeometryBase
+            Another geometry object.
+
+        Returns:
+        -------
+        GeometryBase or None
+            A new GeometryBase object representing the intersection, or None if no intersection exists.
+        """
         if isinstance(other, Point3D):
             if self.x == other.x and self.y == other.y and self.z == other.z:
                 return self
@@ -166,27 +501,101 @@ class Point3D(GeometryBase):
 
 
 class Line1D(GeometryBase):
+    """
+    Class representing a 1D line segment.
+
+    Attributes:
+    ----------
+    x1 : torch.float64
+        The x-coordinate of the first endpoint.
+    x2 : torch.float64
+        The x-coordinate of the second endpoint.
+    boundary : list
+        The boundary points of the line segment.
+    """
+
     def __init__(self, x1: torch.float64, x2: torch.float64):
+        """
+        Initialize the Line1D object.
+
+        Args:
+        ----
+        x1 : torch.float64
+            The x-coordinate of the first endpoint.
+        x2 : torch.float64
+            The x-coordinate of the second endpoint.
+        """
         super().__init__(dim=1, intrinsic_dim=1)
         self.x1 = x1
         self.x2 = x2
         self.boundary = [Point1D(x1), Point1D(x2)]
 
     def get_bounding_box(self):
+        """
+        Get the bounding box of the line segment.
+
+        Returns:
+        -------
+        list
+            The bounding box of the line segment.
+        """
         return [self.x1, self.x2] if self.x1 < self.x2 else [self.x2, self.x1]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Generate samples within the line segment.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_boundary : bool, optional
+            Whether to include boundary points in the samples.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of points sampled from the line segment.
+        """
         if with_boundary:
             return torch.linspace(self.x1, self.x2, num_samples).reshape(-1, 1)
         else:
             return torch.linspace(self.x1, self.x2, num_samples + 2)[1:-1].reshape(-1, 1)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """
+        Generate samples on the boundary of the line segment.
+
+        Args:
+        ----
+        num_samples : int
+            The number of samples to generate.
+        with_normal : bool, optional
+            Whether to include normal vectors.
+
+        Returns:
+        -------
+        torch.Tensor or tuple
+            A tensor of points sampled from the boundary of the line segment or a tuple of tensors of points and normal vectors.
+        """
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
         return torch.cat([a, b], dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
+        """
+        Compute the intersection of this line segment with another geometry.
+
+        Args:
+        ----
+        other : GeometryBase
+            Another geometry object.
+
+        Returns:
+        -------
+        GeometryBase or None
+            A new GeometryBase object representing the intersection, or None if no intersection exists.
+        """
         if isinstance(other, Line1D):
             if self.x1 == other.x1 and self.x2 == other.x2:
                 return self
@@ -222,7 +631,7 @@ class Line2D(GeometryBase):
             y = torch.linspace(self.y1, self.y2, num_samples + 2)[1:-1].reshape(-1, 1)
             return torch.cat([x, y], dim=1)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
         return torch.cat([a, b], dim=0)
@@ -270,7 +679,7 @@ class Line3D(GeometryBase):
             z = torch.linspace(self.z1, self.z2, num_samples + 2)[1:-1].reshape(-1, 1)
             return torch.cat([x, y, z], dim=1)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
         return torch.cat([a, b], dim=0)
@@ -323,7 +732,7 @@ class Square2D(GeometryBase):
             X, Y = torch.meshgrid(x, y, indexing='ij')
             return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 4, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 4, with_boundary=True)
         c = self.boundary[2].in_sample(num_samples // 4, with_boundary=True)
@@ -403,7 +812,7 @@ class Square3D(GeometryBase):
             X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
             return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 4, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 4, with_boundary=True)
         c = self.boundary[2].in_sample(num_samples // 4, with_boundary=True)
@@ -461,7 +870,7 @@ class Cube3D(GeometryBase):
                 samples.append(square.in_sample(num_samples + 2, with_boundary=False))
             return torch.cat(samples, dim=0)
 
-    def on_sample(self, num_samples: int) -> torch.Tensor:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         samples = []
         for square in self.boundary:
             samples.append(square.in_sample(num_samples // 6, with_boundary=True))
