@@ -11,18 +11,39 @@ import torch
 import os
 
 
+def u(x):
+    return -0.5 * (1.5 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
+                   2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+        (1.5 * torch.cos(torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
+         2 * torch.cos(2 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
+        0.5 * (1.5 * torch.cos(2 * torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
+               2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+        (1.5 * torch.cos(2 * torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
+         2 * torch.cos(4 * torch.pi * x[:, [1]] - torch.pi / 5))
+
+
 # -(uxx + uyy) = f
+def f(x):
+    return -(-0.5 * (-1.5 * torch.pi ** 2 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) -
+                     2 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+             (1.5 * torch.cos(torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
+              2 * torch.cos(2 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
+             0.5 * (1.5 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
+                    2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+             (-1.5 * torch.pi ** 2 * torch.cos(torch.pi * x[:, [1]] + 2 * torch.pi / 5) -
+              2 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
+             0.5 * (-1.5 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [0]] + 2 * torch.pi / 5) -
+                    2 * (4 * torch.pi) ** 2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+             (1.5 * torch.cos(2 * torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
+              2 * torch.cos(4 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
+             0.5 * (1.5 * torch.cos(2 * torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
+                    2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+             (-1.5 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [1]] + 2 * torch.pi / 5) -
+              2 * (4 * torch.pi) ** 2 * torch.cos(4 * torch.pi * x[:, [1]] - torch.pi / 5)))
+
 
 def g(x):
-    return torch.sin(torch.pi * x[:, 0]) * torch.sin(torch.pi * x[:, 1])
-
-
-def u(x):
-    return torch.sin(torch.pi * x[:, 0]) * torch.sin(torch.pi * x[:, 1])
-
-
-def f(x):
-    return 2 * torch.pi ** 2 * g(x)
+    return u(x)
 
 
 if __name__ == '__main__':

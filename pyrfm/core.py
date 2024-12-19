@@ -439,7 +439,7 @@ class RFMBase(ABC):
         elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
             self.W = torch.cat(self.W, dim=0)
 
-        return torch.matmul(self.features(x).cat(dim=1), self.W.view(-1, 1))
+        return torch.matmul(self.features(x).cat(dim=1), self.W)
 
     def dForward(self, x, order: Union[torch.Tensor, List]):
         order = torch.tensor(order, dtype=self.dtype, device=self.device).view(1, -1)
