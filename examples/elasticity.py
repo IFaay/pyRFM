@@ -8,7 +8,6 @@ import time
 
 import pyrfm
 import torch
-import os
 
 
 # -(uxx + uyy) = f
@@ -30,9 +29,9 @@ if __name__ == '__main__':
     domain = pyrfm.Square2D(center=[0, 0], radius=[1, 1])
     model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=4)
 
-    x_in = domain.in_sample(25600, with_boundary=False)
+    x_in = domain.in_sample(2500, with_boundary=False)
 
-    x_on = domain.on_sample(4400)
+    x_on = domain.on_sample(100)
 
     A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0, use_sparse=True).cat(dim=1)
     A_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1, use_sparse=True).cat(dim=1)

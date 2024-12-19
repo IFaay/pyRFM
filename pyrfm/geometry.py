@@ -14,6 +14,7 @@ class GeometryBase(ABC):
         self.boundary: List = []
 
     def __eq__(self, other):
+        # Check that the topology of the two geometries is the same (allowing for different orientations)
         if not isinstance(other, self.__class__):
             return False
 

@@ -4,6 +4,8 @@ Created on 2024/12/13
 
 @author: Yifei Sun
 """
+import time
+
 import torch
 
 from .geometry import GeometryBase
@@ -40,6 +42,10 @@ class RFBase(ABC):
         self.x_buff_: torch.Tensor or None = None
         self.features_buff_: torch.Tensor or None = None
         pass
+
+    def empty_cache(self):
+        self.x_buff_ = None
+        self.features_buff_ = None
 
     def __call__(self, x: torch.Tensor, *args, **kwargs):
         return self.forward(x)
@@ -373,6 +379,7 @@ class RFMBase(ABC):
                                   self.radii.view(-1, self.radii.shape[-1])):
             submodels.append(rf(dim, center, radius, n_hidden, gen=self.gen, dtype=dtype, device=device))
         self.submodels = Tensor(submodels, shape=n_subdomains)
+        self.n_hidden = n_hidden
 
         if not issubclass(pou, POUBase):
             raise ValueError("Partition of Unity must be a subclass of POUBase.")
@@ -387,6 +394,10 @@ class RFMBase(ABC):
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
+    def empty_cache(self):
+        for submodel in self.submodels.flat_data:
+            submodel.empty_cache()
+
     def __call__(self, x, *args, **kwargs):
         return self.forward(x)
 
@@ -394,8 +405,10 @@ class RFMBase(ABC):
         A = A.to(dtype=self.dtype, device=self.device)
         self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
         A /= self.A_norm
-        print("Decompose the problem size of A: ", A.shape, "with solver QR")
+        print("Decomposing the problem size of A: ", A.shape, "with solver QR")
+
         self.A, self.tau = torch.geqrf(A)
+
         return self
 
     def solve(self, b: torch.Tensor):
@@ -411,6 +424,12 @@ class RFMBase(ABC):
 
         residual = torch.norm(b_ - b) / torch.norm(b)
         print(f"Relative residual: {residual:.4e}")
+
+        if self.W.shape[0] % (self.submodels.numel() * self.n_hidden) == 0:
+            n_out = int(self.W.shape[0] / (self.submodels.numel() * self.n_hidden))
+            self.W = self.W.view(n_out, -1).T
+        else:
+            raise ValueError("The output weight mismatch.")
 
     def forward(self, x):
         if self.W is None:

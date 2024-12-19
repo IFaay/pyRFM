@@ -6,6 +6,14 @@
 pip install git+https://github.com/IFaay/pyRFM.git
 ```
 
+or
+
+```
+git clone https://github.com/IFaay/pyRFM.git
+cd pyRFM
+pip install .
+```
+
 ## Reference
 
 [1] J. Chen, X. Chi, W. E, and Z. Yang, “Bridging traditional and machine learning-based algorithms for solving pdes:
