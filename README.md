@@ -14,6 +14,14 @@ cd pyRFM
 pip install .
 ```
 
+[//]: # (## Remark)
+
+[//]: # ()
+
+[//]: # (All examples run successfully on a host equipped with 8GB of GPU memory and 16GB of RAM. If you encounter unexpected)
+
+[//]: # (memory issues, try PyCharm.)
+
 ## Reference
 
 [1] J. Chen, X. Chi, W. E, and Z. Yang, “Bridging traditional and machine learning-based algorithms for solving pdes:
