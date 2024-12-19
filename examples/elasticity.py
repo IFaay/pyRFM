@@ -27,32 +27,10 @@ def f(x):
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     domain = pyrfm.Square2D(center=[0, 0], radius=[1, 1])
-    model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=4)
+    model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=2)
 
     x_in = domain.in_sample(2500, with_boundary=False)
 
     x_on = domain.on_sample(100)
 
-    A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0, use_sparse=True).cat(dim=1)
-    A_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1, use_sparse=True).cat(dim=1)
-
-    A_on = model.features(x_on, use_sparse=True).cat(dim=1)
-
-    A = pyrfm.concat_blocks([[-(A_in_xx + A_in_yy)], [A_on]])
-
-    del A_in_xx, A_in_yy, A_on
-
-    A = A.to_dense()
-
-    f_in = f(x_in).view(-1, 1)
-    f_on = g(x_on).view(-1, 1)
-
-    f = pyrfm.concat_blocks([[f_in], [f_on]])
-
-    model.compute(A).solve(f)
-
-    x_test = domain.in_sample(40, with_boundary=True)
-    u_test = u(x_test).view(-1, 1)
-    u_pred = model(x_test)
-
-    print((u_test - u_pred).norm() / u_test.norm())
+    u_in = model

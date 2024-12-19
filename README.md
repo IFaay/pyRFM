@@ -14,13 +14,9 @@ cd pyRFM
 pip install .
 ```
 
-[//]: # (## Remark)
+## Remark
 
-[//]: # ()
-
-[//]: # (All examples run successfully on a host equipped with 8GB of GPU memory and 16GB of RAM. If you encounter unexpected)
-
-[//]: # (memory issues, try PyCharm.)
+All examples run successfully on a host equipped with 8GB of GPU memory and 16GB of RAM.
 
 ## Reference
 
