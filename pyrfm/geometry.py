@@ -578,9 +578,17 @@ class Line1D(GeometryBase):
         torch.Tensor or tuple
             A tensor of points sampled from the boundary of the line segment or a tuple of tensors of points and normal vectors.
         """
+
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
-        return torch.cat([a, b], dim=0)
+        if with_normal:
+            return torch.cat([a, b], dim=0), torch.cat(
+                [
+                    torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1)]] * (num_samples // 2)),
+                    torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2)]] * (num_samples // 2))
+                ], dim=0)
+        else:
+            return torch.cat([a, b], dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         """
@@ -634,7 +642,16 @@ class Line2D(GeometryBase):
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
-        return torch.cat([a, b], dim=0)
+        if with_normal:
+            return torch.cat([a, b], dim=0), torch.cat(
+                [
+                    torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1),
+                                   (self.y2 - self.y1) / abs(self.y2 - self.y1)]] * (num_samples // 2)),
+                    torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2),
+                                   (self.y1 - self.y2) / abs(self.y1 - self.y2)]] * (num_samples // 2))
+                ], dim=0)
+        else:
+            return torch.cat([a, b], dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         if isinstance(other, Line2D):
@@ -682,7 +699,18 @@ class Line3D(GeometryBase):
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
-        return torch.cat([a, b], dim=0)
+        if with_normal:
+            return torch.cat([a, b], dim=0), torch.cat(
+                [
+                    torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1),
+                                   (self.y2 - self.y1) / abs(self.y2 - self.y1),
+                                   (self.z2 - self.z1) / abs(self.z2 - self.z1)]] * (num_samples // 2)),
+                    torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2),
+                                   (self.y1 - self.y2) / abs(self.y1 - self.y2),
+                                   (self.z1 - self.z2) / abs(self.z1 - self.z2)]] * (num_samples // 2))
+                ], dim=0)
+        else:
+            return torch.cat([a, b], dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         if isinstance(other, Line3D):
@@ -737,7 +765,16 @@ class Square2D(GeometryBase):
         b = self.boundary[1].in_sample(num_samples // 4, with_boundary=True)
         c = self.boundary[2].in_sample(num_samples // 4, with_boundary=True)
         d = self.boundary[3].in_sample(num_samples // 4, with_boundary=True)
-        return torch.cat([a, b, c, d], dim=0)
+        if with_normal:
+            return torch.cat([a, b, c, d], dim=0), torch.cat(
+                [
+                    torch.tensor([[0.0, -1.0]] * (num_samples // 4)),
+                    torch.tensor([[1.0, 0.0]] * (num_samples // 4)),
+                    torch.tensor([[0.0, 1.0]] * (num_samples // 4)),
+                    torch.tensor([[-1.0, 0.0]] * (num_samples // 4))
+                ], dim=0)
+        else:
+            return torch.cat([a, b, c, d], dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         if isinstance(other, Square2D):
@@ -817,7 +854,21 @@ class Square3D(GeometryBase):
         b = self.boundary[1].in_sample(num_samples // 4, with_boundary=True)
         c = self.boundary[2].in_sample(num_samples // 4, with_boundary=True)
         d = self.boundary[3].in_sample(num_samples // 4, with_boundary=True)
-        return torch.cat([a, b, c, d], dim=0)
+        if with_normal:
+            for i in range(3):
+                if self.radius[0, i] == 0.0:
+                    j, k = (i + 1) % 3, (i + 2) % 3
+                    an = torch.tensor([[0.0, 0.0, 0.0]] * (num_samples // 4))
+                    bn = torch.tensor([[0.0, 0.0, 0.0]] * (num_samples // 4))
+                    cn = torch.tensor([[0.0, 0.0, 0.0]] * (num_samples // 4))
+                    dn = torch.tensor([[0.0, 0.0, 0.0]] * (num_samples // 4))
+                    an[:, k] = -1.0
+                    bn[:, j] = 1.0
+                    cn[:, k] = 1.0
+                    dn[:, j] = -1.0
+                    return torch.cat([a, b, c, d], dim=0), torch.cat([an, bn, cn, dn], dim=0)
+        else:
+            return torch.cat([a, b, c, d], dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         if isinstance(other, Square3D):
@@ -874,7 +925,15 @@ class Cube3D(GeometryBase):
         samples = []
         for square in self.boundary:
             samples.append(square.in_sample(num_samples // 6, with_boundary=True))
-        return torch.cat(samples, dim=0)
+        if with_normal:
+            normals = []
+            for i in range(6):
+                normal = torch.zeros((num_samples // 6, 3))
+                normal[:, i // 2] = 1.0 if i % 2 == 0 else -1.0
+                normals.append(normal)
+            return torch.cat(samples, dim=0), torch.cat(normals, dim=0)
+        else:
+            return torch.cat(samples, dim=0)
 
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         if isinstance(other, Cube3D):

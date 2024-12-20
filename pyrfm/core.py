@@ -443,17 +443,29 @@ class RFMBase(ABC):
         b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             raise ValueError("Input dimension mismatch.")
-
         b /= self.A_norm
+
         y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
         self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
         b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
-
         residual = torch.norm(b_ - b) / torch.norm(b)
+
+        # w_set = []
+        # b_ = b.clone()
+        # for i in range(10):
+        #     y = torch.ormqr(self.A, self.tau, b_, transpose=True)[:self.A.shape[1]]
+        #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+        #     w_set.append(w)
+        #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
+        #
+        # # sum up the weights
+        # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
+        # residual = torch.norm(b_) / torch.norm(b)
+
         print(f"Relative residual: {residual:.4e}")
 
-        if self.W.shape[0] % (self.submodels.numel() * self.n_hidden) == 0:
-            n_out = int(self.W.shape[0] / (self.submodels.numel() * self.n_hidden))
+        if self.W.numel() % (self.submodels.numel() * self.n_hidden) == 0:
+            n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
             self.W = self.W.view(n_out, -1).T
         else:
             raise ValueError("The output weight mismatch.")

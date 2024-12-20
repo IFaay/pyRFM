@@ -14,9 +14,16 @@ cd pyRFM
 pip install .
 ```
 
+# Update
+
+```
+pip install --upgrade git+https://github.com/IFaay/pyRFM.git
+```
+
 ## Remark
 
 All examples run successfully on a host equipped with 8GB of GPU memory and 16GB of RAM.
+Example scripts are located in the [examples](https://github.com/IFaay/pyRFM/tree/master/examples) folder.
 
 ## Reference
 
