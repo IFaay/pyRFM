@@ -7,6 +7,8 @@ Created on 2024/12/15
 from .utils import *
 
 
+# SDF Reference : https://iquilezles.org/articles/distfunctions2d/ , https://iquilezles.org/articles/distfunctions/
+
 class State(Enum):
     """
     Enum class for the state of a point with respect to a geometry.
@@ -608,8 +610,8 @@ class Line1D(GeometryBase):
         torch.Tensor
             A tensor of signed distances.
         """
-        x1, x2 = min(self.x1, self.x2), max(self.x1, self.x2)
-        return torch.where(p < (x1 + x2) / 2, x1 - p, p - x2)
+
+        return torch.abs(p - (self.x1 + self.x2) / 2) - torch.abs(self.x2 - self.x1) / 2
 
     def get_bounding_box(self):
         """
@@ -834,7 +836,10 @@ class Square2D(GeometryBase):
                                 self.center[0, 0] - self.radius[0, 0], self.center[0, 1] - self.radius[0, 1])]
 
     def sdf(self, p: torch.Tensor):
-        pass
+        d = torch.abs(p - self.center) - self.radius
+        return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
+            torch.max(d, dim=1, keepdim=True).values,
+            max=0.0)
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -918,6 +923,12 @@ class Square3D(GeometryBase):
                 ]
                 break
 
+    def sdf(self, p: torch.Tensor):
+        d = torch.abs(p - self.center) - self.radius
+        return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
+            torch.max(d, dim=1, keepdim=True).values,
+            max=0.0)
+
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
         x_max = self.center[0, 0] + self.radius[0, 0]
@@ -999,6 +1010,12 @@ class Cube3D(GeometryBase):
             for offset in offsets
         ]
 
+    def sdf(self, p: torch.Tensor):
+        d = torch.abs(p - self.center) - self.radius
+        return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
+            torch.max(d, dim=1, keepdim=True).values,
+            max=0.0)
+
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
         x_max = self.center[0, 0] + self.radius[0, 0]
@@ -1047,18 +1064,164 @@ class Cube3D(GeometryBase):
 
 class CircleArc2D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple],
-                 start_angle: torch.float64, end_angle: torch.float64):
+                 radius: torch.float64):
         super().__init__(dim=2, intrinsic_dim=1)
         self.center = torch.tensor(center).view(1, -1)
+        self.radius = radius
+        self.boundary = [Point2D(self.center[0, 0] + self.radius, self.center[0, 1])]
 
+    def sdf(self, p: torch.Tensor):
+        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
+        return torch.abs(d)
 
-class CircleArc3D(GeometryBase):
-    pass
+    def get_bounding_box(self):
+        x_min = self.center[0, 0] - self.radius
+        x_max = self.center[0, 0] + self.radius
+        y_min = self.center[0, 1] - self.radius
+        y_max = self.center[0, 1] + self.radius
+        return [x_min, x_max, y_min, y_max]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        if with_boundary:
+            theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        else:
+            theta = torch.linspace(0.0, 2 * torch.pi, num_samples + 2)[1:-1].reshape(-1, 1)
+        x = self.center[0, 0] + self.radius * torch.cos(theta)
+        y = self.center[0, 1] + self.radius * torch.sin(theta)
+        return torch.cat([x, y], dim=1)
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        a = self.boundary[0].in_sample(num_samples, with_boundary=True)
+        if with_normal:
+            return a, torch.tensor([[1.0, 0.0]] * num_samples)
+        else:
+            return a
 
 
 class Circle2D(GeometryBase):
-    pass
+    def __init__(self, center: Union[torch.Tensor, List, Tuple],
+                 radius: torch.float64):
+        super().__init__(dim=2, intrinsic_dim=1)
+        self.center = torch.tensor(center).view(1, -1)
+        self.radius = radius
+        self.boundary = [CircleArc2D(self.center, self.radius)]
+
+    def sdf(self, p: torch.Tensor):
+        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
+        return d
+
+    def get_bounding_box(self):
+        x_min = self.center[0, 0] - self.radius
+        x_max = self.center[0, 0] + self.radius
+        y_min = self.center[0, 1] - self.radius
+        y_max = self.center[0, 1] + self.radius
+        return [x_min, x_max, y_min, y_max]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        if with_boundary:
+            r = torch.linspace(0.0, self.radius, num_samples).reshape(-1, 1)
+        else:
+            r = torch.linspace(0.0, self.radius, num_samples + 1)[:-1].reshape(-1, 1)
+
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        R, T = torch.meshgrid(r, theta, indexing='ij')
+        x = self.center[0, 0] + R * torch.cos(T)
+        y = self.center[0, 1] + R * torch.sin(T)
+        return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1)], dim=1)
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        x = self.center[0, 0] + self.radius * torch.cos(theta)
+        y = self.center[0, 1] + self.radius * torch.sin(theta)
+        a = torch.cat([x, y], dim=1)
+        an = (a - self.center) / self.radius
+        if with_normal:
+            return a, an
+        else:
+            return a
 
 
-class Circle3D(GeometryBase):
-    pass
+class Sphere3D(GeometryBase):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple],
+                 radius: torch.float64):
+        super().__init__(dim=3, intrinsic_dim=2)
+        self.center = torch.tensor(center).view(1, -1)
+        self.radius = radius
+        self.boundary = [Circle2D(self.center, self.radius)]
+
+    def sdf(self, p: torch.Tensor):
+        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
+        return torch.abs(d)
+
+    def get_bounding_box(self):
+        x_min = self.center[0, 0] - self.radius
+        x_max = self.center[0, 0] + self.radius
+        y_min = self.center[0, 1] - self.radius
+        y_max = self.center[0, 1] + self.radius
+        z_min = self.center[0, 2] - self.radius
+        z_max = self.center[0, 2] + self.radius
+        return [x_min, x_max, y_min, y_max, z_min, z_max]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        num_samples = int(num_samples ** (1 / 2))
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        phi = torch.linspace(0.0, torch.pi, num_samples).reshape(-1, 1)
+        R, T, P = torch.meshgrid(self.radius, theta, phi, indexing='ij')
+        x = self.center[0, 0] + R * torch.sin(P) * torch.cos(T)
+        y = self.center[0, 1] + R * torch.sin(P) * torch.sin(T)
+        z = self.center[0, 2] + R * torch.cos(P)
+        return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)], dim=1)
+
+    def on_sample(self, num_samples: int, with_normal: bool
+    = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        pass
+
+
+class Ball3D(GeometryBase):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple],
+                 radius: torch.float64):
+        super().__init__(dim=3, intrinsic_dim=3)
+        self.center = torch.tensor(center).view(1, -1)
+        self.radius = radius
+        self.boundary = [Sphere3D(self.center, self.radius)]
+
+    def sdf(self, p: torch.Tensor):
+        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
+        return d
+
+    def get_bounding_box(self):
+        x_min = self.center[0, 0] - self.radius
+        x_max = self.center[0, 0] + self.radius
+        y_min = self.center[0, 1] - self.radius
+        y_max = self.center[0, 1] + self.radius
+        z_min = self.center[0, 2] - self.radius
+        z_max = self.center[0, 2] + self.radius
+        return [x_min, x_max, y_min, y_max, z_min, z_max]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        num_samples = int(num_samples ** (1 / 3))
+        if with_boundary:
+            r = torch.linspace(0.0, self.radius, num_samples).reshape(-1, 1)
+        else:
+            r = torch.linspace(0.0, self.radius, num_samples + 1)[:-1].reshape(-1, 1)
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        phi = torch.linspace(0.0, torch.pi, num_samples).reshape(-1, 1)
+        R, T, P = torch.meshgrid(r, theta, phi, indexing='ij')
+        x = self.center[0, 0] + R * torch.sin(P) * torch.cos(T)
+        y = self.center[0, 1] + R * torch.sin(P) * torch.sin(T)
+        z = self.center[0, 2] + R * torch.cos(P)
+        return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)], dim=1)
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        phi = torch.linspace(0.0, torch.pi, num_samples).reshape(-1, 1)
+        R, T, P = torch.meshgrid(self.radius, theta, phi, indexing='ij')
+        x = self.center[0, 0] + R * torch.sin(P) * torch.cos(T)
+        y = self.center[0, 1] + R * torch.sin(P) * torch.sin(T)
+        z = self.center[0, 2] + R * torch.cos(P)
+        a = torch.cat([x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)], dim=1)
+        an = (a - self.center) / self.radius
+        if with_normal:
+            return a, an
+        else:
+            return a
