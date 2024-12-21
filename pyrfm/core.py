@@ -18,8 +18,8 @@ class RFBase(ABC):
                  gen: torch.Generator = None,
                  dtype: torch.dtype = None,
                  device: torch.device = None):
-        self.dtype = dtype if dtype is not None else torch.get_default_dtype()
-        self.device = device if device is not None else torch.get_default_device()
+        self.dtype = dtype if dtype is not None else torch.tensor(0.).dtype
+        self.device = device if device is not None else torch.tensor(0.).device
 
         self.dim: int = dim
         self.center: torch.Tensor = center.to(dtype=self.dtype, device=self.device).view(1, -1)
@@ -81,15 +81,11 @@ class RFTanH(RFBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
-        if isinstance(self.activation, nn.Tanh):
-            with torch.no_grad():
-                self.x_buff_ = x
-                self.features_buff_ = torch.tanh(
-                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
-                return self.features_buff_
-
-        else:
-            return self.activation(torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        with torch.no_grad():
+            self.x_buff_ = x
+            self.features_buff_ = torch.tanh(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            return self.features_buff_
 
     def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -98,16 +94,13 @@ class RFTanH(RFBase):
         if axis >= self.dim:
             raise ValueError('Axis out of range')
 
-        if isinstance(self.activation, nn.Tanh):
-            with torch.no_grad():
-                if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                    pass
-                else:
-                    self.forward(x)
+        with torch.no_grad():
+            if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                pass
+            else:
+                self.forward(x)
 
-                return (1 - torch.pow(self.features_buff_, 2)) * (self.weights[[axis], :] / self.radius[0, axis])
-        else:
-            pass
+            return (1 - torch.pow(self.features_buff_, 2)) * (self.weights[[axis], :] / self.radius[0, axis])
 
     def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -119,19 +112,15 @@ class RFTanH(RFBase):
         if axis2 >= self.dim:
             raise ValueError('Axis2 out of range')
 
-        if isinstance(self.activation, nn.Tanh):
-            with torch.no_grad():
-                if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                    pass
-                else:
-                    self.forward(x)
+        with torch.no_grad():
+            if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                pass
+            else:
+                self.forward(x)
 
-                return -2 * self.features_buff_ * (1 - torch.pow(self.features_buff_, 2)) * \
-                    (self.weights[[axis1], :] / self.radius[0, axis1]) * (
-                            self.weights[[axis2], :] / self.radius[0, axis2])
-
-        else:
-            pass
+            return -2 * self.features_buff_ * (1 - torch.pow(self.features_buff_, 2)) * \
+                (self.weights[[axis1], :] / self.radius[0, axis1]) * (
+                        self.weights[[axis2], :] / self.radius[0, axis2])
 
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
         if isinstance(order, List):
@@ -142,31 +131,27 @@ class RFTanH(RFBase):
         if order.shape[0] != self.dim:
             raise ValueError('Order dimension mismatch')
 
-        if isinstance(self.activation, nn.Tanh):
-            n_order = order.sum()
-            if n_order <= 0:
-                raise ValueError('Order must be positive')
-            if self.x_buff_ is x or torch.equal(self.x_buff_, x):
-                t = self.features_buff_
-            else:
-                t = torch.tanh(
-                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
-            p_n_minus_1 = 1 - t ** 2
-            p_n_minus_2 = t
-            p_n = 1
-            for n in range(2, n_order + 1):
-                p_n = -(2 * n - 1) * t * p_n_minus_1 - (1 - t ** 2) * p_n_minus_2
-                p_n_minus_2 = p_n_minus_1
-                p_n_minus_1 = p_n
-
-            for i in range(order.shape[0]):
-                for _ in range(order[i]):
-                    p_n *= (self.weights[[i], :] / self.radius[0, i])
-
-            return p_n
-
+        n_order = order.sum()
+        if n_order <= 0:
+            raise ValueError('Order must be positive')
+        if self.x_buff_ is x or torch.equal(self.x_buff_, x):
+            t = self.features_buff_
         else:
-            pass
+            t = torch.tanh(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        p_n_minus_1 = 1 - t ** 2
+        p_n_minus_2 = t
+        p_n = 1
+        for n in range(2, n_order + 1):
+            p_n = -(2 * n - 1) * t * p_n_minus_1 - (1 - t ** 2) * p_n_minus_2
+            p_n_minus_2 = p_n_minus_1
+            p_n_minus_1 = p_n
+
+        for i in range(order.shape[0]):
+            for _ in range(order[i]):
+                p_n *= (self.weights[[i], :] / self.radius[0, i])
+
+        return p_n
 
 
 class POUBase(ABC):
@@ -174,8 +159,8 @@ class POUBase(ABC):
                  dtype: torch.dtype = None,
                  device: torch.device = None
                  ):
-        self.dtype = dtype if dtype is not None else torch.get_default_dtype()
-        self.device = device if device is not None else torch.get_default_device()
+        self.dtype = dtype if dtype is not None else torch.tensor(0.).dtype
+        self.device = device if device is not None else torch.tensor(0.).device
         self.center = center.to(dtype=self.dtype, device=self.device).view(1, -1)
         self.radius = radius.to(dtype=self.dtype, device=self.device).view(1, -1)
         self.func = torch.nn.Identity
@@ -348,8 +333,8 @@ class RFMBase(ABC):
         :param dtype: Data type for tensors.
         :param device: Device to run the computations on.
         """
-        self.dtype = dtype if dtype is not None else torch.get_default_dtype()
-        self.device = device if device is not None else torch.get_default_device()
+        self.dtype = dtype if dtype is not None else torch.tensor(0.).dtype
+        self.device = device if device is not None else torch.tensor(0.).device
         self.dim = dim
         if isinstance(domain, GeometryBase):
             domain = domain.get_bounding_box()
@@ -418,7 +403,7 @@ class RFMBase(ABC):
         """
         return self.forward(x)
 
-    def compute(self, A):
+    def compute(self, A: torch.Tensor):
         """
         Compute the QR decomposition of matrix A.
 

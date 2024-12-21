@@ -84,6 +84,23 @@ class GeometryBase(ABC):
                 return False
 
     @abstractmethod
+    def sdf(self, p: torch.Tensor):
+        """
+        Compute the signed distance of a point to the geometry.
+
+        Args:
+        ----
+        p : torch.Tensor
+            A tensor of points.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of signed distances.
+        """
+        pass
+
+    @abstractmethod
     def get_bounding_box(self):
         """
         Get the bounding box of the geometry.
@@ -134,7 +151,6 @@ class GeometryBase(ABC):
         """
         pass
 
-    @abstractmethod
     def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
         """
         Compute the intersection of this geometry with another geometry.
@@ -173,6 +189,22 @@ class Point1D(GeometryBase):
         """
         super().__init__(dim=1, intrinsic_dim=0)
         self.x = x
+
+    def sdf(self, p: torch.Tensor):
+        """
+        Compute the signed distance of a point to the point.
+
+        Args:
+        ----
+        p : torch.Tensor
+            A tensor of points.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of signed distances.
+        """
+        return torch.abs(p - self.x)
 
     def get_bounding_box(self):
         """
@@ -289,6 +321,22 @@ class Point2D(GeometryBase):
         super().__init__(dim=2, intrinsic_dim=0)
         self.x = x
         self.y = y
+
+    def sdf(self, p: torch.Tensor):
+        """
+        Compute the signed distance of a point to the point.
+
+        Args:
+        ----
+        p : torch.Tensor
+            A tensor of points.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of signed distances.
+        """
+        return torch.norm(p - torch.tensor([self.x, self.y]), dim=1)
 
     def get_bounding_box(self):
         """
@@ -411,6 +459,22 @@ class Point3D(GeometryBase):
         self.y = y
         self.z = z
 
+    def sdf(self, p: torch.Tensor):
+        """
+        Compute the signed distance of a point to the point.
+
+        Args:
+        ----
+        p : torch.Tensor
+            A tensor of points.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of signed distances.
+        """
+        return torch.norm(p - torch.tensor([self.x, self.y, self.z]), dim=1)
+
     def get_bounding_box(self):
         """
         Get the bounding box of the point.
@@ -530,6 +594,23 @@ class Line1D(GeometryBase):
         self.x2 = x2
         self.boundary = [Point1D(x1), Point1D(x2)]
 
+    def sdf(self, p: torch.Tensor):
+        """
+        Compute the signed distance of a point to the line segment.
+
+        Args:
+        ----
+        p : torch.Tensor
+            A tensor of points.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of signed distances.
+        """
+        x1, x2 = min(self.x1, self.x2), max(self.x1, self.x2)
+        return torch.where(p < (x1 + x2) / 2, x1 - p, p - x2)
+
     def get_bounding_box(self):
         """
         Get the bounding box of the line segment.
@@ -622,6 +703,14 @@ class Line2D(GeometryBase):
         self.y2 = y2
         self.boundary = [Point2D(x1, y1), Point2D(x2, y2)]
 
+    def sdf(self, p: torch.Tensor):
+        a = torch.tensor([self.x1, self.y1])
+        b = torch.tensor([self.x2, self.y2])
+        ap = p - a
+        ab = b - a
+        t = torch.clamp(torch.dot(ap, ab) / torch.dot(ab, ab), 0, 1)
+        return torch.norm(ap - t * ab)
+
     def get_bounding_box(self):
         x_min = min(self.x1, self.x2)
         x_max = max(self.x1, self.x2)
@@ -674,6 +763,14 @@ class Line3D(GeometryBase):
         self.y2 = y2
         self.z2 = z2
         self.boundary = [Point3D(x1, y1, z1), Point3D(x2, y2, z2)]
+
+    def sdf(self, p: torch.Tensor):
+        a = torch.tensor([self.x1, self.y1, self.z1])
+        b = torch.tensor([self.x2, self.y2, self.z2])
+        ap = p - a
+        ab = b - a
+        t = torch.clamp(torch.dot(ap, ab) / torch.dot(ab, ab), 0, 1)
+        return torch.norm(ap - t * ab)
 
     def get_bounding_box(self):
         x_min = min(self.x1, self.x2)
@@ -735,6 +832,9 @@ class Square2D(GeometryBase):
                                 self.center[0, 0] - self.radius[0, 0], self.center[0, 1] + self.radius[0, 1]),
                          Line2D(self.center[0, 0] - self.radius[0, 0], self.center[0, 1] + self.radius[0, 1],
                                 self.center[0, 0] - self.radius[0, 0], self.center[0, 1] - self.radius[0, 1])]
+
+    def sdf(self, p: torch.Tensor):
+        pass
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -945,15 +1045,14 @@ class Cube3D(GeometryBase):
             return other.intersection(self)
 
 
-class Arc2D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple],
+class CircleArc2D(GeometryBase):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple],
                  start_angle: torch.float64, end_angle: torch.float64):
         super().__init__(dim=2, intrinsic_dim=1)
         self.center = torch.tensor(center).view(1, -1)
-        self.radius = torch.tensor(radius).view(1, -1)
 
 
-class Arc3D(GeometryBase):
+class CircleArc3D(GeometryBase):
     pass
 
 

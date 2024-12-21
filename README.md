@@ -14,7 +14,7 @@ cd pyRFM
 pip install .
 ```
 
-# Update
+## Update
 
 ```
 pip install --upgrade git+https://github.com/IFaay/pyRFM.git
