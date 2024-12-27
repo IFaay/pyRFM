@@ -20,6 +20,7 @@ setup(
         "numpy",
         "pandas",
         "matplotlib",
+        "scipy",
         "torch>=2.1.0"
     ],
     classifiers=[

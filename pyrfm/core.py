@@ -8,7 +8,8 @@ import time
 
 import torch
 
-from .geometry import GeometryBase
+from .geometry import GeometryBase, Line1D, Square2D, Cube3D
+from .voronoi import Voronoi
 from .utils import *
 
 
@@ -242,7 +243,7 @@ class POUBase(ABC):
 
 class PsiA(POUBase):
     def set_func(self):
-        self.func = lambda x: torch.where(x < 1, 0.0, torch.where(x > 1, 0.0, 1.0))
+        self.func = lambda x: torch.where(x < -1.0, 0.0, torch.where(x > 1.0, 0.0, 1.0))
         self.d_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
         self.d2_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
 
@@ -337,10 +338,24 @@ class RFMBase(ABC):
         self.device = device if device is not None else torch.tensor(0.).device
         self.dim = dim
         if isinstance(domain, GeometryBase):
-            domain = domain.get_bounding_box()
-        if len(domain) != 2 * dim:
-            raise ValueError(f"Domain must contain {2 * dim} values (min and max for each dimension).")
-        self.domain = [(domain[2 * i], domain[2 * i + 1]) for i in range(dim)]
+            if domain.dim != self.dim:
+                raise ValueError("Domain dimension mismatch.")
+            else:
+                self.domain = domain
+        else:
+            if len(domain) != 2 * dim:
+                raise ValueError(f"Domain must contain {2 * dim} values (min and max for each dimension).")
+            if dim == 1:
+                self.domain = Line1D(domain[0], domain[1])
+            elif dim == 2:
+                self.domain = Square2D([(domain[0] + domain[1]) / 2.0, (domain[2] + domain[3]) / 2.0],
+                                       [(domain[1] - domain[0]) / 2.0, (domain[3] - domain[2]) / 2.0])
+            elif dim == 3:
+                self.domain = Cube3D(
+                    [(domain[0] + domain[1]) / 2.0, (domain[2] + domain[3]) / 2.0, (domain[4] + domain[5]) / 2.0],
+                    [(domain[1] - domain[0]) / 2.0, (domain[3] - domain[2]) / 2.0, (domain[5] - domain[4]) / 2.0])
+            else:
+                raise ValueError("Only 1D, 2D, and 3D domains are supported.")
 
         # If n_subdomains is an integer, create uniform subdivisions
         if isinstance(n_subdomains, int):
@@ -386,6 +401,39 @@ class RFMBase(ABC):
         self.A: Optional[torch.tensor] = None
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
+
+    def add_c_condition(self, num_samples: int, order: int = 0):
+        """
+        Add a Continuity (c0 or c1) condition to the model.
+        :param num_samples: number of interface points
+        :param order: order of the continuity condition
+        :return: feature Tensor
+        """
+        if not isinstance(self.pou_functions[0], PsiA):
+            warnings.warn("The POU function is not PsiA, the continuity condition may not be Appropriate.")
+
+        voronoi = Voronoi(self.domain, self.centers)
+        interface_dict, _ = voronoi.interface_sample(num_samples)
+
+        CFeatrues: List[torch.Tensor] = []
+        if order == 0:
+            for pair, points in interface_dict.items():
+                feature = self.features(points)
+                for i in range(feature.numel()):
+                    if i >= len(CFeatrues):
+                        # Initialize CFeatrues[i] if it does not exist
+                        if i not in pair:
+                            CFeatrues.append(torch.zeros_like(feature[i]))
+                        else:
+                            CFeatrues.append(feature[i] if i == pair[0] else -feature[i])
+                    else:
+                        # Update CFeatrues[i] if it exists
+                        if i not in pair:
+                            CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature[i])], dim=0)
+                        else:
+                            CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
+
+        return Tensor(CFeatrues, shape=self.submodels.shape)
 
     def empty_cache(self):
         """
@@ -584,9 +632,10 @@ class RFMBase(ABC):
         """
         centers_list = []
         radii_list = []
+        bounding_box = self.domain.get_bounding_box()
 
         for i in range(self.dim):
-            sub_min, sub_max = self.domain[i]
+            sub_min, sub_max = (bounding_box[2 * i], bounding_box[2 * i + 1])
             n_divisions = n_subdomains[i]
 
             # Compute the subdomain size and the effective step size
@@ -620,6 +669,13 @@ class RFMBase(ABC):
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
 
+        # if isinstance(self.pou_functions[0], PsiA):
+        #     c = []
+        #     for (i, pou_function) in enumerate(self.pou_functions.flat_data):
+        #         c_i = pou_function(x)
+        #         c.append(c_i)
+        #     return Tensor(c, shape=self.submodels.shape)
+
         c = []
         c_sum = torch.zeros(x.shape[0], 1, dtype=self.dtype, device=self.device)
         for (i, pou_function) in enumerate(self.pou_functions.flat_data):
@@ -640,6 +696,13 @@ class RFMBase(ABC):
         """
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
+
+        # if isinstance(self.pou_functions[0], PsiA):
+        #     c = []
+        #     for (i, pou_function) in enumerate(self.pou_functions.flat_data):
+        #         c_i = pou_function.first_derivative(x, axis)
+        #         c.append(c_i)
+        #     return Tensor(c, shape=self.submodels.shape)
 
         c = []
         c_sum = torch.zeros(x.shape[0], 1, dtype=self.dtype, device=self.device)
@@ -665,6 +728,13 @@ class RFMBase(ABC):
         """
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
+
+        # if isinstance(self.pou_functions[0], PsiA):
+        #     c = []
+        #     for (i, pou_function) in enumerate(self.pou_functions.flat_data):
+        #         c_i = pou_function.second_derivative(x, axis1, axis2)
+        #         c.append(c_i)
+        #     return Tensor(c, shape=self.submodels.shape)
 
         c = []
         c_sum = torch.zeros(x.shape[0], 1, dtype=self.dtype, device=self.device)
