@@ -27,8 +27,13 @@ def plot_sdf(sdf_func, bounding_box, resolution=100):
     plt.axis('equal')
     plt.show()
 
-
 # 示例使用
-square = pyrfm.Square2D(center=[0.0, 0.0], radius=[1.0, 1.0])
-bounding_box = [-2.0, 2.0, -2.0, 2.0]
-plot_sdf(square.sdf, bounding_box)
+# square = pyrfm.Square2D(center=[0.0, 0.0], radius=[1.0, 1.0])
+# x = square.in_sample(100, with_boundary=True)
+# print(square.sdf(x))
+# bounding_box = [-2.0, 2.0, -2.0, 2.0]
+# plot_sdf(square.sdf, bounding_box)
+
+# circle = pyrfm.Circle2D(center=[0.0, 0.0], radius=1.0)
+# x = circle.in_sample(100, with_boundary=True)
+# print(circle.sdf(x))

@@ -103,7 +103,7 @@ class GeometryBase(ABC):
         pass
 
     @abstractmethod
-    def get_bounding_box(self):
+    def get_bounding_box(self) -> List[float]:
         """
         Get the bounding box of the geometry.
 
@@ -153,9 +153,9 @@ class GeometryBase(ABC):
         """
         pass
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
+    def __and__(self, other: 'GeometryBase') -> 'GeometryBase':
         """
-        Compute the intersection of this geometry with another geometry.
+        Compute the intersection of two geometries.
 
         Args:
         ----
@@ -164,10 +164,93 @@ class GeometryBase(ABC):
 
         Returns:
         -------
-        GeometryBase or None
-            A new GeometryBase object representing the intersection, or None if no intersection exists.
+        IntersectionGeometry
+            The intersection of the two geometries.
         """
-        pass
+        return IntersectionGeometry(self, other)
+
+    def __or__(self, other: 'GeometryBase') -> 'GeometryBase':
+        """
+        Compute the union of two geometries.
+
+        Args:
+        ----
+        other : GeometryBase
+            Another geometry object.
+
+        Returns:
+        -------
+        UnionGeometry
+            The union of the two geometries.
+        """
+        return UnionGeometry(self, other)
+
+    def __invert__(self) -> 'GeometryBase':
+        """
+        Compute the complement of the geometry.
+
+        Returns:
+        -------
+        ComplementGeometry
+            The complement of the geometry.
+        """
+        return ComplementGeometry(self)
+
+    def __add__(self, other: 'GeometryBase') -> 'GeometryBase':
+        return UnionGeometry(self, other)
+
+    def __sub__(self, other: 'GeometryBase') -> 'GeometryBase':
+        return UnionGeometry(self, ComplementGeometry(other))
+
+
+class UnionGeometry(GeometryBase):
+    def __init__(self, geomA: GeometryBase, geomB: GeometryBase):
+        super().__init__()
+        self.geomA = geomA
+        self.geomB = geomB
+        self.dim = geomA.dim
+        self.intrinsic_dim = geomA.intrinsic_dim
+        self.boundary = [*geomA.boundary, *geomB.boundary]
+
+    def sdf(self, p: torch.Tensor):
+        return torch.min(self.geomA.sdf(p), self.geomB.sdf(p))
+
+
+class IntersectionGeometry(GeometryBase):
+    def __init__(self, geomA: GeometryBase, geomB: GeometryBase):
+        super().__init__()
+        if geomA.dim != geomB.dim:
+            raise ValueError("The dimensions of the two geometries must be equal.")
+        elif geomA.intrinsic_dim != geomB.intrinsic_dim:
+            raise ValueError("The intrinsic dimensions of the two geometries must be equal.")
+        self.geomA = geomA
+        self.geomB = geomB
+        self.dim = geomA.dim
+        self.intrinsic_dim = geomA.intrinsic_dim
+        self.boundary = [*geomA.boundary, *geomB.boundary]
+
+    def sdf(self, p: torch.Tensor):
+        return torch.max(self.geomA.sdf(p), self.geomB.sdf(p))
+
+    def get_bounding_box(self):
+        boxA = self.geomA.get_bounding_box()
+        boxB = self.geomB.get_bounding_box()
+        if self.dim == 1:
+            return [max(boxA[0], boxB[0]), min(boxA[1], boxB[1])]
+
+
+class ComplementGeometry(GeometryBase):
+    def __init__(self, geom: GeometryBase):
+        super().__init__()
+        self.geom = geom
+        self.dim = geom.dim
+        self.intrinsic_dim = geom.intrinsic_dim
+        self.boundary = [*geom.boundary]
+
+    def sdf(self, p: torch.Tensor):
+        return -self.geom.sdf(p)
+
+    pass
 
 
 class Point1D(GeometryBase):
@@ -273,28 +356,6 @@ class Point1D(GeometryBase):
             A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
         """
         return torch.tensor([[self.x]] * num_samples)
-
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        """
-        Compute the intersection of this point with another geometry.
-
-        Args:
-        ----
-        other : GeometryBase
-            Another geometry object.
-
-        Returns:
-        -------
-        GeometryBase or None
-            A new GeometryBase object representing the intersection, or None if no intersection exists.
-        """
-        if isinstance(other, Point1D):
-            if self.x == other.x:
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
 
 
 class Point2D(GeometryBase):
@@ -405,28 +466,6 @@ class Point2D(GeometryBase):
             A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
         """
         return torch.tensor([[self.x, self.y]] * num_samples)
-
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        """
-        Compute the intersection of this point with another geometry.
-
-        Args:
-        ----
-        other : GeometryBase
-            Another geometry object.
-
-        Returns:
-        -------
-        GeometryBase or None
-            A new GeometryBase object representing the intersection, or None if no intersection exists.
-        """
-        if isinstance(other, Point2D):
-            if self.x == other.x and self.y == other.y:
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
 
 
 class Point3D(GeometryBase):
@@ -543,28 +582,6 @@ class Point3D(GeometryBase):
         """
         return torch.tensor([[self.x, self.y, self.z]] * num_samples)
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        """
-        Compute the intersection of this point with another geometry.
-
-        Args:
-        ----
-        other : GeometryBase
-            Another geometry object.
-
-        Returns:
-        -------
-        GeometryBase or None
-            A new GeometryBase object representing the intersection, or None if no intersection exists.
-        """
-        if isinstance(other, Point3D):
-            if self.x == other.x and self.y == other.y and self.z == other.z:
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
-
 
 class Line1D(GeometryBase):
     """
@@ -673,28 +690,6 @@ class Line1D(GeometryBase):
         else:
             return torch.cat([a, b], dim=0)
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        """
-        Compute the intersection of this line segment with another geometry.
-
-        Args:
-        ----
-        other : GeometryBase
-            Another geometry object.
-
-        Returns:
-        -------
-        GeometryBase or None
-            A new GeometryBase object representing the intersection, or None if no intersection exists.
-        """
-        if isinstance(other, Line1D):
-            if self.x1 == other.x1 and self.x2 == other.x2:
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
-
 
 class Line2D(GeometryBase):
     def __init__(self, x1: torch.float64, y1: torch.float64, x2: torch.float64, y2: torch.float64):
@@ -744,15 +739,6 @@ class Line2D(GeometryBase):
         else:
             return torch.cat([a, b], dim=0)
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        if isinstance(other, Line2D):
-            if self.x1 == other.x1 and self.y1 == other.y1 and self.x2 == other.x2 and self.y2 == other.y2:
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
-
 
 class Line3D(GeometryBase):
     def __init__(self, x1: torch.float64, y1: torch.float64, z1: torch.float64, x2: torch.float64, y2: torch.float64,
@@ -781,7 +767,7 @@ class Line3D(GeometryBase):
         y_max = max(self.y1, self.y2)
         z_min = min(self.z1, self.z2)
         z_max = max(self.z1, self.z2)
-        return [x_min, x_max, y_min, y_max, z_min, z_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         if with_boundary:
@@ -811,15 +797,6 @@ class Line3D(GeometryBase):
         else:
             return torch.cat([a, b], dim=0)
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        if isinstance(other, Line3D):
-            if self.x1 == other.x1 and self.y1 == other.y1 and self.z1 == other.z1 and self.x2 == other.x2 and self.y2 == other.y2 and self.z2 == other.z2:
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
-
 
 class Square2D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple]):
@@ -846,7 +823,7 @@ class Square2D(GeometryBase):
         x_max = self.center[0, 0] + self.radius[0, 0]
         y_min = self.center[0, 1] - self.radius[0, 1]
         y_max = self.center[0, 1] + self.radius[0, 1]
-        return [x_min, x_max, y_min, y_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         num_samples = int(num_samples ** (1 / 2))
@@ -880,15 +857,6 @@ class Square2D(GeometryBase):
                 ], dim=0)
         else:
             return torch.cat([a, b, c, d], dim=0)
-
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        if isinstance(other, Square2D):
-            if torch.all(self.center == other.center) and torch.all(self.radius == other.radius):
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
 
 
 class Square3D(GeometryBase):
@@ -936,7 +904,7 @@ class Square3D(GeometryBase):
         y_max = self.center[0, 1] + self.radius[0, 1]
         z_min = self.center[0, 2] - self.radius[0, 2]
         z_max = self.center[0, 2] + self.radius[0, 2]
-        return [x_min, x_max, y_min, y_max, z_min, z_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         # FIXME: wrong use with meshgrid
@@ -981,15 +949,6 @@ class Square3D(GeometryBase):
         else:
             return torch.cat([a, b, c, d], dim=0)
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        if isinstance(other, Square3D):
-            if torch.all(self.center == other.center) and torch.all(self.radius == other.radius):
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
-
 
 class Cube3D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple]):
@@ -1023,7 +982,7 @@ class Cube3D(GeometryBase):
         y_max = self.center[0, 1] + self.radius[0, 1]
         z_min = self.center[0, 2] - self.radius[0, 2]
         z_max = self.center[0, 2] + self.radius[0, 2]
-        return [x_min, x_max, y_min, y_max, z_min, z_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         num_samples = int(num_samples ** (1 / 3))
@@ -1052,15 +1011,6 @@ class Cube3D(GeometryBase):
         else:
             return torch.cat(samples, dim=0)
 
-    def intersection(self, other: "GeometryBase") -> Union["GeometryBase", None]:
-        if isinstance(other, Cube3D):
-            if torch.all(self.center == other.center) and torch.all(self.radius == other.radius):
-                return self
-            else:
-                return None
-        else:
-            return other.intersection(self)
-
 
 class CircleArc2D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple],
@@ -1079,7 +1029,7 @@ class CircleArc2D(GeometryBase):
         x_max = self.center[0, 0] + self.radius
         y_min = self.center[0, 1] - self.radius
         y_max = self.center[0, 1] + self.radius
-        return [x_min, x_max, y_min, y_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         if with_boundary:
@@ -1104,26 +1054,25 @@ class Circle2D(GeometryBase):
         super().__init__(dim=2, intrinsic_dim=1)
         self.center = torch.tensor(center).view(1, -1)
         self.radius = radius
-        self.boundary = [CircleArc2D(self.center, self.radius)]
+        self.boundary = [CircleArc2D(center, radius)]
 
     def sdf(self, p: torch.Tensor):
-        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
-        return d
+        return torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius
         x_max = self.center[0, 0] + self.radius
         y_min = self.center[0, 1] - self.radius
         y_max = self.center[0, 1] + self.radius
-        return [x_min, x_max, y_min, y_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         if with_boundary:
-            r = torch.linspace(0.0, self.radius, num_samples).reshape(-1, 1)
+            r = torch.linspace(0.0, self.radius, num_samples)
         else:
-            r = torch.linspace(0.0, self.radius, num_samples + 1)[:-1].reshape(-1, 1)
+            r = torch.linspace(0.0, self.radius, num_samples + 1)[:-1]
 
-        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples)
         R, T = torch.meshgrid(r, theta, indexing='ij')
         x = self.center[0, 0] + R * torch.cos(T)
         y = self.center[0, 1] + R * torch.sin(T)
@@ -1160,7 +1109,7 @@ class Sphere3D(GeometryBase):
         y_max = self.center[0, 1] + self.radius
         z_min = self.center[0, 2] - self.radius
         z_max = self.center[0, 2] + self.radius
-        return [x_min, x_max, y_min, y_max, z_min, z_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         num_samples = int(num_samples ** (1 / 2))
@@ -1196,7 +1145,7 @@ class Ball3D(GeometryBase):
         y_max = self.center[0, 1] + self.radius
         z_min = self.center[0, 2] - self.radius
         z_max = self.center[0, 2] + self.radius
-        return [x_min, x_max, y_min, y_max, z_min, z_max]
+        return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         num_samples = int(num_samples ** (1 / 3))
