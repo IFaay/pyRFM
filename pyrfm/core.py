@@ -402,21 +402,26 @@ class RFMBase(ABC):
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
-    def add_c_condition(self, num_samples: int, order: int = 0):
+    def add_c_condition(self, num_samples: int, order: int = 1):
         """
-        Add a Continuity (c0 or c1) condition to the model.
+        Add a Continuity (c0 and c1) condition to the model.
         :param num_samples: number of interface points
-        :param order: order of the continuity condition
+        :param order: max order of the continuity condition
         :return: feature Tensor
         """
         if not isinstance(self.pou_functions[0], PsiA):
             warnings.warn("The POU function is not PsiA, the continuity condition may not be Appropriate.")
 
+        if order < 0:
+            raise ValueError("Order must be non-negative.")
+
         voronoi = Voronoi(self.domain, self.centers)
         interface_dict, _ = voronoi.interface_sample(num_samples)
 
         CFeatrues: List[torch.Tensor] = []
-        if order == 0:
+
+        if order <= 0:
+            # add c0 condition
             for pair, points in interface_dict.items():
                 feature = self.features(points)
                 for i in range(feature.numel()):
@@ -432,6 +437,22 @@ class RFMBase(ABC):
                             CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature[i])], dim=0)
                         else:
                             CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
+        if order <= 1:
+            # add c1 condition
+            for pair, points in interface_dict.items():
+                center1 = self.centers.view(-1, self.centers.shape[-1])[pair[1]]
+                center0 = self.centers.view(-1, self.centers.shape[-1])[pair[0]]
+                normal = (center1 - center0) / torch.linalg.norm(center1 - center0)
+                feature_x = self.features_derivative(points, axis=0)
+                feature_y = self.features_derivative(points, axis=1)
+                for i in range(feature_x.numel()):
+                    feature = feature_x[i] * normal[0] + feature_y[i] * normal[1]
+                    if i not in pair:
+                        CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature_x[i])], dim=0)
+                    else:
+                        CFeatrues[i] = torch.cat([CFeatrues[i], feature if i == pair[0] else -feature], dim=0)
+        if order > 1:
+            raise ValueError("Higher order continuity conditions are not supported.")
 
         return Tensor(CFeatrues, shape=self.submodels.shape)
 
