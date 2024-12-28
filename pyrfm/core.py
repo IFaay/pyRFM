@@ -420,7 +420,7 @@ class RFMBase(ABC):
 
         CFeatrues: List[torch.Tensor] = []
 
-        if order <= 0:
+        if order >= 0:
             # add c0 condition
             for pair, points in interface_dict.items():
                 feature = self.features(points)
@@ -437,7 +437,7 @@ class RFMBase(ABC):
                             CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature[i])], dim=0)
                         else:
                             CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
-        if order <= 1:
+        if order >= 1:
             # add c1 condition
             for pair, points in interface_dict.items():
                 center1 = self.centers.view(-1, self.centers.shape[-1])[pair[1]]
@@ -484,7 +484,13 @@ class RFMBase(ABC):
         A /= self.A_norm
         print("Decomposing the problem size of A: ", A.shape, "with solver QR")
 
-        self.A, self.tau = torch.geqrf(A)
+        try:
+            self.A, self.tau = torch.geqrf(A)
+        except RuntimeError as e:
+            if 'cusolver error' in str(e):
+                raise RuntimeError("Out Of Memory Error")
+            else:
+                raise e
 
         return self
 

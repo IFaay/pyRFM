@@ -51,7 +51,7 @@ if __name__ == '__main__':
     domain = pyrfm.Square2D(center=[0, 0], radius=[1, 1])
     model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=4, pou=pyrfm.PsiA)
 
-    x_in = domain.in_sample(22500, with_boundary=False)
+    x_in = domain.in_sample(20000, with_boundary=False)
 
     x_on = domain.on_sample(2000)
 
