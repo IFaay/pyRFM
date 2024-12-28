@@ -122,7 +122,10 @@ class Voronoi:
             samples = domain.in_sample(int(20 ** dim), with_boundary=True)
             self.points = torch.tensor(Kmeans(samples.cpu().numpy(), int(k))[0])
 
-        voronoi_ = SciVoronoi(self.points.cpu().numpy())
+        if domain.dim == 2:
+            voronoi_ = SciVoronoi(self.points.cpu().numpy())
+        else:
+            raise NotImplementedError("Only 2D Voronoi diagrams are supported.")
         self.voronoi_ = voronoi_
         self.vertices: torch.Tensor = torch.tensor(voronoi_.vertices)
         self.ridge_points: List[List[int]] = voronoi_.ridge_points
