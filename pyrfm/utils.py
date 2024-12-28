@@ -19,6 +19,7 @@ from typing import Optional, Any, Union, Tuple, List, Callable, Dict
 from collections import Counter
 from enum import Enum
 
+# torch.backends.cuda.preferred_linalg_library('cusolver')  # or 'magma'
 torch.set_default_dtype(torch.float64)
 torch.set_default_device(torch.device("cpu"))
 
