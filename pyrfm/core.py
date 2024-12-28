@@ -420,10 +420,9 @@ class RFMBase(ABC):
 
         CFeatrues: List[torch.Tensor] = []
 
-        if order >= 0:
-            # add c0 condition
-            for pair, points in interface_dict.items():
-                feature = self.features(points)
+        for pair, point in interface_dict.items():
+            if order >= 0:
+                feature = self.features(point)
                 for i in range(feature.numel()):
                     if i >= len(CFeatrues):
                         # Initialize CFeatrues[i] if it does not exist
@@ -437,20 +436,20 @@ class RFMBase(ABC):
                             CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature[i])], dim=0)
                         else:
                             CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
-        if order >= 1:
-            # add c1 condition
-            for pair, points in interface_dict.items():
+            if order >= 1:
                 center1 = self.centers.view(-1, self.centers.shape[-1])[pair[1]]
                 center0 = self.centers.view(-1, self.centers.shape[-1])[pair[0]]
                 normal = (center1 - center0) / torch.linalg.norm(center1 - center0)
-                feature_x = self.features_derivative(points, axis=0)
-                feature_y = self.features_derivative(points, axis=1)
-                for i in range(feature_x.numel()):
-                    feature = feature_x[i] * normal[0] + feature_y[i] * normal[1]
+                dFeatures = [self.features_derivative(point, d) for d in range(self.dim)]
+                feature = dFeatures[0] * normal[0]
+                for i in range(1, self.dim):
+                    feature += dFeatures[i] * normal[i]
+
+                for i in range(feature.numel()):
                     if i not in pair:
-                        CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature_x[i])], dim=0)
+                        CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature[i])], dim=0)
                     else:
-                        CFeatrues[i] = torch.cat([CFeatrues[i], feature if i == pair[0] else -feature], dim=0)
+                        CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
         if order > 1:
             raise ValueError("Higher order continuity conditions are not supported.")
 
