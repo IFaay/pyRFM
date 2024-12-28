@@ -425,7 +425,7 @@ class RFMBase(ABC):
                 feature = self.features(point)
                 for i in range(feature.numel()):
                     if i >= len(CFeatrues):
-                        # Initialize CFeatrues[i] if it does not exist
+                        # Initialize CFeatures[i] if it does not exist
                         if i not in pair:
                             CFeatrues.append(torch.zeros_like(feature[i]))
                         else:
@@ -441,17 +441,17 @@ class RFMBase(ABC):
                 center0 = self.centers.view(-1, self.centers.shape[-1])[pair[0]]
                 normal = (center1 - center0) / torch.linalg.norm(center1 - center0)
                 dFeatures = [self.features_derivative(point, d) for d in range(self.dim)]
-                feature = dFeatures[0] * normal[0]
+                d_feature = dFeatures[0] * normal[0]
                 for i in range(1, self.dim):
-                    feature += dFeatures[i] * normal[i]
+                    d_feature += dFeatures[i] * normal[i]
 
-                for i in range(feature.numel()):
+                for i in range(d_feature.numel()):
                     if i not in pair:
-                        CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(feature[i])], dim=0)
+                        CFeatrues[i] = torch.cat([CFeatrues[i], torch.zeros_like(d_feature[i])], dim=0)
                     else:
-                        CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
+                        CFeatrues[i] = torch.cat([CFeatrues[i], d_feature[i] if i == pair[0] else -d_feature[i]], dim=0)
         if order > 1:
-            raise ValueError("Higher order continuity conditions are not supported.")
+            raise NotImplementedError("Higher order continuity conditions are not supported.")
 
         return Tensor(CFeatrues, shape=self.submodels.shape)
 
