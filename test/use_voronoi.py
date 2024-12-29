@@ -33,20 +33,47 @@ class Heart(pyrfm.GeometryBase):
 
 
 if __name__ == '__main__':
-    domain = Heart()
-    voronoi = pyrfm.Voronoi(domain, k=8)
+    # domain = Heart()
+    domain = pyrfm.Cube3D(center=[0, 0, 0], radius=[1, 1, 1])
+    model = pyrfm.RFMBase(dim=3, n_hidden=100, n_subdomains=2, pou=pyrfm.PsiA, domain=domain)
+    voronoi = pyrfm.Voronoi(domain, centers=model.centers)
     points = voronoi.points
-    x_min, x_max, y_min, y_max = domain.get_bounding_box()
-    delta = max(x_max - x_min, y_max - y_min)
-    virtual_points = [[x_min - delta, y_min - delta], [x_max + delta, y_min - delta],
-                      [0.5 * (x_max + x_min), y_max + 2 * delta]]
-    centers = torch.cat([points, torch.tensor(virtual_points)], dim=0)
+    print(points)
+    bounding_box = torch.tensor(domain.get_bounding_box()).view(-1, 2)
+    D = (bounding_box[:, 1] - bounding_box[:, 0]).norm(p=2)
+    center = bounding_box.mean(dim=1).view(1, domain.dim)
+    alpha = 2 * domain.dim
+    R = D * alpha
+    virtual_points = [center + R * torch.eye(domain.dim)[i] for i in range(domain.dim)]
+    virtual_points.append(center - R * torch.ones(domain.dim))
+    print(center)
+    print(torch.cat(virtual_points, dim=0))
+
+    centers = torch.cat([points, torch.cat(virtual_points, dim=0)], dim=0)
     voronoi = pyrfm.Voronoi(domain, centers=centers)
 
-    print(voronoi.vertices)
-    voronoi_plot_2d(voronoi.voronoi_, show_points=True, show_vertices=True, line_alpha=0.6)
-    p = domain.in_sample(1000)
-    plt.scatter(x=p[:, 0], y=p[:, 1])
-    plt.xlim(-1.5, 1.5)
-    plt.ylim(-1.5, 1.5)
-    plt.show()
+    n_domain = 8
+    vertices = voronoi.vertices
+    ridge_points = voronoi.ridge_points
+    ridge_vertices = voronoi.ridge_vertices
+    mask = []
+    for i in range(len(ridge_points)):
+        for j in range(len(ridge_points[i])):
+            if ridge_points[i][j] >= n_domain:
+                mask.append(i)
+                break
+
+    ridge_vertices = [ridge_vertices[i] for i in range(len(ridge_vertices)) if i not in mask]
+    ridge_points = [list(ridge_points[i]) for i in range(len(ridge_points)) if i not in mask]
+
+    print(ridge_vertices)
+    print(ridge_points)
+    print(len(ridge_vertices))
+    print(len(ridge_points))
+
+    # voronoi_plot_2d(voronoi.voronoi_, show_points=True, show_vertices=True, line_alpha=0.6)
+    # p = domain.in_sample(1000)
+    # plt.scatter(x=p[:, 0], y=p[:, 1])
+    # plt.xlim(-1.5, 1.5)
+    # plt.ylim(-1.5, 1.5)
+    # plt.show()

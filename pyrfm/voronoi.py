@@ -112,7 +112,7 @@ class Voronoi:
 
         if centers is not None:
             if isinstance(centers, torch.Tensor):
-                self.points: torch.Tensor = centers.view(-1, 2)
+                self.points: torch.Tensor = centers.view(-1, domain.dim)
             else:
                 self.points: torch.Tensor = torch.tensor(centers)
         else:
@@ -122,10 +122,8 @@ class Voronoi:
             samples = domain.in_sample(int(20 ** dim), with_boundary=True)
             self.points = torch.tensor(Kmeans(samples.cpu().numpy(), int(k))[0])
 
-        if domain.dim == 2:
-            voronoi_ = SciVoronoi(self.points.cpu().numpy())
-        else:
-            raise NotImplementedError("Only 2D Voronoi diagrams are supported.")
+        voronoi_ = SciVoronoi(self.points.cpu().numpy())
+
         self.voronoi_ = voronoi_
         self.vertices: torch.Tensor = torch.tensor(voronoi_.vertices)
         self.ridge_points: List[List[int]] = voronoi_.ridge_points
