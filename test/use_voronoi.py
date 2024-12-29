@@ -64,13 +64,16 @@ if __name__ == '__main__':
                 break
 
     ridge_vertices = [ridge_vertices[i] for i in range(len(ridge_vertices)) if i not in mask]
-    ridge_points = [list(ridge_points[i]) for i in range(len(ridge_points)) if i not in mask]
+    ridge_points = [[item for item in ridge_points[i]] for i in range(len(ridge_points)) if i not in mask]
+
 
     print(ridge_vertices)
     print(ridge_points)
     print(len(ridge_vertices))
     print(len(ridge_points))
 
+
+    print(vertices[ridge_vertices[0][0]], vertices[ridge_vertices[0][1]], vertices[ridge_vertices[0][2]], vertices[ridge_vertices[0][3]])
     # voronoi_plot_2d(voronoi.voronoi_, show_points=True, show_vertices=True, line_alpha=0.6)
     # p = domain.in_sample(1000)
     # plt.scatter(x=p[:, 0], y=p[:, 1])

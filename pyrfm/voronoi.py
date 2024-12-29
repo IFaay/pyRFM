@@ -126,10 +126,10 @@ class Voronoi:
 
         self.voronoi_ = voronoi_
         self.vertices: torch.Tensor = torch.tensor(voronoi_.vertices)
-        self.ridge_points: List[List[int]] = voronoi_.ridge_points
+        self.ridge_points: List[List[int]] = voronoi_.ridge_points.tolist()
         self.ridge_vertices: List[List[int]] = voronoi_.ridge_vertices
         self.regions: List[List[int]] = voronoi_.regions
-        self.point_region: List[List[int]] = voronoi_.point_region
+        self.point_region: List[List[int]] = voronoi_.point_region.tolist()
 
     def interface_sample(self, num_samples: int) -> Tuple[Dict, Tensor]:
         """

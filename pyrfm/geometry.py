@@ -1176,3 +1176,80 @@ class Ball3D(GeometryBase):
             return a, an
         else:
             return a
+
+class Polygon2D(GeometryBase):
+    """
+    Polygon class inheriting from GeometryBase.
+
+    Attributes:
+    ----------
+    vertices : torch.Tensor
+        A tensor of shape (N, 2) representing the vertices of the polygon.
+    """
+
+    def __init__(self, vertices: torch.Tensor):
+        """
+        Initialize the Polygon object.
+
+        Args:
+        ----
+        vertices : torch.Tensor
+            A tensor of shape (N, 2) representing the vertices of the polygon.
+        """
+        super().__init__(dim=2, intrinsic_dim=2)
+        if vertices.ndim != 2 or vertices.shape[1] != 2:
+            raise ValueError("Vertices must be a tensor of shape (N, 2).")
+        self.vertices = vertices
+
+    def sdf(self, points: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the signed distance function for the polygon.
+
+        Args:
+        ----
+        points : torch.Tensor
+            A tensor of shape (M, 2) representing the points to evaluate.
+
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of shape (M,) containing the signed distances.
+        """
+        if points.ndim != 2 or points.shape[1] != 2:
+            raise ValueError("Points must be a tensor of shape (M, 2).")
+
+        num_points = points.shape[0]
+        num_vertices = self.vertices.shape[0]
+
+        dists = torch.full((num_points,), float('inf'), dtype=self.dtype, device=self.device)
+        signs = torch.ones((num_points,), dtype=self.dtype, device=self.device)
+
+        for i in range(num_vertices):
+            v_start = self.vertices[i]
+            v_end = self.vertices[(i + 1) % num_vertices]
+
+            edge = v_end - v_start
+            to_point = points - v_start
+
+            t = torch.clamp((to_point @ edge) / (edge @ edge), 0.0, 1.0)
+            closest_point = v_start + t[:, None] * edge
+            dist_to_edge = torch.norm(points - closest_point, dim=1)
+
+            dists = torch.min(dists, dist_to_edge)
+
+            cross = edge[0] * to_point[:, 1] - edge[1] * to_point[:, 0]
+            is_below = (points[:, 1] >= v_start[1]) & (points[:, 1] < v_end[1])
+            is_above = (points[:, 1] < v_start[1]) & (points[:, 1] >= v_end[1])
+
+            signs *= torch.where(is_below & (cross > 0) | is_above & (cross < 0), -1.0, 1.0)
+
+        return signs * dists
+
+    def get_bounding_box(self):
+        pass
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        pass
+
+    def on_sample(self, num_samples: int, with_boundary: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        pass
