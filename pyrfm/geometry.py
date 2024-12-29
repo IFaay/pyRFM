@@ -56,6 +56,8 @@ class GeometryBase(ABC):
             The intrinsic dimension of the geometry.
         """
         self.dim = dim if dim is not None else 0
+        self.dtype = torch.tensor(0.).dtype
+        self.device = torch.tensor(0.).device
         self.intrinsic_dim = intrinsic_dim if intrinsic_dim is not None else dim
         self.boundary: List = []
 
@@ -862,11 +864,11 @@ class Square2D(GeometryBase):
 class Square3D(GeometryBase):
     def __init__(self, center: torch.Tensor, radius: torch.Tensor):
         super().__init__(dim=3, intrinsic_dim=2)
-        self.center = torch.tensor(center).view(1, -1)
-        self.radius = torch.tensor(radius).view(1, -1)
+        self.center = torch.tensor(center).view(1, -1) if isinstance(center, (list, tuple)) else center.view(1, -1)
+        self.radius = torch.tensor(radius).view(1, -1) if isinstance(radius, (list, tuple)) else radius.view(1, -1)
 
         for i in range(3):
-            if radius[0, i] == 0.0:
+            if self.radius[0, i] == 0.0:
                 j, k = (i + 1) % 3, (i + 2) % 3
 
                 p1 = self.center.clone().squeeze()
@@ -953,19 +955,19 @@ class Square3D(GeometryBase):
 class Cube3D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple]):
         super().__init__(dim=3, intrinsic_dim=3)
-        self.center = torch.tensor(center).view(1, -1)
-        self.radius = torch.tensor(radius).view(1, -1)
+        self.center = torch.tensor(center).view(1, -1).to(dtype=self.dtype)
+        self.radius = torch.tensor(radius).view(1, -1).to(dtype=self.dtype)
         offsets = [
-            [self.radius[0, 0], 0, 0],
-            [-self.radius[0, 0], 0, 0],
-            [0, self.radius[0, 1], 0],
-            [0, -self.radius[0, 1], 0],
-            [0, 0, self.radius[0, 2]],
-            [0, 0, -self.radius[0, 2]]
+            [self.radius[0, 0], 0.0, 0.0],
+            [-self.radius[0, 0], 0.0, 0.0],
+            [0.0, self.radius[0, 1], 0.0],
+            [0.0, -self.radius[0, 1], 0.0],
+            [0.0, 0.0, self.radius[0, 2]],
+            [0.0, 0.0, -self.radius[0, 2]]
         ]
         self.boundary = [
             Square3D(self.center + torch.tensor(offset),
-                     torch.tensor([self.radius[0, i] for i in range(3) if offset[i] == 0]))
+                     torch.tensor([self.radius[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)]))
             for offset in offsets
         ]
 
