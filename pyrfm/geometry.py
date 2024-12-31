@@ -4,6 +4,8 @@ Created on 2024/12/15
 
 @author: Yifei Sun
 """
+import torch
+
 from .utils import *
 
 
@@ -357,6 +359,8 @@ class Point1D(GeometryBase):
         torch.Tensor or tuple
             A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
         """
+        if with_normal:
+            raise NotImplementedError("Normal vectors are not available for 1D points.")
         return torch.tensor([[self.x]] * num_samples)
 
 
@@ -467,6 +471,8 @@ class Point2D(GeometryBase):
         torch.Tensor or tuple
             A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
         """
+        if with_normal:
+            raise NotImplementedError("Normal vectors are not available for 2D points.")
         return torch.tensor([[self.x, self.y]] * num_samples)
 
 
@@ -582,6 +588,8 @@ class Point3D(GeometryBase):
         torch.Tensor or tuple
             A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.
         """
+        if with_normal:
+            raise NotImplementedError("Normal vectors are not available for 3D points.")
         return torch.tensor([[self.x, self.y, self.z]] * num_samples)
 
 
@@ -1043,11 +1051,7 @@ class CircleArc2D(GeometryBase):
         return torch.cat([x, y], dim=1)
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        a = self.boundary[0].in_sample(num_samples, with_boundary=True)
-        if with_normal:
-            return a, torch.tensor([[1.0, 0.0]] * num_samples)
-        else:
-            return a
+        raise NotImplementedError
 
 
 class Circle2D(GeometryBase):
@@ -1125,7 +1129,7 @@ class Sphere3D(GeometryBase):
 
     def on_sample(self, num_samples: int, with_normal: bool
     = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        pass
+        raise NotImplementedError
 
 
 class Ball3D(GeometryBase):
@@ -1177,6 +1181,7 @@ class Ball3D(GeometryBase):
         else:
             return a
 
+
 class Polygon2D(GeometryBase):
     """
     Polygon class inheriting from GeometryBase.
@@ -1200,6 +1205,9 @@ class Polygon2D(GeometryBase):
         if vertices.ndim != 2 or vertices.shape[1] != 2:
             raise ValueError("Vertices must be a tensor of shape (N, 2).")
         self.vertices = vertices
+        for i in range(vertices.shape[0]):
+            self.boundary.append(Line2D(vertices[i, 0], vertices[i, 1], vertices[(i + 1) % vertices.shape[0], 0],
+                                        vertices[(i + 1) % vertices.shape[0], 1]))
 
     def sdf(self, points: torch.Tensor) -> torch.Tensor:
         """
@@ -1246,10 +1254,171 @@ class Polygon2D(GeometryBase):
         return signs * dists
 
     def get_bounding_box(self):
-        pass
+        """
+        Get the bounding box of the polygon.
+
+        Returns:
+        -------
+        List[float]
+            A list of the form [x_min, x_max, y_min, y_max].
+        """
+        x_min = self.vertices[:, 0].min().item()
+        x_max = self.vertices[:, 0].max().item()
+        y_min = self.vertices[:, 1].min().item()
+        y_max = self.vertices[:, 1].max().item()
+        return [x_min, x_max, y_min, y_max]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        pass
+        num_samples = int(num_samples ** (1 / 2))
+        x_min, x_max, y_min, y_max = self.get_bounding_box()
+        x = torch.linspace(x_min, x_max, num_samples)[1:-1]
+        y = torch.linspace(y_min, y_max, num_samples)[1:-1]
+        X, Y = torch.meshgrid(x, y, indexing='ij')
+        interior = torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
+        interior = interior[self.sdf(interior) < 0]
+        if with_boundary:
+            return torch.cat([interior, self.on_sample(len(self.boundary) * num_samples, with_normal=False)], dim=0)
+        return interior
 
-    def on_sample(self, num_samples: int, with_boundary: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        pass
+    def on_sample(self, num_samples: int, with_normal=False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, ...]]:
+        a = torch.cat(
+            [boundary.in_sample(num_samples // len(self.boundary), with_boundary=True) for boundary in self.boundary],
+            dim=0)
+
+        if with_normal:
+            normals = []
+            for i in range(self.vertices.shape[0]):
+                p1 = self.vertices[[i], :]
+                p2 = self.vertices[[(i + 1) % self.vertices.shape[0]], :]
+                normal = torch.tensor([[p1[0, 1] - p2[0, 1], p1[0, 0] - p2[0, 0]]])
+                normal /= torch.norm(normal, dim=1, keepdim=True)
+                normals.append(normal.repeat(num_samples // len(self.boundary), 1))
+            return a, torch.cat(normals, dim=0)
+
+        return a
+
+
+class Polygon3D(GeometryBase):
+    def __init__(self, vertices: torch.Tensor):
+        super().__init__(dim=3, intrinsic_dim=2)
+        if vertices.ndim != 2 or vertices.shape[1] != 3:
+            raise ValueError("Vertices must be a tensor of shape (N, 3).")
+        self.vertices = vertices
+        self.boundary = [Line3D(vertices[i, 0], vertices[i, 1], vertices[i, 2],
+                                vertices[(i + 1) % vertices.shape[0], 0],
+                                vertices[(i + 1) % vertices.shape[0], 1],
+                                vertices[(i + 1) % vertices.shape[0], 2]) for i in range(vertices.shape[0])]
+
+    def sdf(self, points: torch.Tensor) -> torch.Tensor:
+        # Not implemented here
+        raise NotImplementedError
+
+    def get_bounding_box(self):
+        x_min = self.vertices[:, 0].min().item()
+        x_max = self.vertices[:, 0].max().item()
+        y_min = self.vertices[:, 1].min().item()
+        y_max = self.vertices[:, 1].max().item()
+        z_min = self.vertices[:, 2].min().item()
+        z_max = self.vertices[:, 2].max().item()
+        return [x_min, x_max, y_min, y_max, z_min, z_max]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Sample points inside the 3D polygon by:
+        1. Building a local orthonormal frame (e1, e2, n) for the plane.
+        2. Projecting all vertices to the (e1, e2) 2D coordinate system.
+        3. Using a Polygon2D to sample points in 2D.
+        4. Mapping the 2D samples back to 3D using the local frame.
+        """
+
+        # 1. Check the vertex count
+        if self.vertices.shape[0] < 3:
+            raise ValueError("Polygon3D must have at least 3 vertices to form a plane.")
+
+        # 2. Compute the plane normal from the first three vertices (assuming no degeneracy)
+        v0 = self.vertices[0]
+        v1 = self.vertices[1]
+        v2 = self.vertices[2]
+        n = torch.cross(v1 - v0, v2 - v0)  # normal = (v1-v0) x (v2-v0)
+        if torch.allclose(n, torch.zeros_like(n)):
+            raise ValueError("The given vertices are degenerate (normal is zero).")
+
+        # Normalize the normal vector
+        n = n / torch.norm(n)
+
+        # 3. Build a local orthonormal frame {e1, e2, n}
+        #    We want e1 and e2 to lie in the plane, both perpendicular to n.
+        e1 = self._find_orthonormal_vector(n)
+        e2 = torch.cross(n, e1)
+
+        # 4. Project all polygon vertices onto (e1, e2) plane
+        #    We choose v0 as "plane origin" in 3D, so each vertex v_i maps to:
+        #        ( (v_i - v0) dot e1,  (v_i - v0) dot e2 )
+        proj_2d_vertices = []
+        for vi in self.vertices:
+            vi_local = vi - v0
+            u = torch.dot(vi_local, e1)
+            v = torch.dot(vi_local, e2)
+            proj_2d_vertices.append([u, v])
+        proj_2d_vertices = torch.tensor(proj_2d_vertices, dtype=self.vertices.dtype, device=self.vertices.device)
+
+        print(proj_2d_vertices)
+        # 5. Create a 2D polygon for sampling
+        poly2d = Polygon2D(proj_2d_vertices)
+
+        # 6. Perform 2D sampling
+        samples_2d = poly2d.in_sample(num_samples, with_boundary=with_boundary)
+        # samples_2d.shape -> (M, 2)
+
+        # 7. Map the 2D samples back to 3D using the local frame
+        #    If a 2D sample is (u_s, v_s), its corresponding 3D position is:
+        #        v0 + u_s * e1 + v_s * e2
+        samples_3d = []
+        for (u_s, v_s) in samples_2d:
+            pt_3d = v0 + u_s * e1 + v_s * e2
+            samples_3d.append(pt_3d)
+        samples_3d = torch.stack(samples_3d, dim=0)  # shape: (M, 3)
+
+        return samples_3d
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        num_samples = num_samples // len(self.boundary)
+        if with_normal:
+            raise NotImplementedError
+
+        return torch.cat([boundary.in_sample(num_samples, with_boundary=True) for boundary in self.boundary], dim=0)
+
+    @staticmethod
+    def _find_orthonormal_vector(n: torch.Tensor) -> torch.Tensor:
+        """
+        Find one vector e1 that is perpendicular to n.
+        Then e1 is normalized to be a unit vector.
+
+        A common approach:
+        - If abs(n.x) < 0.9, try e1 = cross(n, ex) where ex = (1, 0, 0).
+        - Otherwise, cross with ey = (0, 1, 0), etc.
+        """
+
+        # Try crossing with the X-axis if possible
+        ex = torch.tensor([1.0, 0.0, 0.0], device=n.device, dtype=n.dtype)
+        ey = torch.tensor([0.0, 1.0, 0.0], device=n.device, dtype=n.dtype)
+
+        # Check if cross(n, ex) is large enough
+        c1 = torch.cross(n, ex)
+        if torch.norm(c1) > 1e-7:
+            e1 = c1 / torch.norm(c1)
+            return e1
+
+        # Otherwise use ey
+        c2 = torch.cross(n, ey)
+        if torch.norm(c2) > 1e-7:
+            e1 = c2 / torch.norm(c2)
+            return e1
+
+        # Fallback: n might be (0, 0, ±1). Then crossing with ex or ey is 0.
+        # So let's cross with ez = (0, 0, 1)
+        ez = torch.tensor([0.0, 0.0, 1.0], device=n.device, dtype=n.dtype)
+        c3 = torch.cross(n, ez)
+        e1 = c3 / torch.norm(c3)
+        return e1
