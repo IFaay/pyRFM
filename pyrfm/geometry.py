@@ -1422,3 +1422,51 @@ class Polygon3D(GeometryBase):
         c3 = torch.cross(n, ez)
         e1 = c3 / torch.norm(c3)
         return e1
+
+
+class HyperCube(GeometryBase):
+    def __init__(self, dim: int, center: Optional[torch.Tensor] = None, radius: Optional[torch.Tensor] = None):
+        super().__init__(dim=dim, intrinsic_dim=dim)
+        if center is None:
+            self.center = torch.zeros(1, dim)
+        elif isinstance(center, (list, tuple)):
+            self.center = torch.tensor(center).view(1, -1)
+        else:
+            self.center = center.view(1, -1)
+
+        if radius is None:
+            self.radius = torch.ones(1, dim)
+        elif isinstance(radius, (list, tuple)):
+            self.radius = torch.tensor(radius).view(1, -1)
+        else:
+            self.radius = radius.view(1, -1)
+
+    def sdf(self, p: torch.Tensor) -> torch.Tensor:
+        d = torch.abs(p - self.center) - self.radius
+        return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
+            torch.max(d, dim=1, keepdim=True).values,
+            max=0.0)
+
+    def get_bounding_box(self) -> List[float]:
+        bounding_box = []
+        for i in range(self.dim):
+            bounding_box.append((self.center[0, i] - self.radius[0, i]).item())
+            bounding_box.append((self.center[0, i] + self.radius[0, i]).item())
+        return bounding_box
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        x_in = torch.rand((num_samples, self.dim), dtype=self.dtype, device=self.device)
+        return x_in * 2 * self.radius - self.radius + self.center
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        bounding_box = self.get_bounding_box()
+        x_on = []
+        if not with_normal:
+            x_ = self.in_sample(num_samples // (2 * self.dim), with_boundary=True)
+            for i in range(self.dim):
+                for j in range(2):
+                    x = x_.clone()
+                    x[:, i] = bounding_box[2 * i + j]
+                    x_on.append(x)
+
+        return torch.cat(x_on, dim=0)
