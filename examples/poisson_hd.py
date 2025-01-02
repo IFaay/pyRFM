@@ -25,22 +25,18 @@ def g(x):
 
 
 class CustomRF(pyrfm.RFTanH):
-    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
-                 n_hidden: int,
-                 gen: torch.Generator = None,
-                 dtype: torch.dtype = None,
-                 device: torch.device = None):
-        super().__init__(dim, center, radius, n_hidden, gen, dtype, device)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        torch.nn.init.xavier_normal_(self.weights, gain=torch.nn.init.calculate_gain('tanh'))
-        torch.nn.init.normal_(self.biases, mean=0.0, std=1 / n_hidden)
+        torch.nn.init.xavier_uniform_(self.weights, gain=torch.nn.init.calculate_gain('tanh'))
+        torch.nn.init.normal_(self.biases, mean=0.0, std=1 / self.n_hidden)
 
     def forward(self, x):
         return super(CustomRF, self).forward(x)
 
 
 if __name__ == '__main__':
-    dim = 5
+    dim = 120
     seed = 2025
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
