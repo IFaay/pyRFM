@@ -1,0 +1,205 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyRFM: A Python Package for Random Feature Method (RFM) &mdash; pyRFM 0.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=92734c54"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Core Module" href="core.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            pyRFM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometry Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="voronoi.html">Voronoi Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">pyRFM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">pyRFM: A Python Package for Random Feature Method (RFM)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pyrfm-a-python-package-for-random-feature-method-rfm">
+<h1>pyRFM: A Python Package for Random Feature Method (RFM)<a class="headerlink" href="#pyrfm-a-python-package-for-random-feature-method-rfm" title="Link to this heading"></a></h1>
+<p>pyRFM is a Python package designed to implement the Random Feature Method (RFM) for solving partial differential equations (PDEs).</p>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.POUBase"><code class="docutils literal notranslate"><span class="pre">POUBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.PsiA"><code class="docutils literal notranslate"><span class="pre">PsiA</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.PsiB"><code class="docutils literal notranslate"><span class="pre">PsiB</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.PsiG"><code class="docutils literal notranslate"><span class="pre">PsiG</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.RFBase"><code class="docutils literal notranslate"><span class="pre">RFBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.RFMBase"><code class="docutils literal notranslate"><span class="pre">RFMBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="core.html#pyrfm.core.RFTanH"><code class="docutils literal notranslate"><span class="pre">RFTanH</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#pyrfm.utils.concat_blocks"><code class="docutils literal notranslate"><span class="pre">concat_blocks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html#pyrfm.utils.spilit_blocks"><code class="docutils literal notranslate"><span class="pre">spilit_blocks()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometry Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Ball3D"><code class="docutils literal notranslate"><span class="pre">Ball3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Circle2D"><code class="docutils literal notranslate"><span class="pre">Circle2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.CircleArc2D"><code class="docutils literal notranslate"><span class="pre">CircleArc2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.ComplementGeometry"><code class="docutils literal notranslate"><span class="pre">ComplementGeometry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Cube3D"><code class="docutils literal notranslate"><span class="pre">Cube3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.GeometryBase"><code class="docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.HyperCube"><code class="docutils literal notranslate"><span class="pre">HyperCube</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.IntersectionGeometry"><code class="docutils literal notranslate"><span class="pre">IntersectionGeometry</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Line1D"><code class="docutils literal notranslate"><span class="pre">Line1D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Line2D"><code class="docutils literal notranslate"><span class="pre">Line2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Line3D"><code class="docutils literal notranslate"><span class="pre">Line3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Point1D"><code class="docutils literal notranslate"><span class="pre">Point1D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Point2D"><code class="docutils literal notranslate"><span class="pre">Point2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Point3D"><code class="docutils literal notranslate"><span class="pre">Point3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Polygon2D"><code class="docutils literal notranslate"><span class="pre">Polygon2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Polygon3D"><code class="docutils literal notranslate"><span class="pre">Polygon3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Sphere3D"><code class="docutils literal notranslate"><span class="pre">Sphere3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Square2D"><code class="docutils literal notranslate"><span class="pre">Square2D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.Square3D"><code class="docutils literal notranslate"><span class="pre">Square3D</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="geometry.html#pyrfm.geometry.UnionGeometry"><code class="docutils literal notranslate"><span class="pre">UnionGeometry</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="voronoi.html">Voronoi Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="voronoi.html#pyrfm.voronoi.Voronoi"><code class="docutils literal notranslate"><span class="pre">Voronoi</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>Version: 0.1.2</p>
+<section id="quick-install">
+<h2>Quick Install<a class="headerlink" href="#quick-install" title="Link to this heading"></a></h2>
+<p>To install pyRFM, use one of the following methods:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/IFaay/pyRFM.git
+</pre></div>
+</div>
+<p>Or clone the repository and install locally:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/IFaay/pyRFM.git
+<span class="nb">cd</span><span class="w"> </span>pyRFM
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</section>
+<section id="update">
+<h2>Update<a class="headerlink" href="#update" title="Link to this heading"></a></h2>
+<p>To update to the latest version, use:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>git+https://github.com/IFaay/pyRFM.git
+</pre></div>
+</div>
+<p>And ensure that you re-download or pull the latest source code.</p>
+</section>
+<section id="remark">
+<h2>Remark<a class="headerlink" href="#remark" title="Link to this heading"></a></h2>
+<p>All examples run successfully on a host equipped with:
+- <strong>8GB of GPU memory</strong>
+- <strong>16GB of RAM</strong></p>
+<p>Example scripts are located in the <a class="reference external" href="https://github.com/IFaay/pyRFM/tree/master/examples">examples</a> folder.</p>
+</section>
+<section id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Link to this heading"></a></h2>
+<p>The following references provide more context and details about the Random Feature Method:</p>
+<ol class="arabic simple">
+<li><p>J. Chen, X. Chi, W. E, and Z. Yang, “Bridging traditional and machine learning-based algorithms for solving PDEs:
+The random feature method,” <em>Journal of Machine Learning</em>, vol. 1, no. 3, pp. 268–298, 2022.
+doi: <a class="reference external" href="https://doi.org/10.4208/jml.220726">10.4208/jml.220726</a>.</p></li>
+<li><p>J. Chen, W. E, and Y. Luo, “The random feature method for time-dependent problems,” <em>East Asian Journal on Applied Mathematics</em>,
+vol. 13, no. 3, pp. 435–463, 2023.
+doi: <a class="reference external" href="https://doi.org/10.4208/eajam.2023-065.050423">10.4208/eajam.2023-065.050423</a>.</p></li>
+<li><p>J. Chen, W. E, and Y. Sun, “Optimization of Random Feature Method in the High-Precision Regime,” <em>Communications in Applied Mathematics and Computation</em>,
+Mar. 2024.
+doi: <a class="reference external" href="https://doi.org/10.1007/s42967-024-00389-8">10.1007/s42967-024-00389-8</a>.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="core.html" class="btn btn-neutral float-right" title="Core Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yifei Sun.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

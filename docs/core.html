@@ -1,0 +1,510 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Module &mdash; pyRFM 0.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=92734c54"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Utils Module" href="utils.html" />
+    <link rel="prev" title="pyRFM: A Python Package for Random Feature Method (RFM)" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyRFM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Core Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.POUBase"><code class="docutils literal notranslate"><span class="pre">POUBase</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.POUBase.first_derivative"><code class="docutils literal notranslate"><span class="pre">POUBase.first_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.POUBase.forward"><code class="docutils literal notranslate"><span class="pre">POUBase.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.POUBase.higher_order_derivative"><code class="docutils literal notranslate"><span class="pre">POUBase.higher_order_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.POUBase.second_derivative"><code class="docutils literal notranslate"><span class="pre">POUBase.second_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.POUBase.set_func"><code class="docutils literal notranslate"><span class="pre">POUBase.set_func()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.PsiA"><code class="docutils literal notranslate"><span class="pre">PsiA</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiA.set_func"><code class="docutils literal notranslate"><span class="pre">PsiA.set_func()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.PsiB"><code class="docutils literal notranslate"><span class="pre">PsiB</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiB.set_func"><code class="docutils literal notranslate"><span class="pre">PsiB.set_func()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.PsiG"><code class="docutils literal notranslate"><span class="pre">PsiG</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiG.first_derivative"><code class="docutils literal notranslate"><span class="pre">PsiG.first_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiG.forward"><code class="docutils literal notranslate"><span class="pre">PsiG.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiG.higher_order_derivative"><code class="docutils literal notranslate"><span class="pre">PsiG.higher_order_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiG.second_derivative"><code class="docutils literal notranslate"><span class="pre">PsiG.second_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.PsiG.set_func"><code class="docutils literal notranslate"><span class="pre">PsiG.set_func()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.RFBase"><code class="docutils literal notranslate"><span class="pre">RFBase</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFBase.empty_cache"><code class="docutils literal notranslate"><span class="pre">RFBase.empty_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFBase.first_derivative"><code class="docutils literal notranslate"><span class="pre">RFBase.first_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFBase.forward"><code class="docutils literal notranslate"><span class="pre">RFBase.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFBase.higher_order_derivative"><code class="docutils literal notranslate"><span class="pre">RFBase.higher_order_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFBase.second_derivative"><code class="docutils literal notranslate"><span class="pre">RFBase.second_derivative()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.RFMBase"><code class="docutils literal notranslate"><span class="pre">RFMBase</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.add_c_condition"><code class="docutils literal notranslate"><span class="pre">RFMBase.add_c_condition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.compute"><code class="docutils literal notranslate"><span class="pre">RFMBase.compute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.dForward"><code class="docutils literal notranslate"><span class="pre">RFMBase.dForward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.empty_cache"><code class="docutils literal notranslate"><span class="pre">RFMBase.empty_cache()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.features"><code class="docutils literal notranslate"><span class="pre">RFMBase.features()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.features_derivative"><code class="docutils literal notranslate"><span class="pre">RFMBase.features_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.features_second_derivative"><code class="docutils literal notranslate"><span class="pre">RFMBase.features_second_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.forward"><code class="docutils literal notranslate"><span class="pre">RFMBase.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.pou_coefficients"><code class="docutils literal notranslate"><span class="pre">RFMBase.pou_coefficients()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.pou_derivative"><code class="docutils literal notranslate"><span class="pre">RFMBase.pou_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.pou_higher_order_derivative"><code class="docutils literal notranslate"><span class="pre">RFMBase.pou_higher_order_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.pou_second_derivative"><code class="docutils literal notranslate"><span class="pre">RFMBase.pou_second_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFMBase.solve"><code class="docutils literal notranslate"><span class="pre">RFMBase.solve()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.core.RFTanH"><code class="docutils literal notranslate"><span class="pre">RFTanH</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFTanH.first_derivative"><code class="docutils literal notranslate"><span class="pre">RFTanH.first_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFTanH.forward"><code class="docutils literal notranslate"><span class="pre">RFTanH.forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFTanH.higher_order_derivative"><code class="docutils literal notranslate"><span class="pre">RFTanH.higher_order_derivative()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.core.RFTanH.second_derivative"><code class="docutils literal notranslate"><span class="pre">RFTanH.second_derivative()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometry Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="voronoi.html">Voronoi Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyRFM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Core Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/core.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="core-module">
+<h1>Core Module<a class="headerlink" href="#core-module" title="Link to this heading"></a></h1>
+<p>The core functionalities of the package.</p>
+<p id="module-pyrfm.core">Created on 2024/12/13</p>
+<p>&#64;author: Yifei Sun</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.POUBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">POUBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#POUBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.POUBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.POUBase.first_derivative">
+<span class="sig-name descname"><span class="pre">first_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#POUBase.first_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.POUBase.first_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.POUBase.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#POUBase.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.POUBase.forward" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.POUBase.higher_order_derivative">
+<span class="sig-name descname"><span class="pre">higher_order_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#POUBase.higher_order_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.POUBase.higher_order_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.POUBase.second_derivative">
+<span class="sig-name descname"><span class="pre">second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#POUBase.second_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.POUBase.second_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.POUBase.set_func">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_func</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#POUBase.set_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.POUBase.set_func" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.PsiA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">PsiA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#PsiA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiA" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.core.POUBase" title="pyrfm.core.POUBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">POUBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiA.set_func">
+<span class="sig-name descname"><span class="pre">set_func</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#PsiA.set_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiA.set_func" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.PsiB">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">PsiB</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#PsiB"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiB" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.core.POUBase" title="pyrfm.core.POUBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">POUBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiB.set_func">
+<span class="sig-name descname"><span class="pre">set_func</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#PsiB.set_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiB.set_func" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.PsiG">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">PsiG</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#PsiG"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiG" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.core.POUBase" title="pyrfm.core.POUBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">POUBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiG.first_derivative">
+<span class="sig-name descname"><span class="pre">first_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#PsiG.first_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiG.first_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiG.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#PsiG.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiG.forward" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiG.higher_order_derivative">
+<span class="sig-name descname"><span class="pre">higher_order_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#PsiG.higher_order_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiG.higher_order_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiG.second_derivative">
+<span class="sig-name descname"><span class="pre">second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#PsiG.second_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiG.second_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.PsiG.set_func">
+<span class="sig-name descname"><span class="pre">set_func</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#PsiG.set_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.PsiG.set_func" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.RFBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">RFBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Generator</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFBase.empty_cache">
+<span class="sig-name descname"><span class="pre">empty_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFBase.empty_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFBase.empty_cache" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFBase.first_derivative">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">first_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFBase.first_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFBase.first_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFBase.forward">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFBase.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFBase.forward" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFBase.higher_order_derivative">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">higher_order_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFBase.higher_order_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFBase.higher_order_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFBase.second_derivative">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFBase.second_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFBase.second_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">RFMBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden:</span> <span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain:</span> <span class="pre">~typing.Tuple</span> <span class="pre">|</span> <span class="pre">~typing.List</span> <span class="pre">|</span> <span class="pre">~pyrfm.geometry.GeometryBase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_subdomains:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">~typing.Tuple</span> <span class="pre">|</span> <span class="pre">~typing.List</span> <span class="pre">=</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap:</span> <span class="pre">torch.float64</span> <span class="pre">=</span> <span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rf=&lt;class</span> <span class="pre">'pyrfm.core.RFTanH'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pou=&lt;class</span> <span class="pre">'pyrfm.core.PsiB'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centers:</span> <span class="pre">~torch.Tensor</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radii:</span> <span class="pre">~torch.Tensor</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype:</span> <span class="pre">~torch.dtype</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device:</span> <span class="pre">~torch.device</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.add_c_condition">
+<span class="sig-name descname"><span class="pre">add_c_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.add_c_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.add_c_condition" title="Link to this definition"></a></dt>
+<dd><p>Add a Continuity (c0 and c1) condition to the model.
+:param num_samples: number of interface points
+:param order: max order of the continuity condition
+:return: feature Tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.compute">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.compute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.compute" title="Link to this definition"></a></dt>
+<dd><p>Compute the QR decomposition of matrix A.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>A</strong> – Input matrix.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Self.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.dForward">
+<span class="sig-name descname"><span class="pre">dForward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.dForward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.dForward" title="Link to this definition"></a></dt>
+<dd><p>Compute the derivative of the forward pass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>order</strong> – Order of the derivative.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Derivative tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.empty_cache">
+<span class="sig-name descname"><span class="pre">empty_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.empty_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.empty_cache" title="Link to this definition"></a></dt>
+<dd><p>Empty the cache for all submodels.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.features">
+<span class="sig-name descname"><span class="pre">features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sparse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.features" title="Link to this definition"></a></dt>
+<dd><p>Compute the features for the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>use_sparse</strong> – Whether to use sparse tensors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Features Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.features_derivative">
+<span class="sig-name descname"><span class="pre">features_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sparse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.features_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.features_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the feature derivative for the given input along the specified axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>axis</strong> – Axis along which to compute the derivative.</p></li>
+<li><p><strong>use_sparse</strong> – Whether to use sparse tensors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Feature derivative Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.features_second_derivative">
+<span class="sig-name descname"><span class="pre">features_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sparse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.features_second_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.features_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the feature second derivative for the given input along the specified axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>axis1</strong> – First axis along which to compute the derivative.</p></li>
+<li><p><strong>axis2</strong> – Second axis along which to compute the derivative.</p></li>
+<li><p><strong>use_sparse</strong> – Whether to use sparse tensors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Feature second derivative Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.forward" title="Link to this definition"></a></dt>
+<dd><p>Forward pass of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – Input tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor after forward pass.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.pou_coefficients">
+<span class="sig-name descname"><span class="pre">pou_coefficients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.pou_coefficients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.pou_coefficients" title="Link to this definition"></a></dt>
+<dd><p>Compute the POU coefficients for the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – Input tensor.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>POU coefficients tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.pou_derivative">
+<span class="sig-name descname"><span class="pre">pou_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.pou_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.pou_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the POU derivative for the given input along the specified axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>axis</strong> – Axis along which to compute the derivative.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>POU derivative Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.pou_higher_order_derivative">
+<span class="sig-name descname"><span class="pre">pou_higher_order_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.pou_higher_order_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.pou_higher_order_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the POU higher-order derivative for the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>order</strong> – Order of the derivative as a tensor or list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>POU higher-order derivative Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.pou_second_derivative">
+<span class="sig-name descname"><span class="pre">pou_second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="utils.html#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.pou_second_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.pou_second_derivative" title="Link to this definition"></a></dt>
+<dd><p>Compute the POU second derivative for the given input along the specified axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Input tensor.</p></li>
+<li><p><strong>axis1</strong> – First axis along which to compute the derivative.</p></li>
+<li><p><strong>axis2</strong> – Second axis along which to compute the derivative.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>POU second derivative Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFMBase.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFMBase.solve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFMBase.solve" title="Link to this definition"></a></dt>
+<dd><p>Solve the linear system Ax = b using the QR decomposition.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>b</strong> – Right-hand side tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.core.RFTanH">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.core.</span></span><span class="sig-name descname"><span class="pre">RFTanH</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_hidden</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Generator</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dtype</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/core.html#RFTanH"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFTanH" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.core.RFBase" title="pyrfm.core.RFBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">RFBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFTanH.first_derivative">
+<span class="sig-name descname"><span class="pre">first_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFTanH.first_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFTanH.first_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFTanH.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFTanH.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFTanH.forward" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFTanH.higher_order_derivative">
+<span class="sig-name descname"><span class="pre">higher_order_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFTanH.higher_order_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFTanH.higher_order_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.core.RFTanH.second_derivative">
+<span class="sig-name descname"><span class="pre">second_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/core.html#RFTanH.second_derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.core.RFTanH.second_derivative" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="pyRFM: A Python Package for Random Feature Method (RFM)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utils Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yifei Sun.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

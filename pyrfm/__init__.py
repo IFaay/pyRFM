@@ -4,7 +4,7 @@ Created on 2024/12/15
 
 @author: Yifei Sun
 """
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 from .core import *
 from .utils import *
