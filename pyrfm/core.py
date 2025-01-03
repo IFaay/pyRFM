@@ -516,7 +516,8 @@ class RFMBase(ABC):
         #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
         #     w_set.append(w)
         #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
-        #
+        #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
+
         # # sum up the weights
         # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
         # residual = torch.norm(b_) / torch.norm(b)

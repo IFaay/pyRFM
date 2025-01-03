@@ -48,6 +48,7 @@ def g(x):
 
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
+    start_time = time.time()
     domain = pyrfm.Square2D(center=[0, 0], radius=[1, 1])
     model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=4, pou=pyrfm.PsiA)
 
@@ -76,3 +77,5 @@ if __name__ == '__main__':
     u_pred = model(x_test)
 
     print((u_test - u_pred).norm() / u_test.norm())
+
+    print('Time:', time.time() - start_time, ", with", torch.tensor(0.).device)
