@@ -204,7 +204,7 @@ class GeometryBase(ABC):
         return UnionGeometry(self, other)
 
     def __sub__(self, other: 'GeometryBase') -> 'GeometryBase':
-        return UnionGeometry(self, ComplementGeometry(other))
+        return IntersectionGeometry(self, ComplementGeometry(other))
 
 
 class UnionGeometry(GeometryBase):
@@ -218,6 +218,11 @@ class UnionGeometry(GeometryBase):
 
     def sdf(self, p: torch.Tensor):
         return torch.min(self.geomA.sdf(p), self.geomB.sdf(p))
+
+    def get_bounding_box(self):
+        boxA = self.geomA.get_bounding_box()
+        boxB = self.geomB.get_bounding_box()
+        return [min(boxA[i], boxB[i]) if i % 2 == 0 else max(boxA[i], boxB[i]) for i in range(2 * self.dim)]
 
 
 class IntersectionGeometry(GeometryBase):
@@ -239,8 +244,23 @@ class IntersectionGeometry(GeometryBase):
     def get_bounding_box(self):
         boxA = self.geomA.get_bounding_box()
         boxB = self.geomB.get_bounding_box()
-        if self.dim == 1:
-            return [max(boxA[0], boxB[0]), min(boxA[1], boxB[1])]
+        return [max(boxA[i], boxB[i]) if i % 2 == 0 else min(boxA[i], boxB[i]) for i in range(2 * self.dim)]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        samples = torch.cat(
+            [self.geomA.in_sample(num_samples, with_boundary), self.geomB.in_sample(num_samples, with_boundary)], dim=0)
+        if with_boundary:
+            return samples[self.sdf(samples) <= 0]
+
+        return samples[self.sdf(samples) < 0]
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        if with_normal:
+            raise NotImplementedError("Normal vectors are not available for intersection geometries.")
+
+        samples = torch.cat(
+            [self.geomA.on_sample(num_samples, with_normal), self.geomB.on_sample(num_samples, with_normal)], dim=0)
+        return samples[torch.isclose(self.sdf(samples), torch.tensor(0.))]
 
 
 class ComplementGeometry(GeometryBase):
@@ -254,7 +274,19 @@ class ComplementGeometry(GeometryBase):
     def sdf(self, p: torch.Tensor):
         return -self.geom.sdf(p)
 
-    pass
+    def get_bounding_box(self) -> List[float]:
+        bounding_box_geom = self.geom.get_bounding_box()
+        return [
+            bounding_box_geom[2 * d + (1 - i)]
+            for d in range(self.dim)
+            for i in range(2)
+        ]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        return self.geom.in_sample(num_samples, with_boundary)
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        return self.geom.on_sample(num_samples, with_normal)
 
 
 class Point1D(GeometryBase):
