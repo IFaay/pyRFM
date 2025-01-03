@@ -19,6 +19,7 @@ pip install .
 ```
 pip install --upgrade git+https://github.com/IFaay/pyRFM.git
 ```
+
 and re-download / pull the source code.
 
 ## Remark
