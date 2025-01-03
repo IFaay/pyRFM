@@ -1,0 +1,1861 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geometry Module &mdash; pyRFM 0.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=92734c54"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Voronoi Module" href="voronoi.html" />
+    <link rel="prev" title="Utils Module" href="utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyRFM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Geometry Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Ball3D"><code class="docutils literal notranslate"><span class="pre">Ball3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Ball3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Ball3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Ball3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Ball3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Ball3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Ball3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Ball3D.sdf"><code class="docutils literal notranslate"><span class="pre">Ball3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Circle2D"><code class="docutils literal notranslate"><span class="pre">Circle2D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Circle2D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Circle2D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Circle2D.in_sample"><code class="docutils literal notranslate"><span class="pre">Circle2D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Circle2D.on_sample"><code class="docutils literal notranslate"><span class="pre">Circle2D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Circle2D.sdf"><code class="docutils literal notranslate"><span class="pre">Circle2D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.CircleArc2D"><code class="docutils literal notranslate"><span class="pre">CircleArc2D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.CircleArc2D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">CircleArc2D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.CircleArc2D.in_sample"><code class="docutils literal notranslate"><span class="pre">CircleArc2D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.CircleArc2D.on_sample"><code class="docutils literal notranslate"><span class="pre">CircleArc2D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.CircleArc2D.sdf"><code class="docutils literal notranslate"><span class="pre">CircleArc2D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.ComplementGeometry"><code class="docutils literal notranslate"><span class="pre">ComplementGeometry</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.ComplementGeometry.sdf"><code class="docutils literal notranslate"><span class="pre">ComplementGeometry.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Cube3D"><code class="docutils literal notranslate"><span class="pre">Cube3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Cube3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Cube3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Cube3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Cube3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Cube3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Cube3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Cube3D.sdf"><code class="docutils literal notranslate"><span class="pre">Cube3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.GeometryBase"><code class="docutils literal notranslate"><span class="pre">GeometryBase</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.GeometryBase.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">GeometryBase.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.GeometryBase.in_sample"><code class="docutils literal notranslate"><span class="pre">GeometryBase.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.GeometryBase.on_sample"><code class="docutils literal notranslate"><span class="pre">GeometryBase.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.GeometryBase.sdf"><code class="docutils literal notranslate"><span class="pre">GeometryBase.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.HyperCube"><code class="docutils literal notranslate"><span class="pre">HyperCube</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.HyperCube.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">HyperCube.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.HyperCube.in_sample"><code class="docutils literal notranslate"><span class="pre">HyperCube.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.HyperCube.on_sample"><code class="docutils literal notranslate"><span class="pre">HyperCube.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.HyperCube.sdf"><code class="docutils literal notranslate"><span class="pre">HyperCube.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.IntersectionGeometry"><code class="docutils literal notranslate"><span class="pre">IntersectionGeometry</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.IntersectionGeometry.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">IntersectionGeometry.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.IntersectionGeometry.sdf"><code class="docutils literal notranslate"><span class="pre">IntersectionGeometry.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Line1D"><code class="docutils literal notranslate"><span class="pre">Line1D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line1D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Line1D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line1D.in_sample"><code class="docutils literal notranslate"><span class="pre">Line1D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line1D.on_sample"><code class="docutils literal notranslate"><span class="pre">Line1D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line1D.sdf"><code class="docutils literal notranslate"><span class="pre">Line1D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Line2D"><code class="docutils literal notranslate"><span class="pre">Line2D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line2D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Line2D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line2D.in_sample"><code class="docutils literal notranslate"><span class="pre">Line2D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line2D.on_sample"><code class="docutils literal notranslate"><span class="pre">Line2D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line2D.sdf"><code class="docutils literal notranslate"><span class="pre">Line2D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Line3D"><code class="docutils literal notranslate"><span class="pre">Line3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Line3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Line3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Line3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Line3D.sdf"><code class="docutils literal notranslate"><span class="pre">Line3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Point1D"><code class="docutils literal notranslate"><span class="pre">Point1D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point1D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Point1D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point1D.in_sample"><code class="docutils literal notranslate"><span class="pre">Point1D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point1D.on_sample"><code class="docutils literal notranslate"><span class="pre">Point1D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point1D.sdf"><code class="docutils literal notranslate"><span class="pre">Point1D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Point2D"><code class="docutils literal notranslate"><span class="pre">Point2D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point2D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Point2D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point2D.in_sample"><code class="docutils literal notranslate"><span class="pre">Point2D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point2D.on_sample"><code class="docutils literal notranslate"><span class="pre">Point2D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point2D.sdf"><code class="docutils literal notranslate"><span class="pre">Point2D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Point3D"><code class="docutils literal notranslate"><span class="pre">Point3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Point3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Point3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Point3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Point3D.sdf"><code class="docutils literal notranslate"><span class="pre">Point3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Polygon2D"><code class="docutils literal notranslate"><span class="pre">Polygon2D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon2D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Polygon2D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon2D.in_sample"><code class="docutils literal notranslate"><span class="pre">Polygon2D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon2D.on_sample"><code class="docutils literal notranslate"><span class="pre">Polygon2D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon2D.sdf"><code class="docutils literal notranslate"><span class="pre">Polygon2D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Polygon3D"><code class="docutils literal notranslate"><span class="pre">Polygon3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Polygon3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Polygon3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Polygon3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Polygon3D.sdf"><code class="docutils literal notranslate"><span class="pre">Polygon3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Sphere3D"><code class="docutils literal notranslate"><span class="pre">Sphere3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Sphere3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Sphere3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Sphere3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Sphere3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Sphere3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Sphere3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Sphere3D.sdf"><code class="docutils literal notranslate"><span class="pre">Sphere3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Square2D"><code class="docutils literal notranslate"><span class="pre">Square2D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square2D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Square2D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square2D.in_sample"><code class="docutils literal notranslate"><span class="pre">Square2D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square2D.on_sample"><code class="docutils literal notranslate"><span class="pre">Square2D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square2D.sdf"><code class="docutils literal notranslate"><span class="pre">Square2D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.Square3D"><code class="docutils literal notranslate"><span class="pre">Square3D</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square3D.get_bounding_box"><code class="docutils literal notranslate"><span class="pre">Square3D.get_bounding_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square3D.in_sample"><code class="docutils literal notranslate"><span class="pre">Square3D.in_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square3D.on_sample"><code class="docutils literal notranslate"><span class="pre">Square3D.on_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.Square3D.sdf"><code class="docutils literal notranslate"><span class="pre">Square3D.sdf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.State.isIn"><code class="docutils literal notranslate"><span class="pre">State.isIn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.State.isOn"><code class="docutils literal notranslate"><span class="pre">State.isOn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.State.isOut"><code class="docutils literal notranslate"><span class="pre">State.isOut</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.State.isUnknown"><code class="docutils literal notranslate"><span class="pre">State.isUnknown</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.geometry.UnionGeometry"><code class="docutils literal notranslate"><span class="pre">UnionGeometry</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.geometry.UnionGeometry.sdf"><code class="docutils literal notranslate"><span class="pre">UnionGeometry.sdf()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="voronoi.html">Voronoi Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyRFM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Geometry Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/geometry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="geometry-module">
+<h1>Geometry Module<a class="headerlink" href="#geometry-module" title="Link to this heading"></a></h1>
+<p>Geometry-related computations and structures.</p>
+<p id="module-pyrfm.geometry">Created on 2024/12/15</p>
+<p>&#64;author: Yifei Sun</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Ball3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Ball3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Ball3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Ball3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Ball3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Ball3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Ball3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="returns">
+<h2>Returns:<a class="headerlink" href="#returns" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Ball3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Ball3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Ball3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="args">
+<h2>Args:<a class="headerlink" href="#args" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id1">
+<h2>Returns:<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Ball3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Ball3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Ball3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id2">
+<h2>Args:<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id3">
+<h2>Returns:<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Ball3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Ball3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Ball3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id4">
+<h2>Args:<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id5">
+<h2>Returns:<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Circle2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Circle2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Circle2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Circle2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Circle2D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Circle2D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Circle2D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id6">
+<h2>Returns:<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Circle2D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Circle2D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Circle2D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id7">
+<h2>Args:<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id8">
+<h2>Returns:<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Circle2D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Circle2D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Circle2D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id9">
+<h2>Args:<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id10">
+<h2>Returns:<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Circle2D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Circle2D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Circle2D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id11">
+<h2>Args:<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id12">
+<h2>Returns:<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.CircleArc2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">CircleArc2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#CircleArc2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.CircleArc2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.CircleArc2D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#CircleArc2D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.CircleArc2D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id13">
+<h2>Returns:<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.CircleArc2D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#CircleArc2D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.CircleArc2D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id14">
+<h2>Args:<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id15">
+<h2>Returns:<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.CircleArc2D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#CircleArc2D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.CircleArc2D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id16">
+<h2>Args:<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id17">
+<h2>Returns:<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.CircleArc2D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#CircleArc2D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.CircleArc2D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id18">
+<h2>Args:<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id19">
+<h2>Returns:<a class="headerlink" href="#id19" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.ComplementGeometry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">ComplementGeometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><span class="pre">GeometryBase</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#ComplementGeometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.ComplementGeometry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.ComplementGeometry.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#ComplementGeometry.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.ComplementGeometry.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id20">
+<h2>Args:<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id21">
+<h2>Returns:<a class="headerlink" href="#id21" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Cube3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Cube3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Cube3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Cube3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Cube3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Cube3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Cube3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id22">
+<h2>Returns:<a class="headerlink" href="#id22" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Cube3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Cube3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Cube3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id23">
+<h2>Args:<a class="headerlink" href="#id23" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id24">
+<h2>Returns:<a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Cube3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Cube3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Cube3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id25">
+<h2>Args:<a class="headerlink" href="#id25" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id26">
+<h2>Returns:<a class="headerlink" href="#id26" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Cube3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Cube3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Cube3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id27">
+<h2>Args:<a class="headerlink" href="#id27" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id28">
+<h2>Returns:<a class="headerlink" href="#id28" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.GeometryBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">GeometryBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intrinsic_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#GeometryBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.GeometryBase" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract base class for geometric objects.</p>
+<section id="attributes">
+<h2>Attributes:<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>dim<span class="classifier">int</span></dt><dd><p>The dimension of the geometry.</p>
+</dd>
+<dt>intrinsic_dim<span class="classifier">int</span></dt><dd><p>The intrinsic dimension of the geometry.</p>
+</dd>
+<dt>boundary<span class="classifier">list</span></dt><dd><p>The boundary of the geometry.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.GeometryBase.get_bounding_box">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#GeometryBase.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.GeometryBase.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id29">
+<h3>Returns:<a class="headerlink" href="#id29" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.GeometryBase.in_sample">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#GeometryBase.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.GeometryBase.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id30">
+<h3>Args:<a class="headerlink" href="#id30" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id31">
+<h3>Returns:<a class="headerlink" href="#id31" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.GeometryBase.on_sample">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#GeometryBase.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.GeometryBase.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id32">
+<h3>Args:<a class="headerlink" href="#id32" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id33">
+<h3>Returns:<a class="headerlink" href="#id33" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.GeometryBase.sdf">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#GeometryBase.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.GeometryBase.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id34">
+<h3>Args:<a class="headerlink" href="#id34" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id35">
+<h3>Returns:<a class="headerlink" href="#id35" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.HyperCube">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">HyperCube</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#HyperCube"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.HyperCube" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.HyperCube.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#HyperCube.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.HyperCube.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id36">
+<h2>Returns:<a class="headerlink" href="#id36" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.HyperCube.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#HyperCube.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.HyperCube.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id37">
+<h2>Args:<a class="headerlink" href="#id37" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id38">
+<h2>Returns:<a class="headerlink" href="#id38" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.HyperCube.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#HyperCube.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.HyperCube.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id39">
+<h2>Args:<a class="headerlink" href="#id39" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id40">
+<h2>Returns:<a class="headerlink" href="#id40" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.HyperCube.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#HyperCube.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.HyperCube.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id41">
+<h2>Args:<a class="headerlink" href="#id41" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id42">
+<h2>Returns:<a class="headerlink" href="#id42" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.IntersectionGeometry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">IntersectionGeometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geomA</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><span class="pre">GeometryBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">geomB</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><span class="pre">GeometryBase</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#IntersectionGeometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.IntersectionGeometry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.IntersectionGeometry.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#IntersectionGeometry.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.IntersectionGeometry.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id43">
+<h2>Returns:<a class="headerlink" href="#id43" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.IntersectionGeometry.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#IntersectionGeometry.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.IntersectionGeometry.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id44">
+<h2>Args:<a class="headerlink" href="#id44" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id45">
+<h2>Returns:<a class="headerlink" href="#id45" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line1D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Line1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line1D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line1D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<p>Class representing a 1D line segment.</p>
+<section id="id46">
+<h2>Attributes:<a class="headerlink" href="#id46" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>x1<span class="classifier">torch.float64</span></dt><dd><p>The x-coordinate of the first endpoint.</p>
+</dd>
+<dt>x2<span class="classifier">torch.float64</span></dt><dd><p>The x-coordinate of the second endpoint.</p>
+</dd>
+<dt>boundary<span class="classifier">list</span></dt><dd><p>The boundary points of the line segment.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line1D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line1D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line1D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the line segment.</p>
+<section id="id47">
+<h3>Returns:<a class="headerlink" href="#id47" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>list</dt><dd><p>The bounding box of the line segment.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line1D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line1D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line1D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the line segment.</p>
+<section id="id48">
+<h3>Args:<a class="headerlink" href="#id48" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id49">
+<h3>Returns:<a class="headerlink" href="#id49" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the line segment.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line1D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line1D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line1D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the line segment.</p>
+<section id="id50">
+<h3>Args:<a class="headerlink" href="#id50" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id51">
+<h3>Returns:<a class="headerlink" href="#id51" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the line segment or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line1D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line1D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line1D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the line segment.</p>
+<section id="id52">
+<h3>Args:<a class="headerlink" href="#id52" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id53">
+<h3>Returns:<a class="headerlink" href="#id53" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Line2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line2D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line2D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line2D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id54">
+<h2>Returns:<a class="headerlink" href="#id54" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line2D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line2D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line2D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id55">
+<h2>Args:<a class="headerlink" href="#id55" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id56">
+<h2>Returns:<a class="headerlink" href="#id56" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line2D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line2D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line2D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id57">
+<h2>Args:<a class="headerlink" href="#id57" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id58">
+<h2>Returns:<a class="headerlink" href="#id58" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line2D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line2D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line2D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id59">
+<h2>Args:<a class="headerlink" href="#id59" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id60">
+<h2>Returns:<a class="headerlink" href="#id60" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Line3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id61">
+<h2>Returns:<a class="headerlink" href="#id61" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id62">
+<h2>Args:<a class="headerlink" href="#id62" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id63">
+<h2>Returns:<a class="headerlink" href="#id63" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id64">
+<h2>Args:<a class="headerlink" href="#id64" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id65">
+<h2>Returns:<a class="headerlink" href="#id65" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Line3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Line3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Line3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id66">
+<h2>Args:<a class="headerlink" href="#id66" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id67">
+<h2>Returns:<a class="headerlink" href="#id67" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point1D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Point1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point1D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point1D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<p>Class representing a 1D point.</p>
+<section id="id68">
+<h2>Attributes:<a class="headerlink" href="#id68" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>x<span class="classifier">torch.float64</span></dt><dd><p>The x-coordinate of the point.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point1D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point1D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point1D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the point.</p>
+<section id="id69">
+<h3>Returns:<a class="headerlink" href="#id69" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>list</dt><dd><p>The bounding box of the point.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point1D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point1D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point1D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the point.</p>
+<section id="id70">
+<h3>Args:<a class="headerlink" href="#id70" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id71">
+<h3>Returns:<a class="headerlink" href="#id71" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the point.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point1D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point1D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point1D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the point.</p>
+<section id="id72">
+<h3>Args:<a class="headerlink" href="#id72" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id73">
+<h3>Returns:<a class="headerlink" href="#id73" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point1D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point1D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point1D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the point.</p>
+<section id="id74">
+<h3>Args:<a class="headerlink" href="#id74" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id75">
+<h3>Returns:<a class="headerlink" href="#id75" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Point2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<p>Class representing a 2D point.</p>
+<section id="id76">
+<h2>Attributes:<a class="headerlink" href="#id76" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>x<span class="classifier">torch.float64</span></dt><dd><p>The x-coordinate of the point.</p>
+</dd>
+<dt>y<span class="classifier">torch.float64</span></dt><dd><p>The y-coordinate of the point.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point2D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point2D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point2D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the point.</p>
+<section id="id77">
+<h3>Returns:<a class="headerlink" href="#id77" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>list</dt><dd><p>The bounding box of the point.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point2D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point2D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point2D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the point.</p>
+<section id="id78">
+<h3>Args:<a class="headerlink" href="#id78" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id79">
+<h3>Returns:<a class="headerlink" href="#id79" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the point.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point2D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point2D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point2D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the point.</p>
+<section id="id80">
+<h3>Args:<a class="headerlink" href="#id80" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id81">
+<h3>Returns:<a class="headerlink" href="#id81" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point2D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point2D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point2D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the point.</p>
+<section id="id82">
+<h3>Args:<a class="headerlink" href="#id82" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id83">
+<h3>Returns:<a class="headerlink" href="#id83" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Point3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<p>Class representing a 3D point.</p>
+<section id="id84">
+<h2>Attributes:<a class="headerlink" href="#id84" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>x<span class="classifier">torch.float64</span></dt><dd><p>The x-coordinate of the point.</p>
+</dd>
+<dt>y<span class="classifier">torch.float64</span></dt><dd><p>The y-coordinate of the point.</p>
+</dd>
+<dt>z<span class="classifier">torch.float64</span></dt><dd><p>The z-coordinate of the point.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the point.</p>
+<section id="id85">
+<h3>Returns:<a class="headerlink" href="#id85" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>list</dt><dd><p>The bounding box of the point.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the point.</p>
+<section id="id86">
+<h3>Args:<a class="headerlink" href="#id86" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id87">
+<h3>Returns:<a class="headerlink" href="#id87" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the point.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the point.</p>
+<section id="id88">
+<h3>Args:<a class="headerlink" href="#id88" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id89">
+<h3>Returns:<a class="headerlink" href="#id89" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the point or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Point3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Point3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Point3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the point.</p>
+<section id="id90">
+<h3>Args:<a class="headerlink" href="#id90" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id91">
+<h3>Returns:<a class="headerlink" href="#id91" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Polygon2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<p>Polygon class inheriting from GeometryBase.</p>
+<section id="id92">
+<h2>Attributes:<a class="headerlink" href="#id92" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>vertices<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of shape (N, 2) representing the vertices of the polygon.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon2D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon2D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon2D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the polygon.</p>
+<section id="id93">
+<h3>Returns:<a class="headerlink" href="#id93" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>List[float]</dt><dd><p>A list of the form [x_min, x_max, y_min, y_max].</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon2D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon2D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon2D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id94">
+<h3>Args:<a class="headerlink" href="#id94" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id95">
+<h3>Returns:<a class="headerlink" href="#id95" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon2D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon2D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon2D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id96">
+<h3>Args:<a class="headerlink" href="#id96" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id97">
+<h3>Returns:<a class="headerlink" href="#id97" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon2D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon2D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon2D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance function for the polygon.</p>
+<section id="id98">
+<h3>Args:<a class="headerlink" href="#id98" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>points<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of shape (M, 2) representing the points to evaluate.</p>
+</dd>
+</dl>
+</section>
+<section id="id99">
+<h3>Returns:<a class="headerlink" href="#id99" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of shape (M,) containing the signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Polygon3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id100">
+<h2>Returns:<a class="headerlink" href="#id100" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Sample points inside the 3D polygon by:
+1. Building a local orthonormal frame (e1, e2, n) for the plane.
+2. Projecting all vertices to the (e1, e2) 2D coordinate system.
+3. Using a Polygon2D to sample points in 2D.
+4. Mapping the 2D samples back to 3D using the local frame.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id101">
+<h2>Args:<a class="headerlink" href="#id101" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id102">
+<h2>Returns:<a class="headerlink" href="#id102" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Polygon3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Polygon3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Polygon3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id103">
+<h2>Args:<a class="headerlink" href="#id103" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id104">
+<h2>Returns:<a class="headerlink" href="#id104" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Sphere3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Sphere3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.float64</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Sphere3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Sphere3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Sphere3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Sphere3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Sphere3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id105">
+<h2>Returns:<a class="headerlink" href="#id105" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Sphere3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Sphere3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Sphere3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id106">
+<h2>Args:<a class="headerlink" href="#id106" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id107">
+<h2>Returns:<a class="headerlink" href="#id107" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Sphere3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Sphere3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Sphere3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id108">
+<h2>Args:<a class="headerlink" href="#id108" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id109">
+<h2>Returns:<a class="headerlink" href="#id109" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Sphere3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Sphere3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Sphere3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id110">
+<h2>Args:<a class="headerlink" href="#id110" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id111">
+<h2>Returns:<a class="headerlink" href="#id111" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Square2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square2D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square2D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square2D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id112">
+<h2>Returns:<a class="headerlink" href="#id112" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square2D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square2D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square2D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id113">
+<h2>Args:<a class="headerlink" href="#id113" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id114">
+<h2>Returns:<a class="headerlink" href="#id114" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square2D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square2D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square2D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id115">
+<h2>Args:<a class="headerlink" href="#id115" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id116">
+<h2>Returns:<a class="headerlink" href="#id116" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square2D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square2D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square2D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id117">
+<h2>Args:<a class="headerlink" href="#id117" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id118">
+<h2>Returns:<a class="headerlink" href="#id118" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">Square3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square3D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square3D.get_bounding_box">
+<span class="sig-name descname"><span class="pre">get_bounding_box</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square3D.get_bounding_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square3D.get_bounding_box" title="Link to this definition"></a></dt>
+<dd><p>Get the bounding box of the geometry.</p>
+<section id="id119">
+<h2>Returns:<a class="headerlink" href="#id119" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>list</dt><dd><p>For 2D: [x_min, x_max, y_min, y_max];
+For 3D: [x_min, x_max, y_min, y_max, z_min, z_max];</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square3D.in_sample">
+<span class="sig-name descname"><span class="pre">in_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_boundary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square3D.in_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square3D.in_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples within the geometry.</p>
+<section id="id120">
+<h2>Args:<a class="headerlink" href="#id120" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_boundary<span class="classifier">bool, optional</span></dt><dd><p>Whether to include boundary points in the samples.</p>
+</dd>
+</dl>
+</section>
+<section id="id121">
+<h2>Returns:<a class="headerlink" href="#id121" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of points sampled from the geometry.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square3D.on_sample">
+<span class="sig-name descname"><span class="pre">on_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_normal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square3D.on_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square3D.on_sample" title="Link to this definition"></a></dt>
+<dd><p>Generate samples on the boundary of the geometry.</p>
+<section id="id122">
+<h2>Args:<a class="headerlink" href="#id122" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>num_samples<span class="classifier">int</span></dt><dd><p>The number of samples to generate.</p>
+</dd>
+<dt>with_normal<span class="classifier">bool, optional</span></dt><dd><p>Whether to include normal vectors.</p>
+</dd>
+</dl>
+</section>
+<section id="id123">
+<h2>Returns:<a class="headerlink" href="#id123" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor or tuple</dt><dd><p>A tensor of points sampled from the boundary of the geometry or a tuple of tensors of points and normal vectors.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.Square3D.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#Square3D.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.Square3D.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id124">
+<h2>Args:<a class="headerlink" href="#id124" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id125">
+<h2>Returns:<a class="headerlink" href="#id125" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.State">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">State</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#State"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.State" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enum class for the state of a point with respect to a geometry.</p>
+<section id="id126">
+<h2>Attributes:<a class="headerlink" href="#id126" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>isIn<span class="classifier">int</span></dt><dd><p>Represents that the point is inside the geometry.</p>
+</dd>
+<dt>isOut<span class="classifier">int</span></dt><dd><p>Represents that the point is outside the geometry.</p>
+</dd>
+<dt>isOn<span class="classifier">int</span></dt><dd><p>Represents that the point is on the boundary of the geometry.</p>
+</dd>
+<dt>isUnknown<span class="classifier">int</span></dt><dd><p>Represents an undefined or indeterminate state of the point.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyrfm.geometry.State.isIn">
+<span class="sig-name descname"><span class="pre">isIn</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#pyrfm.geometry.State.isIn" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyrfm.geometry.State.isOn">
+<span class="sig-name descname"><span class="pre">isOn</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#pyrfm.geometry.State.isOn" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyrfm.geometry.State.isOut">
+<span class="sig-name descname"><span class="pre">isOut</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pyrfm.geometry.State.isOut" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyrfm.geometry.State.isUnknown">
+<span class="sig-name descname"><span class="pre">isUnknown</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#pyrfm.geometry.State.isUnknown" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.geometry.UnionGeometry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.geometry.</span></span><span class="sig-name descname"><span class="pre">UnionGeometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geomA</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><span class="pre">GeometryBase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">geomB</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><span class="pre">GeometryBase</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#UnionGeometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.UnionGeometry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyrfm.geometry.GeometryBase" title="pyrfm.geometry.GeometryBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeometryBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.geometry.UnionGeometry.sdf">
+<span class="sig-name descname"><span class="pre">sdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/geometry.html#UnionGeometry.sdf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.geometry.UnionGeometry.sdf" title="Link to this definition"></a></dt>
+<dd><p>Compute the signed distance of a point to the geometry.</p>
+<section id="id127">
+<h2>Args:<a class="headerlink" href="#id127" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>p<span class="classifier">torch.Tensor</span></dt><dd><p>A tensor of points.</p>
+</dd>
+</dl>
+</section>
+<section id="id128">
+<h2>Returns:<a class="headerlink" href="#id128" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>torch.Tensor</dt><dd><p>A tensor of signed distances.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="utils.html" class="btn btn-neutral float-left" title="Utils Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="voronoi.html" class="btn btn-neutral float-right" title="Voronoi Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yifei Sun.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

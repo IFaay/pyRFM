@@ -1,0 +1,219 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Utils Module &mdash; pyRFM 0.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=92734c54"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Geometry Module" href="geometry.html" />
+    <link rel="prev" title="Core Module" href="core.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyRFM
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Modules</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core Module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Utils Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.utils.Tensor"><code class="docutils literal notranslate"><span class="pre">Tensor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.utils.Tensor.cat"><code class="docutils literal notranslate"><span class="pre">Tensor.cat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.utils.Tensor.numel"><code class="docutils literal notranslate"><span class="pre">Tensor.numel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.utils.Tensor.reshape"><code class="docutils literal notranslate"><span class="pre">Tensor.reshape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pyrfm.utils.Tensor.size"><code class="docutils literal notranslate"><span class="pre">Tensor.size()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.utils.concat_blocks"><code class="docutils literal notranslate"><span class="pre">concat_blocks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pyrfm.utils.spilit_blocks"><code class="docutils literal notranslate"><span class="pre">spilit_blocks()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometry Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="voronoi.html">Voronoi Module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyRFM</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Utils Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="utils-module">
+<h1>Utils Module<a class="headerlink" href="#utils-module" title="Link to this heading"></a></h1>
+<p>Utility functions for various tasks.</p>
+<p id="module-pyrfm.utils">Created on 2024/12/15</p>
+<p>&#64;author: Yifei Sun</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyrfm.utils.Tensor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyrfm.utils.</span></span><span class="sig-name descname"><span class="pre">Tensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/utils.html#Tensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.Tensor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A Tensor class that acts as a multi-dimensional container similar to a list.</p>
+<p>Note:
+This class is <strong>not</strong> <cite>torch.Tensor</cite>. It is a standalone implementation
+designed for handling multi-dimensional data using nested Python lists.</p>
+<dl class="simple">
+<dt>This class supports:</dt><dd><ul class="simple">
+<li><p>Multi-dimensional indexing: Elements can be accessed and modified using indices for each dimension.</p></li>
+<li><p>Shape definition: Allows defining the shape of the tensor explicitly or inferring it from the provided data.</p></li>
+<li><p>Flattened and nested representations: Maintains both a nested structure (for easy access) and a flat list (for efficient operations).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.utils.Tensor.cat">
+<span class="sig-name descname"><span class="pre">cat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/utils.html#Tensor.cat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.Tensor.cat" title="Link to this definition"></a></dt>
+<dd><p>Concatenate the tensor along the specified dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dim</strong> – Dimension along which to concatenate.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Concatenated tensor as a torch.Tensor.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – If any element in self.data is not a torch.Tensor.</p></li>
+<li><p><strong>ValueError</strong> – If tensor shapes are incompatible for concatenation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.utils.Tensor.numel">
+<span class="sig-name descname"><span class="pre">numel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/utils.html#Tensor.numel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.Tensor.numel" title="Link to this definition"></a></dt>
+<dd><p>Return the total number of elements in the tensor (similar to torch.Tensor.numel()).
+:return: Integer representing the total number of elements.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.utils.Tensor.reshape">
+<span class="sig-name descname"><span class="pre">reshape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">new_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/utils.html#Tensor.reshape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.Tensor.reshape" title="Link to this definition"></a></dt>
+<dd><p>Reshape the tensor to a new shape (similar to torch.Tensor.reshape()).
+:param new_shape: New shape as a tuple.
+:return: Tensor object with the new shape.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyrfm.utils.Tensor.size">
+<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyrfm/utils.html#Tensor.size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.Tensor.size" title="Link to this definition"></a></dt>
+<dd><p>Return the shape of the tensor (similar to torch.Tensor.size()).
+:return: Tuple representing the shape.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyrfm.utils.concat_blocks">
+<span class="sig-prename descclassname"><span class="pre">pyrfm.utils.</span></span><span class="sig-name descname"><span class="pre">concat_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="_modules/pyrfm/utils.html#concat_blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.concat_blocks" title="Link to this definition"></a></dt>
+<dd><p>Construct a block matrix from a 2D list of tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocks</strong> – 2D list of tensors (e.g., [[a, b], [c, d]])</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A single tensor representing the block matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyrfm.utils.spilit_blocks">
+<span class="sig-prename descclassname"><span class="pre">pyrfm.utils.</span></span><span class="sig-name descname"><span class="pre">spilit_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pyrfm.utils.Tensor" title="pyrfm.utils.Tensor"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pyrfm/utils.html#spilit_blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyrfm.utils.spilit_blocks" title="Link to this definition"></a></dt>
+<dd><p>Split a matrix into a 2D list of blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matrix</strong> – Input matrix to split.</p></li>
+<li><p><strong>dim</strong> – Dimension along which to split.</p></li>
+<li><p><strong>n_blocks</strong> – Number of blocks to split into.</p></li>
+<li><p><strong>split_size</strong> – Optional size of each block.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>2D list of blocks.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="core.html" class="btn btn-neutral float-left" title="Core Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="geometry.html" class="btn btn-neutral float-right" title="Geometry Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yifei Sun.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
