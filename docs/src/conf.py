@@ -35,3 +35,18 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'
 html_baseurl = 'https://ifaay.github.io/pyRFM/docs/'
 html_static_path = ['_static']
+
+base_url = "https://ifaay.github.io/pyRFM/docs/"
+
+html_context = {
+    "css_files": [
+        f"{base_url}_static/pygments.css",
+        f"{base_url}_static/css/theme.css",
+    ],
+    "script_files": [
+        f"{base_url}_static/jquery.js",
+        f"{base_url}_static/sphinx_highlight.js",
+        f"{base_url}_static/doctools.js",
+        f"{base_url}_static/js/theme.js",
+    ]
+}
