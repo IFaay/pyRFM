@@ -36,7 +36,7 @@ html_theme = 'sphinx_rtd_theme'
 html_baseurl = 'https://ifaay.github.io/pyRFM/docs/'
 html_static_path = ['_static']
 
-base_url = "https://ifaay.github.io/pyRFM/docs/"
+base_url = "https://raw.githubusercontent.com/IFaay/pyRFM/master/docs/"
 
 html_context = {
     "css_files": [
