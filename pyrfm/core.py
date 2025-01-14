@@ -375,6 +375,8 @@ class RFMBase(ABC):
             self.radii = torch.tensor(radii, dtype=self.dtype, device=self.device)
             if self.centers.shape[-1] != self.dim or self.radii.shape[-1] != self.dim:
                 raise ValueError("Centers and radii must have the same number of dimensions as the domain.")
+            elif self.centers.shape != self.radii.shape:
+                raise ValueError("Centers and radii must have the same shape.")
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_subdomains)
 
