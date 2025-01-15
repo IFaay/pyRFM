@@ -377,6 +377,8 @@ class RFMBase(ABC):
                 raise ValueError("Centers and radii must have the same number of dimensions as the domain.")
             elif self.centers.shape != self.radii.shape:
                 raise ValueError("Centers and radii must have the same shape.")
+            if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
+                warnings.warn("Assigned centers are not inside the domain.", RuntimeWarning)
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_subdomains)
 
