@@ -21,7 +21,8 @@ setup(
         "numpy",
         "pandas",
         "matplotlib",
-        "scipy"
+        "scipy",
+        "spdlog"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

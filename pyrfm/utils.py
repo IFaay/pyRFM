@@ -5,8 +5,11 @@ Created on 2024/12/15
 @author: Yifei Sun
 """
 
-import warnings
 import math
+
+import spdlog
+logger = spdlog.ConsoleLogger('rfm_logger')
+logger.set_level(spdlog.LogLevel.DEBUG)
 
 import numpy
 
