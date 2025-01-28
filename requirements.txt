@@ -1,1 +1,6 @@
 torch>=2.1.0
+spdlog~=2.0.6
+numpy~=2.0.2
+scipy~=1.13.1
+pyrfm~=0.1.2
+setuptools~=75.1.0

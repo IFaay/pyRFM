@@ -378,7 +378,7 @@ class RFMBase(ABC):
             elif self.centers.shape != self.radii.shape:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
-                warnings.warn("Assigned centers are not inside the domain.", RuntimeWarning)
+                logger.warn("Assigned centers are not inside the domain.")
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_subdomains)
 
@@ -415,12 +415,10 @@ class RFMBase(ABC):
         :return: feature Tensor
         """
         if not isinstance(self.pou_functions[0], PsiA):
-            warnings.warn("The POU function is not PsiA, the continuity condition may not be Appropriate.")
+            logger.warn("The POU function is not PsiA, the continuity condition may not be Appropriate.")
 
         if order < 0:
             raise ValueError("Order must be non-negative.")
-
-
 
         n_subdomains = self.submodels.shape
         interface_dict = {}
@@ -478,8 +476,11 @@ class RFMBase(ABC):
             voronoi = Voronoi(self.domain, self.centers)
             interface_dict, _ = voronoi.interface_sample(num_samples)
 
-        all_pts = []
+        n_interface = len(interface_dict)
+        n_points = sum([len(points) for points in interface_dict.values()])
+        logger.info(f"Number of interface points: {n_points} for {n_interface} interfaces.")
 
+        all_pts = []
         CFeatrues: List[torch.Tensor] = []
 
         for pair, point in interface_dict.items():
@@ -518,7 +519,7 @@ class RFMBase(ABC):
             raise NotImplementedError("Higher order continuity conditions are not supported.")
 
         if with_pts:
-            return Tensor(CFeatrues, shape=self.submodels.shape), torch.cat(all_pts, dim=0)
+            return Tensor(CFeatrues, shape=self.submodels.shape),  torch.cat(all_pts, dim=0)
         return Tensor(CFeatrues, shape=self.submodels.shape)
 
     def empty_cache(self):
