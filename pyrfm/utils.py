@@ -19,6 +19,8 @@ from typing import Optional, Any, Union, Tuple, List, Callable, Dict
 from collections import Counter
 from enum import Enum
 
+from math import prod
+
 # torch.backends.cuda.preferred_linalg_library('cusolver')  # or 'magma'
 torch.set_default_dtype(torch.float64)
 torch.set_default_device(torch.device("cpu"))
@@ -348,3 +350,37 @@ def spilit_blocks(matrix: torch.Tensor, dim: int = 1, n_blocks: int = 2, split_s
             if sum(split_size) != matrix.shape[dim]:
                 raise ValueError("Sum of split sizes must equal the matrix size.")
         return torch.split(matrix, split_size, dim=dim)
+
+
+def ravel_multi_index(indices, shape):
+    """
+    Converts multi-dimensional indices (slice or tensor/list) into flat indices.
+
+    Args:
+        indices (list): List of slice objects, torch.Tensor, or lists representing multi-dimensional indices.
+        shape (tuple): Shape of the multi-dimensional array.
+
+    Returns:
+        torch.Tensor: 1D indices.
+    """
+    grid = []
+    for dim, idx in enumerate(indices):
+        if isinstance(idx, slice):
+            # Handle slice
+            start, stop, step = idx.start or 0, idx.stop or shape[dim], idx.step or 1
+            grid.append(torch.arange(start, stop, step))
+        elif isinstance(idx, (torch.Tensor, list)):
+            # Handle tensor or list
+            grid.append(torch.tensor(idx))
+        else:
+            raise ValueError(f"Unsupported index type: {type(idx)} at dimension {dim}")
+
+    # Use meshgrid to create multi-dimensional grids
+    grids = torch.meshgrid(*grid, indexing='ij')
+
+    # Compute flattened indices
+    strides = torch.tensor(shape[1:]).flip(0).cumprod(0).flip(0)
+    strides = torch.cat((strides, torch.tensor([1])))
+    flat_index = sum(g.flatten() * stride for g, stride in zip(grids, strides))
+
+    return flat_index

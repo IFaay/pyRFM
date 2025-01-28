@@ -8,7 +8,7 @@ import time
 
 import torch
 
-from .geometry import GeometryBase, Line1D, Square2D, Cube3D
+from .geometry import GeometryBase, Line1D, Square2D, Cube3D, Point1D, Line2D, Square3D
 from .voronoi import Voronoi
 from .utils import *
 
@@ -406,11 +406,12 @@ class RFMBase(ABC):
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
-    def add_c_condition(self, num_samples: int, order: int = 1):
+    def add_c_condition(self, num_samples: int, order: int = 1, with_pts = False):
         """
         Add a Continuity (c0 and c1) condition to the model.
         :param num_samples: number of interface points
         :param order: max order of the continuity condition
+        :param with_pts: whether to return the interface points
         :return: feature Tensor
         """
         if not isinstance(self.pou_functions[0], PsiA):
@@ -419,14 +420,72 @@ class RFMBase(ABC):
         if order < 0:
             raise ValueError("Order must be non-negative.")
 
-        voronoi = Voronoi(self.domain, self.centers)
-        interface_dict, _ = voronoi.interface_sample(num_samples)
+
+
+        n_subdomains = self.submodels.shape
+        interface_dict = {}
+        if len(n_subdomains) == self.dim:
+            n_interface = 0
+            for d in range(self.dim):
+                n_interface += (n_subdomains[d] - 1) * (prod(n_subdomains) // n_subdomains[d])
+            num_samples = max(int(num_samples / n_interface), 3)
+            for d in range(self.dim):
+                if n_subdomains[d] <= 1:
+                    continue
+
+                for k in range(n_subdomains[d] - 1):
+                    indices1 = [slice(None)] * self.dim
+                    indices1[d] = slice(k, k + 1, 1)
+                    indices2 = [slice(None)] * self.dim
+                    indices2[d] = slice(k + 1, k + 2, 1)
+
+                    centers1 = self.centers[indices1].view(-1, self.dim)
+                    radii1 = self.radii[indices1].view(-1, self.dim)
+                    centers2 = self.centers[indices2].view(-1, self.dim)
+                    radii2 = self.radii[indices2].view(-1, self.dim)
+
+                    indices1 = ravel_multi_index(indices1, n_subdomains)
+                    indices2 = ravel_multi_index(indices2, n_subdomains)
+
+                    for (idx1, idx2, center1, radius1, center2, radius2) in zip(indices1, indices2, centers1, radii1, centers2, radii2):
+
+
+                        if not torch.abs(center1[d] - center2[d]) < (radius1[d] + radius2[d]) * (1 + self.overlap) * (1 + 1e-6):
+                            raise ValueError("Subdomains are not adjacent.")
+
+                        interface_center = center1.clone()
+                        interface_center[d] = center1[d] + radius1[d]
+                        interface_radius = radius1.clone()
+                        interface_radius[d] = 0.0
+                        if self.dim == 1:
+                            interface = Point1D(interface_center[0].item())
+                        elif self.dim == 2:
+                            interface = Line2D(interface_center[0].item() - interface_radius[0].item(),
+                                                    interface_center[1].item() - interface_radius[1].item(),
+                                                    interface_center[0].item() + interface_radius[0].item(),
+                                                    interface_center[1].item() + interface_radius[1].item())
+                        elif self.dim == 3:
+                            interface = Square3D(interface_center, interface_radius)
+                        else:
+                            interface = None
+                            raise NotImplementedError("Higher dimension continuity conditions are not supported.")
+
+                        points = interface.in_sample(num_samples, with_boundary=False)
+                        points = points[torch.where(self.domain.sdf(points) < 0)[0]]
+                        interface_dict[(idx1, idx2)] = points
+
+        else:
+            voronoi = Voronoi(self.domain, self.centers)
+            interface_dict, _ = voronoi.interface_sample(num_samples)
+
+        all_pts = []
 
         CFeatrues: List[torch.Tensor] = []
 
         for pair, point in interface_dict.items():
             if order >= 0:
                 feature = self.features(point)
+                all_pts.append(point)
                 for i in range(feature.numel()):
                     if i >= len(CFeatrues):
                         # Initialize CFeatures[i] if it does not exist
@@ -446,6 +505,7 @@ class RFMBase(ABC):
                 normal = (center1 - center0) / torch.linalg.norm(center1 - center0)
                 dFeatures = [self.features_derivative(point, d) for d in range(self.dim)]
                 d_feature = dFeatures[0] * normal[0]
+                all_pts.append(point)
                 for i in range(1, self.dim):
                     d_feature += dFeatures[i] * normal[i]
 
@@ -457,6 +517,8 @@ class RFMBase(ABC):
         if order > 1:
             raise NotImplementedError("Higher order continuity conditions are not supported.")
 
+        if with_pts:
+            return Tensor(CFeatrues, shape=self.submodels.shape), torch.cat(all_pts, dim=0)
         return Tensor(CFeatrues, shape=self.submodels.shape)
 
     def empty_cache(self):
