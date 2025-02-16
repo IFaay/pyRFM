@@ -7,6 +7,7 @@ Created on 2024/12/13
 import time
 
 import torch
+from triton.runtime import driver
 
 from .geometry import GeometryBase, Line1D, Square2D, Cube3D, Point1D, Line2D, Square3D
 from .voronoi import Voronoi
@@ -248,6 +249,36 @@ class PsiA(POUBase):
         self.d2_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
 
 
+class PsiBW(POUBase):
+    # A wider partition of unity function of Type B
+    def set_func(self):
+        self.func = lambda x: torch.where(x <= -3.0 / 2.0, 0.0,
+                                          torch.where(x <= -1.0 / 2.0,
+                                                      1.0 / 2.0 * (1.0 - torch.sin(torch.pi * x)),
+                                                      torch.where(x <= 1.0 / 2.0, 1.0,
+                                                                  torch.where(x <= 3.0 / 2.0, 1.0 / 2.0 * (
+                                                                          1.0 + torch.sin(
+                                                                      torch.pi * x)), 0.0)))
+                                          )
+        self.d_func = lambda x: torch.where(x <= -3.0 / 2.0, 0.0,
+                                            torch.where(x <= -1.0 / 2.0,
+                                                        -1.0 / 2.0 * torch.pi * torch.cos(torch.pi * x),
+                                                        torch.where(x <= 1.0 / 2.0, 0.0,
+                                                                    torch.where(x <= 3.0 / 2.0,
+                                                                                + 1.0 / 2.0 * torch.pi * torch.cos(
+                                                                                    torch.pi * x), 0.0)))
+                                            )
+        self.d2_func = lambda x: torch.where(x <= -3.0 / 2.0, 0.0,
+                                             torch.where(x <= -1.0 / 2.0,
+                                                          1.0 / 2.0 * torch.pi ** 2 * torch.sin(torch.pi * x),
+                                                         torch.where(x <= 1.0 / 2.0, 0.0,
+                                                                     torch.where(x <= 3.0 / 2.0,
+                                                                                 - 1.0 / 2.0 * torch.pi ** 2 * torch.sin(
+                                                                                     torch.pi * x), 0.0)))
+                                             )
+
+
+
 class PsiB(POUBase):
     def set_func(self):
         self.func = lambda x: torch.where(x < -5.0 / 4.0, 0.0,
@@ -360,6 +391,8 @@ class RFMBase(ABC):
         # If n_subdomains is an integer, create uniform subdivisions
         if isinstance(n_subdomains, int):
             n_subdomains = [n_subdomains] * self.dim
+        elif isinstance(n_subdomains, float):
+            n_subdomains = [int(n_subdomains)] * self.dim
         elif isinstance(n_subdomains, (list, tuple)) and len(n_subdomains) != self.dim:
             raise ValueError(f"n_subdomains must have {self.dim} elements when provided as a list or tuple.")
 
@@ -403,6 +436,7 @@ class RFMBase(ABC):
 
         self.W: Union[Tensor, List, torch.tensor] = None
         self.A: Optional[torch.tensor] = None
+        self.A_backup : Optional[torch.tensor] = None
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
@@ -426,7 +460,7 @@ class RFMBase(ABC):
             n_interface = 0
             for d in range(self.dim):
                 n_interface += (n_subdomains[d] - 1) * (prod(n_subdomains) // n_subdomains[d])
-            num_samples = max(int(num_samples / n_interface), 3)
+            num_samples = max(int(num_samples / n_interface), 3) if self.dim > 1 else max(int(num_samples / n_interface), 1)
             for d in range(self.dim):
                 if n_subdomains[d] <= 1:
                     continue
@@ -501,8 +535,8 @@ class RFMBase(ABC):
                         else:
                             CFeatrues[i] = torch.cat([CFeatrues[i], feature[i] if i == pair[0] else -feature[i]], dim=0)
             if order >= 1:
-                center1 = self.centers.view(-1, self.centers.shape[-1])[pair[1]]
-                center0 = self.centers.view(-1, self.centers.shape[-1])[pair[0]]
+                center1 = self.centers.view(-1, self.centers.shape[-1])[int(pair[1])]
+                center0 = self.centers.view(-1, self.centers.shape[-1])[int(pair[0])]
                 normal = (center1 - center0) / torch.linalg.norm(center1 - center0)
                 dFeatures = [self.features_derivative(point, d) for d in range(self.dim)]
                 d_feature = dFeatures[0] * normal[0]
@@ -548,6 +582,7 @@ class RFMBase(ABC):
         A = A.to(dtype=self.dtype, device=self.device)
         self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
         A /= self.A_norm
+        self.A_backup = A.clone().cpu()
         print("Decomposing the problem size of A: ", A.shape, "with solver QR")
 
         try:
@@ -560,11 +595,12 @@ class RFMBase(ABC):
 
         return self
 
-    def solve(self, b: torch.Tensor):
+    def solve(self, b: torch.Tensor, check_condition = False):
         """
         Solve the linear system Ax = b using the QR decomposition.
 
         :param b: Right-hand side tensor.
+        :param check_condition: Whether to check the condition number of A, and switch to SVD if necessary.
         """
         b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
@@ -584,12 +620,17 @@ class RFMBase(ABC):
         #     w_set.append(w)
         #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
         #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
-
+        #
         # # sum up the weights
         # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
         # residual = torch.norm(b_) / torch.norm(b)
 
-        print(f"Relative residual: {residual:.4e}")
+        if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
+            logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
+            self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype, device=self.device)
+            residual = torch.norm(torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+
+        print(f"Least Square Relative residual: {residual:.4e}")
 
         if self.W.numel() % (self.submodels.numel() * self.n_hidden) == 0:
             n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
@@ -777,6 +818,7 @@ class RFMBase(ABC):
             c.append(c_i)
             c_sum += c_i
         c = [c_i / c_sum for c_i in c]
+        # print(torch.cat([x, c[0], c_sum], dim=1))
 
         return Tensor(c, shape=self.submodels.shape)
 
