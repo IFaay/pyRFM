@@ -670,7 +670,7 @@ class Line1D(GeometryBase):
             A tensor of signed distances.
         """
 
-        return torch.abs(p - (self.x1 + self.x2) / 2) - torch.abs(self.x2 - self.x1) / 2
+        return torch.abs(p - (self.x1 + self.x2) / 2) - abs(self.x2 - self.x1) / 2
 
     def get_bounding_box(self):
         """
