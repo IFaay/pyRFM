@@ -917,3 +917,45 @@ class RFMBase(ABC):
         pass
 
         return Tensor()
+
+
+class STRFMBase(ABC):
+    def __init__(self, dim: int,
+                 n_hidden: int,
+                 domain: Union[Tuple, List, GeometryBase],
+                 time_interval: Union[Tuple[float, float], List[float]],
+                 n_spatial_subdomains: Union[int, Tuple, List] = 1,
+                 n_temporal_subdomains: int = 1,
+                 n_time_blocks: int = 1,
+                 overlap: torch.float64 = 0.0,
+                 rf=RFTanH,
+                 pou=PsiB,
+                 centers: Optional[torch.Tensor] = None,
+                 radii: Optional[torch.Tensor] = None,
+                 seed: int = 100,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None):
+        """
+        Initialize the RFMBase class with arbitrary dimensions.
+
+        :param dim: Number of spatial dimensions.
+        :param domain: List or tuple of min and max values for each dimension.
+                       Example for 2D: [x_min, x_max, y_min, y_max]
+                       Example for 3D: [x_min, x_max, y_min, y_max, z_min, z_max]
+        :param time_interval: List or tuple of min and max values for time.
+        :param n_spatial_subdomains: Either an integer (uniform subdivisions in all dimensions)
+                             or a list/tuple specifying the subdivisions per dimension.
+        :param n_temporal_subdomains: Number of time subdomains.
+        :param n_time_blocks: Number of time blocks in block time-marching strategy.
+        :param overlap: Overlap between subdomains, must be between 0 (inclusive) and 1 (exclusive).
+        :param rf: Random Feature class, must be a subclass of RFBase.
+        :param pou: Partition of Unity class, must be a subclass of POUBase.
+        :param centers: Optional tensor specifying the centers of subdomains.
+        :param radii: Optional tensor specifying the radii of subdomains.
+        :param seed: Random seed for reproducibility.
+        :param dtype: Data type for tensors.
+        :param device: Device to run the computations on.
+        """
+        self.dtype = dtype if dtype is not None else torch.tensor(0.).dtype
+        self.device = device if device is not None else torch.tensor(0.).device
+        self.dim = dim
