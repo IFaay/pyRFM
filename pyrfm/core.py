@@ -270,13 +270,12 @@ class PsiBW(POUBase):
                                             )
         self.d2_func = lambda x: torch.where(x <= -3.0 / 2.0, 0.0,
                                              torch.where(x <= -1.0 / 2.0,
-                                                          1.0 / 2.0 * torch.pi ** 2 * torch.sin(torch.pi * x),
+                                                         1.0 / 2.0 * torch.pi ** 2 * torch.sin(torch.pi * x),
                                                          torch.where(x <= 1.0 / 2.0, 0.0,
                                                                      torch.where(x <= 3.0 / 2.0,
                                                                                  - 1.0 / 2.0 * torch.pi ** 2 * torch.sin(
                                                                                      torch.pi * x), 0.0)))
                                              )
-
 
 
 class PsiB(POUBase):
@@ -436,11 +435,11 @@ class RFMBase(ABC):
 
         self.W: Union[Tensor, List, torch.tensor] = None
         self.A: Optional[torch.tensor] = None
-        self.A_backup : Optional[torch.tensor] = None
+        self.A_backup: Optional[torch.tensor] = None
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
-    def add_c_condition(self, num_samples: int, order: int = 1, with_pts = False):
+    def add_c_condition(self, num_samples: int, order: int = 1, with_pts=False):
         """
         Add a Continuity (c0 and c1) condition to the model.
         :param num_samples: number of interface points
@@ -460,7 +459,8 @@ class RFMBase(ABC):
             n_interface = 0
             for d in range(self.dim):
                 n_interface += (n_subdomains[d] - 1) * (prod(n_subdomains) // n_subdomains[d])
-            num_samples = max(int(num_samples / n_interface), 3) if self.dim > 1 else max(int(num_samples / n_interface), 1)
+            num_samples = max(int(num_samples / n_interface), 3) if self.dim > 1 else max(
+                int(num_samples / n_interface), 1)
             for d in range(self.dim):
                 if n_subdomains[d] <= 1:
                     continue
@@ -479,10 +479,11 @@ class RFMBase(ABC):
                     indices1 = ravel_multi_index(indices1, n_subdomains)
                     indices2 = ravel_multi_index(indices2, n_subdomains)
 
-                    for (idx1, idx2, center1, radius1, center2, radius2) in zip(indices1, indices2, centers1, radii1, centers2, radii2):
+                    for (idx1, idx2, center1, radius1, center2, radius2) in zip(indices1, indices2, centers1, radii1,
+                                                                                centers2, radii2):
 
-
-                        if not torch.abs(center1[d] - center2[d]) < (radius1[d] + radius2[d]) * (1 + self.overlap) * (1 + 1e-6):
+                        if not torch.abs(center1[d] - center2[d]) < (radius1[d] + radius2[d]) * (1 + self.overlap) * (
+                                1 + 1e-6):
                             raise ValueError("Subdomains are not adjacent.")
 
                         interface_center = center1.clone()
@@ -493,9 +494,9 @@ class RFMBase(ABC):
                             interface = Point1D(interface_center[0].item())
                         elif self.dim == 2:
                             interface = Line2D(interface_center[0].item() - interface_radius[0].item(),
-                                                    interface_center[1].item() - interface_radius[1].item(),
-                                                    interface_center[0].item() + interface_radius[0].item(),
-                                                    interface_center[1].item() + interface_radius[1].item())
+                                               interface_center[1].item() - interface_radius[1].item(),
+                                               interface_center[0].item() + interface_radius[0].item(),
+                                               interface_center[1].item() + interface_radius[1].item())
                         elif self.dim == 3:
                             interface = Square3D(interface_center, interface_radius)
                         else:
@@ -553,7 +554,7 @@ class RFMBase(ABC):
             raise NotImplementedError("Higher order continuity conditions are not supported.")
 
         if with_pts:
-            return Tensor(CFeatrues, shape=self.submodels.shape),  torch.cat(all_pts, dim=0)
+            return Tensor(CFeatrues, shape=self.submodels.shape), torch.cat(all_pts, dim=0)
         return Tensor(CFeatrues, shape=self.submodels.shape)
 
     def empty_cache(self):
@@ -595,7 +596,7 @@ class RFMBase(ABC):
 
         return self
 
-    def solve(self, b: torch.Tensor, check_condition = False):
+    def solve(self, b: torch.Tensor, check_condition=False):
         """
         Solve the linear system Ax = b using the QR decomposition.
 
@@ -627,8 +628,10 @@ class RFMBase(ABC):
 
         if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
             logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
-            self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype, device=self.device)
-            residual = torch.norm(torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+            self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
+                                                                                      device=self.device)
+            residual = torch.norm(
+                torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
 
         print(f"Least Square Relative residual: {residual:.4e}")
 
@@ -927,8 +930,10 @@ class STRFMBase(ABC):
                  n_spatial_subdomains: Union[int, Tuple, List] = 1,
                  n_temporal_subdomains: int = 1,
                  n_time_blocks: int = 1,
+                 st_type: str = "STC",
                  overlap: torch.float64 = 0.0,
-                 rf=RFTanH,
+                 space_rf=RFTanH,
+                 time_rf=RFTanH,
                  pou=PsiB,
                  centers: Optional[torch.Tensor] = None,
                  radii: Optional[torch.Tensor] = None,
@@ -947,8 +952,10 @@ class STRFMBase(ABC):
                              or a list/tuple specifying the subdivisions per dimension.
         :param n_temporal_subdomains: Number of time subdomains.
         :param n_time_blocks: Number of time blocks in block time-marching strategy.
+        :param st_type: Define the construction method of space-time random feature functions, either "STC" (Space-Time Concatenation) or "SoV" (Separation of Variables).
         :param overlap: Overlap between subdomains, must be between 0 (inclusive) and 1 (exclusive).
-        :param rf: Random Feature class, must be a subclass of RFBase.
+        :param space_rf: Random Feature class for spatial part, must be a subclass of RFBase.
+        :param time_rf: Random Feature class for temporal part, must be a subclass of RFBase.
         :param pou: Partition of Unity class, must be a subclass of POUBase.
         :param centers: Optional tensor specifying the centers of subdomains.
         :param radii: Optional tensor specifying the radii of subdomains.
@@ -959,3 +966,146 @@ class STRFMBase(ABC):
         self.dtype = dtype if dtype is not None else torch.tensor(0.).dtype
         self.device = device if device is not None else torch.tensor(0.).device
         self.dim = dim
+        if isinstance(domain, GeometryBase):
+            if domain.dim != self.dim:
+                raise ValueError("Domain dimension mismatch.")
+            else:
+                self.domain = domain
+        else:
+            if len(domain) != 2 * dim:
+                raise ValueError(f"Domain must contain {2 * dim} values (min and max for each dimension).")
+            if dim == 1:
+                self.domain = Line1D(domain[0], domain[1])
+            elif dim == 2:
+                self.domain = Square2D([(domain[0] + domain[1]) / 2.0, (domain[2] + domain[3]) / 2.0],
+                                       [(domain[1] - domain[0]) / 2.0, (domain[3] - domain[2]) / 2.0])
+            elif dim == 3:
+                self.domain = Cube3D(
+                    [(domain[0] + domain[1]) / 2.0, (domain[2] + domain[3]) / 2.0, (domain[4] + domain[5]) / 2.0],
+                    [(domain[1] - domain[0]) / 2.0, (domain[3] - domain[2]) / 2.0, (domain[5] - domain[4]) / 2.0])
+            else:
+                raise ValueError("Only 1D, 2D, and 3D domains are supported.")
+
+        if isinstance(time_interval, (list, tuple)) and len(time_interval) != 2:
+            raise ValueError("Time interval must contain two values (start_time and end_time).")
+        self.time_interval = (float(time_interval[0]), float(time_interval[1]))
+
+        # If n_spatial_subdomains is an integer, create uniform subdivisions
+        if isinstance(n_spatial_subdomains, int):
+            n_spatial_subdomains = [n_spatial_subdomains] * self.dim
+        elif isinstance(n_spatial_subdomains, float):
+            n_spatial_subdomains = [int(n_spatial_subdomains)] * self.dim
+        elif isinstance(n_spatial_subdomains, (list, tuple)) and len(n_spatial_subdomains) != self.dim:
+            raise ValueError(f"n_spatial_subdomains must have {self.dim} elements when provided as a list or tuple.")
+
+        # Validate overlap
+        if not (0.0 <= overlap < 1.0):
+            raise ValueError("Overlap must be between 0 (inclusive) and 1 (exclusive).")
+
+        self.overlap = overlap
+
+        # Compute centers and radii
+        if centers is not None and radii is not None:
+            self.centers = torch.tensor(centers, dtype=self.dtype, device=self.device)
+            self.radii = torch.tensor(radii, dtype=self.dtype, device=self.device)
+            if self.centers.shape[-1] != self.dim or self.radii.shape[-1] != self.dim:
+                raise ValueError("Centers and radii must have the same number of dimensions as the domain.")
+            elif self.centers.shape != self.radii.shape:
+                raise ValueError("Centers and radii must have the same shape.")
+            if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
+                logger.warn("Assigned centers are not inside the domain.")
+        else:
+            self.centers, self.radii = self._compute_centers_and_radii(n_spatial_subdomains)
+
+        if not issubclass(space_rf, RFBase) or not issubclass(time_rf, RFBase):
+            raise ValueError("Random Feature must be a subclass of RFBase.")
+
+        submodels = []
+        self.gen = torch.Generator(device=self.device)
+        self.gen.manual_seed(seed)
+
+        if not isinstance(st_type, str) or st_type.upper() not in ["STC", "SOV"]:
+            raise ValueError("st_type must be either 'STC' or 'SoV'.")
+
+        self.st_type = st_type.upper()
+
+        submodels = []
+        for center, radius in zip(self.centers.view(-1, self.centers.shape[-1]),
+                                  self.radii.view(-1, self.radii.shape[-1])):
+            time_stamp = torch.linspace(*time_interval, n_temporal_subdomains + 1)
+            for (t0, t1) in zip(time_stamp[:-1], time_stamp[1:]):
+                if self.st_type == "STC":
+                    center_ = torch.cat([center, torch.tensor([(t1 + t0) / 2.0])], dim=0)
+                    radius_ = torch.cat([radius, torch.tensor([(t1 - t0) / 2.0])], dim=0)
+                    print(f"center = {center_} and radius = {radius_}")
+                    submodels.append(space_rf(dim + 1, center_, radius_, n_hidden, gen=self.gen, dtype=self.dtype,
+                                              device=self.device))
+                elif self.st_type == "SOV":
+                    submodels.append(
+                        (space_rf(dim, center, radius, n_hidden, gen=self.gen, dtype=dtype, device=self.device),
+                         time_rf(1, (t0 + t1) / 2.0, (t1 - t0) / 2.0, n_hidden, gen=self.gen, dtype=self.dtype,
+                                 device=self.device)))
+
+        # for center, radius in zip(self.centers.view(-1, self.centers.shape[-1]),
+        #                           self.radii.view(-1, self.radii.shape[-1])):
+        #     submodels.append(rf(dim, center, radius, n_hidden, gen=self.gen, dtype=dtype, device=device))
+        self.submodels = Tensor(submodels, shape=n_spatial_subdomains.append(n_temporal_subdomains) if isinstance(
+            n_spatial_subdomains, list) else n_spatial_subdomains * n_temporal_subdomains)
+        self.n_hidden = n_hidden
+
+        if not issubclass(pou, POUBase):
+            raise ValueError("Partition of Unity must be a subclass of POUBase.")
+        pou_functions = []
+        for center, radius in zip(self.centers.view(-1, self.centers.shape[-1]),
+                                  self.radii.view(-1, self.radii.shape[-1])):
+            time_stamp = torch.linspace(*time_interval, n_temporal_subdomains + 1)
+            for (t0, t1) in zip(time_stamp[:-1], time_stamp[1:]):
+                center_ = torch.cat([center, torch.tensor([(t1 + t0) / 2.0])], dim=0)
+                radius_ = torch.cat([radius, torch.tensor([(t1 - t0) / 2.0])], dim=0)
+                pou_functions.append(pou(center_, radius_, dtype=dtype, device=device))
+        self.pou_functions = Tensor(pou_functions,
+                                    shape=n_spatial_subdomains.append(n_temporal_subdomains) if isinstance(
+                                        n_spatial_subdomains, list) else n_spatial_subdomains * n_temporal_subdomains)
+
+        self.W: Union[Tensor, List, torch.tensor] = None
+        self.A: Optional[torch.tensor] = None
+        self.A_backup: Optional[torch.tensor] = None
+        self.A_norm: Optional[torch.tensor] = None
+        self.tau: Optional[torch.tensor] = None
+
+    def _compute_centers_and_radii(self, n_spatial_subdomains: Union[int, Tuple, List]):
+        """
+        Compute the centers and radii for subdomains.
+
+        :param n_spatial_subdomains: Either an integer (uniform subdivisions in all dimensions)
+                             or a list/tuple specifying the subdivisions per dimension.
+        :return: Tuple of centers and radii as tensors.
+        """
+        centers_list = []
+        radii_list = []
+        bounding_box = self.domain.get_bounding_box()
+
+        for i in range(self.dim):
+            sub_min, sub_max = (bounding_box[2 * i], bounding_box[2 * i + 1])
+            n_divisions = n_spatial_subdomains[i]
+
+            # Compute the subdomain size and the effective step size
+            subdomain_size = (sub_max - sub_min) / n_divisions
+            effective_step = subdomain_size * (1 - self.overlap)
+            radius_dim = torch.full((n_divisions,), subdomain_size / 2 * (1 + self.overlap), dtype=self.dtype,
+                                    device=self.device)
+            radii_list.append(radius_dim)
+
+            # Generate the centers along this dimension
+            centers_dim = torch.linspace(
+                sub_min + effective_step / 2, sub_max - effective_step / 2, steps=n_divisions,
+                dtype=self.dtype,
+                device=self.device
+            )
+            centers_list.append(centers_dim)
+
+        # Create a grid of centers for all dimensions as a multi-dimensional tensor
+        centers = torch.stack(torch.meshgrid(*centers_list, indexing="ij"), dim=-1)  # Shape: (*n_subdomains, dim)
+        radii = torch.stack(torch.meshgrid(*radii_list, indexing="ij"), dim=-1)  # Shape: (*n_subdomains, dim)
+
+        return centers.to(dtype=self.dtype, device=self.device), radii.to(dtype=self.dtype, device=self.device)
