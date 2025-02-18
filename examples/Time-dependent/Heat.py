@@ -27,17 +27,22 @@ uₑ(x, t) = 2 sin(α x) e^(-t)
 
 """
 
+
 def func_u(x, t):
     return 2 * torch.sin(torch.tensor(torch.pi / 2) * x) * torch.exp(-t)
+
 
 def func_f(x, t):
     return torch.zeros(x.shape[0], 1)
 
+
 def func_g1(t):
     return torch.zeros(t.shape[0], 1)
 
+
 def func_g2(t):
     return 2 * torch.sin(torch.tensor(torch.pi / 2 * 12)) * torch.exp(-t)
+
 
 def func_h(x):
     return 2 * torch.sin(torch.tensor(torch.pi / 2) * x)
@@ -52,7 +57,9 @@ param_sets = [
 
 
 def run_rfm(args):
-    pass
+    model = pyrfm.STRFMBase(1, 50, [0, 1], [0, 10], 5, 3, 1,
+                            st_type="SoV")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Solve the heat equation using RFM")
