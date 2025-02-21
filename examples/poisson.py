@@ -10,6 +10,8 @@ import pyrfm
 import torch
 import os
 
+from pyrfm.optimize import GivensQR
+
 
 def u(x):
     return -0.5 * (1.5 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
@@ -67,6 +69,12 @@ if __name__ == '__main__':
     f_on = g(x_on).view(-1, 1)
 
     f = pyrfm.concat_blocks([[f_in], [f_on]])
+
+    # GivensQR = pyrfm.optimize.GivensQR(m=A.shape[1], n_rhs=f.shape[1])
+    # for row in range(0, A.shape[0], 1000):
+    #     GivensQR.add_rows(A[row:row + 1000], f[row:row + 1000])
+    #
+    # model.W = GivensQR.solution
 
     model.compute(A).solve(f)
 
