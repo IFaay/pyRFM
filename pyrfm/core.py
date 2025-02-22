@@ -1046,9 +1046,6 @@ class STRFMBase(ABC):
                          time_rf(1, (t0 + t1) / 2.0, (t1 - t0) / 2.0, n_hidden, gen=self.gen, dtype=self.dtype,
                                  device=self.device)))
 
-        # for center, radius in zip(self.centers.view(-1, self.centers.shape[-1]),
-        #                           self.radii.view(-1, self.radii.shape[-1])):
-        #     submodels.append(rf(dim, center, radius, n_hidden, gen=self.gen, dtype=dtype, device=device))
         self.submodels = Tensor(submodels, shape=n_spatial_subdomains.append(n_temporal_subdomains) if isinstance(
             n_spatial_subdomains, list) else n_spatial_subdomains * n_temporal_subdomains)
         self.n_hidden = n_hidden
