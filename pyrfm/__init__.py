@@ -10,3 +10,4 @@ from .core import *
 from .utils import *
 from .geometry import *
 from .voronoi import *
+from .optimize import *
