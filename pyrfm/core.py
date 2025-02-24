@@ -84,6 +84,8 @@ class RFTanH(RFBase):
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
         with torch.no_grad():
+            if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                return self.features_buff_
             self.x_buff_ = x
             self.features_buff_ = torch.tanh(
                 torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
@@ -97,6 +99,7 @@ class RFTanH(RFBase):
             raise ValueError('Axis out of range')
 
         with torch.no_grad():
+            # Be careful when x in a slice
             if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
                 pass
             else:
@@ -115,6 +118,7 @@ class RFTanH(RFBase):
             raise ValueError('Axis2 out of range')
 
         with torch.no_grad():
+            # Be careful when x in a slice
             if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
                 pass
             else:
@@ -711,15 +715,15 @@ class RFMBase(ABC):
         features_derivative = []
         pou_coefficients = self.pou_coefficients(x)
         pou_derivative = self.pou_derivative(x, axis)
-        for (submodel, pou_coefficient, pou_derivative) in zip(self.submodels.flat_data,
-                                                               pou_coefficients.flat_data,
-                                                               pou_derivative.flat_data):
+        for (submodel, pou_coefficient, pou_axis) in zip(self.submodels.flat_data,
+                                                         pou_coefficients.flat_data,
+                                                         pou_derivative.flat_data):
             if not use_sparse:
-                features_derivative.append(submodel.first_derivative(x, axis) * pou_coefficient +
-                                           submodel(x) * pou_derivative)
+                features_derivative.append(submodel(x) * pou_axis
+                                           + submodel.first_derivative(x, axis) * pou_coefficient)
             else:
-                features_derivative.append((submodel.first_derivative(x, axis) * pou_coefficient).to_sparse() +
-                                           (submodel(x) * pou_derivative).to_sparse())
+                features_derivative.append((submodel(x) * pou_axis).to_sparse()
+                                           + (submodel.first_derivative(x, axis) * pou_coefficient).to_sparse())
         return Tensor(features_derivative, shape=self.submodels.shape)
 
     def features_second_derivative(self, x: torch.Tensor, axis1: int, axis2: int, use_sparse: bool = False) -> Tensor:
@@ -746,17 +750,17 @@ class RFMBase(ABC):
         ):
             if not use_sparse:
                 features_second_derivative.append(
+                    submodel(x) * pou_second +
                     submodel.second_derivative(x, axis1, axis2) * pou_coefficient +
                     submodel.first_derivative(x, axis1) * pou_first_axis2 +
-                    submodel.first_derivative(x, axis2) * pou_first_axis1 +
-                    submodel(x) * pou_second
+                    submodel.first_derivative(x, axis2) * pou_first_axis1
                 )
             else:
                 features_second_derivative.append(
+                    (submodel(x) * pou_second).to_sparse() +
                     (submodel.second_derivative(x, axis1, axis2) * pou_coefficient).to_sparse() +
                     (submodel.first_derivative(x, axis1) * pou_first_axis2).to_sparse() +
-                    (submodel.first_derivative(x, axis2) * pou_first_axis1).to_sparse() +
-                    (submodel(x) * pou_second).to_sparse()
+                    (submodel.first_derivative(x, axis2) * pou_first_axis1).to_sparse()
                 )
         return Tensor(features_second_derivative, shape=self.submodels.shape)
 
@@ -929,7 +933,6 @@ class STRFMBase(ABC):
                  time_interval: Union[Tuple[float, float], List[float]],
                  n_spatial_subdomains: Union[int, Tuple, List] = 1,
                  n_temporal_subdomains: int = 1,
-                 n_time_blocks: int = 1,
                  st_type: str = "STC",
                  overlap: torch.float64 = 0.0,
                  space_rf=RFTanH,
@@ -951,7 +954,6 @@ class STRFMBase(ABC):
         :param n_spatial_subdomains: Either an integer (uniform subdivisions in all dimensions)
                              or a list/tuple specifying the subdivisions per dimension.
         :param n_temporal_subdomains: Number of time subdomains.
-        :param n_time_blocks: Number of time blocks in block time-marching strategy.
         :param st_type: Define the construction method of space-time random feature functions, either "STC" (Space-Time Concatenation) or "SoV" (Separation of Variables).
         :param overlap: Overlap between subdomains, must be between 0 (inclusive) and 1 (exclusive).
         :param space_rf: Random Feature class for spatial part, must be a subclass of RFBase.
@@ -1045,6 +1047,8 @@ class STRFMBase(ABC):
                         (space_rf(dim, center, radius, n_hidden, gen=self.gen, dtype=dtype, device=self.device),
                          time_rf(1, (t0 + t1) / 2.0, (t1 - t0) / 2.0, n_hidden, gen=self.gen, dtype=self.dtype,
                                  device=self.device)))
+                else:
+                    raise ValueError("st_type must be either 'STC' or 'SoV'.")
 
         self.submodels = Tensor(submodels, shape=n_spatial_subdomains.append(n_temporal_subdomains) if isinstance(
             n_spatial_subdomains, list) else n_spatial_subdomains * n_temporal_subdomains)
@@ -1106,3 +1110,326 @@ class STRFMBase(ABC):
         radii = torch.stack(torch.meshgrid(*radii_list, indexing="ij"), dim=-1)  # Shape: (*n_subdomains, dim)
 
         return centers.to(dtype=self.dtype, device=self.device), radii.to(dtype=self.dtype, device=self.device)
+
+    def forward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None) -> torch.Tensor:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        if self.W is None:
+            raise ValueError("Weights have not been computed yet.")
+        elif isinstance(self.W, Tensor):
+            self.W = self.W.cat(dim=1)
+        elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
+            self.W = torch.cat(self.W, dim=1)
+
+        return torch.matmul(self.features(xt).cat(dim=1), self.W)
+
+    def dForward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
+                 order: Union[torch.Tensor, List] = None):
+        """
+        Compute the derivative of the forward pass.
+
+        :param x: Input tensor.
+        :param order: Order of the derivative.
+        :return: Derivative tensor.
+        """
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        order = torch.tensor(order, dtype=self.dtype, device=self.device).view(1, -1)
+        if order.shape[1] != self.dim + 1:
+            raise ValueError("Order dimension mismatch.")
+        if order.sum() == 0:
+            return self.forward(xt)
+        elif order.sum() == 1:
+            for d in range(self.dim):
+                if order[0, d] == 1:
+                    return torch.matmul(self.features_derivative(xt, axis=d).cat(dim=1), self.W.view(-1, 1))
+        elif order.sum() == 2:
+            for d1 in range(self.dim):
+                for d2 in range(self.dim):
+                    if order[0, d1] == 1 and order[0, d2] == 1:
+                        return torch.matmul(self.features_second_derivative(xt, axis1=d1, axis2=d2).cat(dim=1),
+                                            self.W.view(-1, 1))
+        else:
+            pass
+
+    def features(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
+                 use_sparse: bool = False) -> Tensor[torch.Tensor]:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+
+        features = []
+        pou_coefficients = self.pou_coefficients(xt=xt)
+        for (submodel, pou_coefficient) in zip(self.submodels.flat_data, pou_coefficients.flat_data):
+            if self.st_type == "STC":
+                if not use_sparse:
+                    features.append(submodel(xt) * pou_coefficient)
+                else:
+                    features.append((submodel(xt) * pou_coefficient).to_sparse())
+            elif self.st_type == "SOV":
+                x_submodel, t_submodel = submodel
+                if not use_sparse:
+                    features.append(x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_coefficient)
+                else:
+                    features.append((x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_coefficient).to_sparse())
+
+        return Tensor(features, shape=self.submodels.shape)
+
+    def features_derivative(self, x: torch.Tensor = None,
+                            t: torch.Tensor = None,
+                            xt: torch.Tensor = None,
+                            axis: int = 0,
+                            use_sparse: bool = False) -> Tensor[
+        torch.Tensor]:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        features_derivative = []
+        pou_coefficients = self.pou_coefficients(xt=xt)
+        pou_derivative = self.pou_derivative(xt=xt, axis=axis)
+
+        for (submodel, pou_coefficient, pou_axis) in zip(self.submodels.flat_data, pou_coefficients.flat_data,
+                                                         pou_derivative.flat_data):
+            if self.st_type == "STC":
+                if not use_sparse:
+                    features_derivative.append(submodel(xt) * pou_axis
+                                               + submodel.first_derivative(xt, axis) * pou_coefficient)
+                else:
+                    features_derivative.append((submodel(xt) * pou_axis).to_sparse()
+                                               + (submodel.first_derivative(xt, axis) * pou_coefficient).to_sparse())
+
+            elif self.st_type == "SOV":
+                if not use_sparse:
+                    x_submodel, t_submodel = submodel
+                    if axis < self.dim:
+                        features_derivative.append(
+                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative
+                            + x_submodel.first_derivative(xt[:, :-1], axis) * t_submodel(xt[:, [-1]]) * pou_coefficient
+                        )
+                    else:
+                        features_derivative.append(
+                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative
+                            + x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]], 0) * pou_coefficient
+                        )
+                else:
+                    x_submodel, t_submodel = submodel
+                    if axis < self.dim:
+                        features_derivative.append(
+                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative).to_sparse()
+                            + (x_submodel.first_derivative(xt[:, :-1], axis) * t_submodel(
+                                xt[:, [-1]]) * pou_coefficient).to_sparse()
+                        )
+                    else:
+                        features_derivative.append(
+                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative).to_sparse()
+                            + (x_submodel(xt[:, :-1]) * t_submodel.first_derivative(
+                                xt[:, [-1], 0]) * pou_coefficient).to_sparse()
+                        )
+
+        return Tensor(features_derivative, shape=self.submodels.shape)
+
+    def features_second_derivative(self, x: torch.Tensor = None,
+                                   t: torch.Tensor = None,
+                                   xt: torch.Tensor = None,
+                                   axis1: int = 0,
+                                   axis2: int = 0,
+                                   use_sparse: bool = False) -> Tensor[torch.Tensor]:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        if axis1 > axis2:
+            axis1, axis2 = axis2, axis1
+
+        features_second_derivative = []
+        pou_coefficients = self.pou_coefficients(xt=xt)
+        pou_first_derivative_axis1 = self.pou_derivative(xt=xt, axis=axis1)
+        pou_first_derivative_axis2 = self.pou_derivative(xt=xt, axis=axis2)
+        pou_second_derivative = self.pou_second_derivative(xt=xt, axis1=axis1, axis2=axis2)
+
+        for (submodel, pou_coefficient, pou_first_axis1, pou_first_axis2, pou_second) \
+                in zip(self.submodels.flat_data,
+                       pou_coefficients.flat_data,
+                       pou_first_derivative_axis1.flat_data,
+                       pou_second_derivative.flat_data):
+            if self.st_type == "STC":
+                if not use_sparse:
+                    features_second_derivative.append(
+                        submodel(xt) * pou_second +
+                        submodel.second_derivative(xt, axis1, axis2) * pou_coefficient +
+                        submodel.first_derivative(xt, axis1) * pou_first_axis2 +
+                        submodel.first_derivative(xt, axis2) * pou_first_axis1
+                    )
+                else:
+                    features_second_derivative.append(
+                        (submodel(xt) * pou_second).to_sparse() +
+                        (submodel.second_derivative(xt, axis1, axis2) * pou_coefficient).to_sparse() +
+                        (submodel.first_derivative(xt, axis1) * pou_first_axis2).to_sparse() +
+                        (submodel.first_derivative(xt, axis2) * pou_first_axis1).to_sparse()
+                    )
+            elif self.st_type == "SOV":
+                x_submodel, t_submodel = submodel
+                if axis2 < self.dim:
+                    if not use_sparse:
+                        features_second_derivative.append(
+                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_second +
+                            x_submodel.second_derivative(xt[:, :-1], axis1, axis2) * t_submodel(
+                                xt[:, [-1]]) * pou_coefficient +
+                            x_submodel.first_derivative(xt[:, :-1], axis1) * t_submodel(xt[:, [-1]]) * pou_first_axis2 +
+                            x_submodel.first_derivative(xt[:, :-1], axis2) * t_submodel(xt[:, [-1]]) * pou_first_axis1
+                        )
+                    else:
+                        features_second_derivative.append(
+                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_second).to_sparse() +
+                            (x_submodel.second_derivative(xt[:, :-1], axis1, axis2) * t_submodel(
+                                xt[:, [-1]]) * pou_coefficient).to_sparse() +
+                            (x_submodel.first_derivative(xt[:, :-1], axis1) * t_submodel(
+                                xt[:, [-1]]) * pou_first_axis2).to_sparse() +
+                            (x_submodel.first_derivative(xt[:, :-1], axis2) * t_submodel(
+                                xt[:, [-1]]) * pou_first_axis1).to_sparse()
+                        )
+                elif axis2 == self.dim:
+                    axis2 = 0
+                    if axis1 == self.dim:
+                        axis1 = 0
+                        if not use_sparse:
+                            features_second_derivative.append(
+                                x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_second +
+                                x_submodel(xt[:, :-1]) * t_submodel.second_derivative(xt[:, [-1]], axis1,
+                                                                                      axis2) * pou_coefficient +
+                                x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]],
+                                                                                     axis1) * pou_first_axis2 +
+                                x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]],
+                                                                                     axis2) * pou_first_axis1
+                            )
+                        else:
+                            features_second_derivative.append(
+                                (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_second).to_sparse() +
+                                (x_submodel(xt[:, :-1]) * t_submodel.second_derivative(xt[:, [-1]], axis1,
+                                                                                       axis2) * pou_coefficient).to_sparse() +
+                                (x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]],
+                                                                                      axis1) * pou_first_axis2).to_sparse() +
+                                (x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]],
+                                                                                      axis2) * pou_first_axis1).to_sparse()
+                            )
+
+                    else:
+                        if not use_sparse:
+                            features_second_derivative.append(
+                                x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_second +
+                                x_submodel.first_derivative(xt[:, :-1], axis1) * t_submodel.first_derivative(
+                                    xt[:, [-1]], axis2) * pou_coefficient +
+                                x_submodel.first_derivative(xt[:, :-1], axis1) * t_submodel(
+                                    xt[:, [-1]]) * pou_first_axis2 +
+                                x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]],
+                                                                                     axis2) * pou_first_axis1
+                            )
+                        else:
+                            features_second_derivative.append(
+                                (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_second).to_sparse() +
+                                (x_submodel.first_derivative(xt[:, :-1], axis1) * t_submodel.first_derivative(
+                                    xt[:, [-1]], axis2) * pou_coefficient).to_sparse() +
+                                (x_submodel.first_derivative(xt[:, :-1], axis1) * t_submodel(
+                                    xt[:, [-1]]) * pou_first_axis2).to_sparse() +
+                                (x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]],
+                                                                                      axis2) * pou_first_axis1).to_sparse()
+                            )
+
+                else:
+                    raise ValueError("axis out of range")
+
+        return Tensor(features_second_derivative, shape=self.submodels.shape)
+
+    def pou_coefficients(self, x: torch.Tensor = None,
+                         t: torch.Tensor = None,
+                         xt: torch.Tensor = None) -> Tensor[torch.Tensor]:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        c = []
+        c_sum = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+        for (i, pou_function) in enumerate(self.pou_functions.flat_data):
+            c_i = pou_function(xt)
+            c.append(c_i)
+            c_sum += c_i
+        c = [c_i / c_sum for c_i in c]
+        # print(torch.cat([x, c[0], c_sum], dim=1))
+
+        return Tensor(c, shape=self.submodels.shape)
+
+    def pou_derivative(self, x: torch.Tensor = None,
+                       t: torch.Tensor = None,
+                       xt: torch.Tensor = None,
+                       axis: int = 0) -> Tensor[
+        torch.Tensor]:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        c = []
+        c_sum = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+        dc_sum = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+
+        for (i, pou_function) in enumerate(self.pou_functions.flat_data):
+            c_i = pou_function(xt)
+            dc_i = pou_function.first_derivative(xt, axis)
+            c.append((c_i, dc_i))
+            c_sum += c_i
+            dc_sum += dc_i
+        c = [(dc_i - c_i * dc_sum / c_sum) / c_sum for c_i, dc_i in c]
+        return Tensor(c, shape=self.submodels.shape)
+
+    def pou_second_derivative(self, x: torch.Tensor = None,
+                              t: torch.Tensor = None,
+                              xt: torch.Tensor = None,
+                              axis1: int = 0,
+                              axis2: int = 0) -> Tensor[torch.Tensor]:
+        xt = self.validate_and_prepare_xt(x, t, xt)
+        c = []
+        c_sum = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+        dc_sum_axis1 = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+        dc_sum_axis2 = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+        d2c_sum = torch.zeros(xt.shape[0], 1, dtype=self.dtype, device=self.device)
+
+        # Compute raw values, first derivatives, and second derivatives
+        for pou_function in self.pou_functions.flat_data:
+            c_i = pou_function(xt)
+            dc_i_axis1 = pou_function.first_derivative(xt, axis1)
+            dc_i_axis2 = pou_function.first_derivative(xt, axis2)
+            d2c_i = pou_function.second_derivative(xt, axis1, axis2)
+
+            c.append((c_i, dc_i_axis1, dc_i_axis2, d2c_i))
+            c_sum += c_i
+            dc_sum_axis1 += dc_i_axis1
+            dc_sum_axis2 += dc_i_axis2
+            d2c_sum += d2c_i
+
+        # Compute the second derivative with normalization
+        d2 = [
+            (
+                    d2c_i / c_sum
+                    - 2 * (dc_i_axis1 * dc_sum_axis2) / (c_sum ** 2)
+                    - c_i * d2c_sum / (c_sum ** 2)
+                    + 2 * c_i * dc_sum_axis1 * dc_sum_axis2 / (c_sum ** 3)
+            )
+            for c_i, dc_i_axis1, dc_i_axis2, d2c_i in c
+        ]
+
+        return Tensor(d2, shape=self.submodels.shape)
+
+    def validate_and_prepare_xt(self, x: torch.Tensor = None,
+                                t: torch.Tensor = None,
+                                xt: torch.Tensor = None) -> torch.Tensor:
+        """
+        Validate and prepare the combined tensor xt from x and t if not provided.
+
+        Args:
+            x (torch.Tensor, optional): Spatial input tensor.
+            t (torch.Tensor, optional): Temporal input tensor.
+            xt (torch.Tensor, optional): Combined space-time input tensor.
+
+        Returns:
+            torch.Tensor: Combined space-time input tensor.
+
+        Raises:
+            ValueError: If input dimensions do not match or if neither x and t nor xt are provided.
+        """
+        if xt is not None:
+            if xt.shape[1] != self.dim + 1:
+                raise ValueError("Input dimension mismatch")
+            return xt
+        elif x is not None and t is not None:
+            if x.shape[1] != self.dim or t.shape[1] != 1:
+                raise ValueError("Input dimension mismatch.")
+            x, t = x.view(-1, self.dim), t.view(-1, 1)
+            xt = torch.cat([x.unsqueeze(1).expand(-1, t.shape[0], -1).view(-1, 1),
+                            t.unsqueeze(0).expand(x.shape[0], -1, -1).view(-1, 1)], dim=1)
+        else:
+            raise ValueError("Either x and t or xt must be provided.")
+        return xt
