@@ -116,5 +116,6 @@ if __name__ == '__main__':
 
     x_test = domain.in_sample(40, with_boundary=True)
     uv = model(x_test)
+    uv_true = torch.cat([fu(x_test), fv(x_test)], dim=1)
 
-    print((uv - torch.cat([fu(x_test), fv(x_test)], dim=1)).norm() / uv.norm())
+    print('Error:', (uv - uv_true).norm() / uv_true.norm())

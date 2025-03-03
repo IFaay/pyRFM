@@ -201,10 +201,78 @@ class GeometryBase(ABC):
         return ComplementGeometry(self)
 
     def __add__(self, other: 'GeometryBase') -> 'GeometryBase':
+        if isinstance(other, EmptyGeometry):
+            return self
         return UnionGeometry(self, other)
 
     def __sub__(self, other: 'GeometryBase') -> 'GeometryBase':
+        if isinstance(other, EmptyGeometry):
+            return self
         return IntersectionGeometry(self, ComplementGeometry(other))
+
+    def __radd__(self, other: 'GeometryBase') -> 'GeometryBase':
+        """
+        To support sum() function.
+        """
+        return self.__add__(other)
+
+
+class EmptyGeometry(GeometryBase):
+    """
+    A class to represent the empty geometry.
+    """
+
+    def __init__(self):
+        super().__init__(dim=0, intrinsic_dim=0)
+        self.boundary = []
+
+    def sdf(self, p: torch.Tensor):
+        """
+        For empty geometry, the signed distance to the geometry is always infinity.
+        """
+        return torch.full_like(p, float('inf'))
+
+    def get_bounding_box(self) -> List[float]:
+        """
+        The bounding box for empty geometry is an empty list.
+        """
+        return []
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        There are no samples for the empty geometry.
+        """
+        return torch.empty((num_samples, 0))  # No points can be sampled
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """
+        There are no boundary samples for the empty geometry.
+        """
+        return torch.empty((num_samples, 0))  # No boundary points
+
+    def __eq__(self, other):
+        """
+        Empty geometry is equal to another empty geometry.
+        """
+        return isinstance(other, EmptyGeometry)
+
+    def __add__(self, other: 'GeometryBase') -> 'GeometryBase':
+        """
+        Union with empty geometry is the other geometry.
+        """
+        return other
+
+    def __or__(self, other: 'GeometryBase') -> 'GeometryBase':
+        """
+        Union with empty geometry is the other geometry.
+        """
+        return other
+
+    def __invert__(self) -> 'GeometryBase':
+        """
+        The complement of an empty geometry is the entire space.
+        """
+        return ComplementGeometry(self)
 
 
 class UnionGeometry(GeometryBase):
@@ -223,6 +291,27 @@ class UnionGeometry(GeometryBase):
         boxA = self.geomA.get_bounding_box()
         boxB = self.geomB.get_bounding_box()
         return [min(boxA[i], boxB[i]) if i % 2 == 0 else max(boxA[i], boxB[i]) for i in range(2 * self.dim)]
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        samples = torch.cat(
+            [self.geomA.in_sample(num_samples, with_boundary), self.geomB.in_sample(num_samples, with_boundary)], dim=0)
+        if with_boundary:
+            return samples[(self.sdf(samples) <= 0).squeeze()]
+
+        return samples[(self.sdf(samples) < 0).squeeze()]
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        if with_normal:
+            a, an = self.geomA.on_sample(num_samples, with_normal=True)
+            b, bn = self.geomB.on_sample(num_samples, with_normal=True)
+            samples = torch.cat([a, b], dim=0)
+            normals = torch.cat([an, bn], dim=0)
+            return samples[torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()], normals[
+                torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()]
+
+        samples = torch.cat(
+            [self.geomA.on_sample(num_samples, with_normal), self.geomB.on_sample(num_samples, with_normal)], dim=0)
+        return samples[torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()]
 
 
 class IntersectionGeometry(GeometryBase):
@@ -250,17 +339,22 @@ class IntersectionGeometry(GeometryBase):
         samples = torch.cat(
             [self.geomA.in_sample(num_samples, with_boundary), self.geomB.in_sample(num_samples, with_boundary)], dim=0)
         if with_boundary:
-            return samples[self.sdf(samples) <= 0]
+            return samples[(self.sdf(samples) <= 0).squeeze()]
 
-        return samples[self.sdf(samples) < 0]
+        return samples[(self.sdf(samples) < 0).squeeze()]
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         if with_normal:
-            raise NotImplementedError("Normal vectors are not available for intersection geometries.")
+            a, an = self.geomA.on_sample(num_samples, with_normal=True)
+            b, bn = self.geomB.on_sample(num_samples, with_normal=True)
+            samples = torch.cat([a, b], dim=0)
+            normals = torch.cat([an, bn], dim=0)
+            return samples[torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()], normals[
+                torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()]
 
         samples = torch.cat(
             [self.geomA.on_sample(num_samples, with_normal), self.geomB.on_sample(num_samples, with_normal)], dim=0)
-        return samples[torch.isclose(self.sdf(samples), torch.tensor(0.))]
+        return samples[torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()]
 
 
 class ComplementGeometry(GeometryBase):
@@ -277,7 +371,7 @@ class ComplementGeometry(GeometryBase):
     def get_bounding_box(self) -> List[float]:
         bounding_box_geom = self.geom.get_bounding_box()
         return [
-            bounding_box_geom[2 * d + (1 - i)]
+            float('-inf') if i % 2 == 0 else float('inf')
             for d in range(self.dim)
             for i in range(2)
         ]
@@ -845,6 +939,7 @@ class Square2D(GeometryBase):
         super().__init__(dim=2, intrinsic_dim=2)
         self.center = torch.tensor(center).view(1, -1)
         self.radius = torch.tensor(radius).view(1, -1)
+        # Define the boundary of the square (bottom(y_min), right(x_max), top(y_max), left(x_min))
         self.boundary = [Line2D(self.center[0, 0] - self.radius[0, 0], self.center[0, 1] - self.radius[0, 1],
                                 self.center[0, 0] + self.radius[0, 0], self.center[0, 1] - self.radius[0, 1]),
                          Line2D(self.center[0, 0] + self.radius[0, 0], self.center[0, 1] - self.radius[0, 1],
@@ -884,21 +979,31 @@ class Square2D(GeometryBase):
             X, Y = torch.meshgrid(x, y, indexing='ij')
             return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def on_sample(self, num_samples: int, with_normal: bool = False, separate: bool = False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 4, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 4, with_boundary=True)
         c = self.boundary[2].in_sample(num_samples // 4, with_boundary=True)
         d = self.boundary[3].in_sample(num_samples // 4, with_boundary=True)
-        if with_normal:
-            return torch.cat([a, b, c, d], dim=0), torch.cat(
-                [
-                    torch.tensor([[0.0, -1.0]] * (num_samples // 4)),
-                    torch.tensor([[1.0, 0.0]] * (num_samples // 4)),
-                    torch.tensor([[0.0, 1.0]] * (num_samples // 4)),
-                    torch.tensor([[-1.0, 0.0]] * (num_samples // 4))
-                ], dim=0)
+        if not separate:
+            if with_normal:
+                return torch.cat([a, b, c, d], dim=0), torch.cat(
+                    [
+                        torch.tensor([[0.0, -1.0]] * (num_samples // 4)),
+                        torch.tensor([[1.0, 0.0]] * (num_samples // 4)),
+                        torch.tensor([[0.0, 1.0]] * (num_samples // 4)),
+                        torch.tensor([[-1.0, 0.0]] * (num_samples // 4))
+                    ], dim=0)
+            else:
+                return torch.cat([a, b, c, d], dim=0)
+
         else:
-            return torch.cat([a, b, c, d], dim=0)
+            if with_normal:
+                return a, torch.tensor([[0.0, -1.0]] * (num_samples // 4)), b, torch.tensor(
+                    [[1.0, 0.0]] * (num_samples // 4)), c, torch.tensor(
+                    [[0.0, 1.0]] * (num_samples // 4)), d, torch.tensor([[-1.0, 0.0]] * (num_samples // 4))
+            else:
+                return a, b, c, d
 
 
 class Square3D(GeometryBase):
@@ -1089,7 +1194,7 @@ class CircleArc2D(GeometryBase):
 class Circle2D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple],
                  radius: torch.float64):
-        super().__init__(dim=2, intrinsic_dim=1)
+        super().__init__(dim=2, intrinsic_dim=2)
         self.center = torch.tensor(center).view(1, -1)
         self.radius = radius
         self.boundary = [CircleArc2D(center, radius)]
@@ -1105,19 +1210,22 @@ class Circle2D(GeometryBase):
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        num_samples = int(num_samples ** (1 / 2))
         if with_boundary:
-            r = torch.linspace(0.0, self.radius, num_samples)
+            r = torch.linspace(0.0, self.radius, num_samples)[1:]
         else:
-            r = torch.linspace(0.0, self.radius, num_samples + 1)[:-1]
+            r = torch.linspace(0.0, self.radius, num_samples + 1)[1:-1]
 
-        theta = torch.linspace(0.0, 2 * torch.pi, num_samples)
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples + 1)[:-1]
         R, T = torch.meshgrid(r, theta, indexing='ij')
         x = self.center[0, 0] + R * torch.cos(T)
         y = self.center[0, 1] + R * torch.sin(T)
+        x = torch.cat([self.center[0, 0].view(1, 1), x.reshape(-1, 1)], dim=0)
+        y = torch.cat([self.center[0, 1].view(1, 1), y.reshape(-1, 1)], dim=0)
         return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1)], dim=1)
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples + 1)[:-1].reshape(-1, 1)
         x = self.center[0, 0] + self.radius * torch.cos(theta)
         y = self.center[0, 1] + self.radius * torch.sin(theta)
         a = torch.cat([x, y], dim=1)
