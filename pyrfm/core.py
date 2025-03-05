@@ -1039,7 +1039,7 @@ class STRFMBase(ABC):
                 if self.st_type == "STC":
                     center_ = torch.cat([center, torch.tensor([(t1 + t0) / 2.0])], dim=0)
                     radius_ = torch.cat([radius, torch.tensor([(t1 - t0) / 2.0])], dim=0)
-                    print(f"center = {center_} and radius = {radius_}")
+                    # print(f"center = {center_} and radius = {radius_}")
                     submodels.append(space_rf(dim + 1, center_, radius_, n_hidden, gen=self.gen, dtype=self.dtype,
                                               device=self.device))
                 elif self.st_type == "SOV":
@@ -1073,6 +1073,74 @@ class STRFMBase(ABC):
         self.A_backup: Optional[torch.tensor] = None
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
+
+    def compute(self, A: torch.Tensor):
+        """
+        Compute the QR decomposition of matrix A.
+
+        :param A: Input matrix.
+        :return: Self.
+        """
+        A = A.to(dtype=self.dtype, device=self.device)
+        self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+        A /= self.A_norm
+        self.A_backup = A.clone().cpu()
+        print("Decomposing the problem size of A: ", A.shape, "with solver QR")
+
+        try:
+            self.A, self.tau = torch.geqrf(A)
+        except RuntimeError as e:
+            if 'cusolver error' in str(e):
+                raise RuntimeError("Out Of Memory Error")
+            else:
+                raise e
+
+        return self
+
+    def solve(self, b: torch.Tensor, check_condition=False):
+        """
+        Solve the linear system Ax = b using the QR decomposition.
+
+        :param b: Right-hand side tensor.
+        :param check_condition: Whether to check the condition number of A, and switch to SVD if necessary.
+        """
+        b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
+        if self.A.shape[0] != b.shape[0]:
+            raise ValueError("Input dimension mismatch.")
+        b /= self.A_norm
+
+        y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
+        self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+        b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
+        residual = torch.norm(b_ - b) / torch.norm(b)
+
+        # w_set = []
+        # b_ = b.clone()
+        # for i in range(10):
+        #     y = torch.ormqr(self.A, self.tau, b_, transpose=True)[:self.A.shape[1]]
+        #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+        #     w_set.append(w)
+        #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
+        #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
+        #
+        # # sum up the weights
+        # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
+        # residual = torch.norm(b_) / torch.norm(b)
+
+        if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
+            logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
+            self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
+                                                                                      device=self.device)
+            residual = torch.norm(
+                torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+
+        print(f"Least Square Relative residual: {residual:.4e}")
+
+        if self.W.numel() % (self.submodels.numel() * self.n_hidden) == 0:
+            n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
+            self.W = self.W.view(n_out, -1).T
+        else:
+            raise ValueError("The output weight mismatch.")
 
     def _compute_centers_and_radii(self, n_spatial_subdomains: Union[int, Tuple, List]):
         """
@@ -1120,7 +1188,7 @@ class STRFMBase(ABC):
         elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
             self.W = torch.cat(self.W, dim=1)
 
-        return torch.matmul(self.features(xt).cat(dim=1), self.W)
+        return torch.matmul(self.features(xt = xt).cat(dim=1), self.W)
 
     def dForward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
                  order: Union[torch.Tensor, List] = None):
@@ -1140,12 +1208,12 @@ class STRFMBase(ABC):
         elif order.sum() == 1:
             for d in range(self.dim):
                 if order[0, d] == 1:
-                    return torch.matmul(self.features_derivative(xt, axis=d).cat(dim=1), self.W.view(-1, 1))
+                    return torch.matmul(self.features_derivative(xt=xt, axis=d).cat(dim=1), self.W.view(-1, 1))
         elif order.sum() == 2:
             for d1 in range(self.dim):
                 for d2 in range(self.dim):
                     if order[0, d1] == 1 and order[0, d2] == 1:
-                        return torch.matmul(self.features_second_derivative(xt, axis1=d1, axis2=d2).cat(dim=1),
+                        return torch.matmul(self.features_second_derivative(xt=xt, axis1=d1, axis2=d2).cat(dim=1),
                                             self.W.view(-1, 1))
         else:
             pass
@@ -1197,25 +1265,25 @@ class STRFMBase(ABC):
                     x_submodel, t_submodel = submodel
                     if axis < self.dim:
                         features_derivative.append(
-                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative
+                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_axis
                             + x_submodel.first_derivative(xt[:, :-1], axis) * t_submodel(xt[:, [-1]]) * pou_coefficient
                         )
                     else:
                         features_derivative.append(
-                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative
+                            x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_axis
                             + x_submodel(xt[:, :-1]) * t_submodel.first_derivative(xt[:, [-1]], 0) * pou_coefficient
                         )
                 else:
                     x_submodel, t_submodel = submodel
                     if axis < self.dim:
                         features_derivative.append(
-                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative).to_sparse()
+                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_axis).to_sparse()
                             + (x_submodel.first_derivative(xt[:, :-1], axis) * t_submodel(
                                 xt[:, [-1]]) * pou_coefficient).to_sparse()
                         )
                     else:
                         features_derivative.append(
-                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_derivative).to_sparse()
+                            (x_submodel(xt[:, :-1]) * t_submodel(xt[:, [-1]]) * pou_axis).to_sparse()
                             + (x_submodel(xt[:, :-1]) * t_submodel.first_derivative(
                                 xt[:, [-1], 0]) * pou_coefficient).to_sparse()
                         )
@@ -1242,6 +1310,7 @@ class STRFMBase(ABC):
                 in zip(self.submodels.flat_data,
                        pou_coefficients.flat_data,
                        pou_first_derivative_axis1.flat_data,
+                       pou_first_derivative_axis2.flat_data,
                        pou_second_derivative.flat_data):
             if self.st_type == "STC":
                 if not use_sparse:
@@ -1428,8 +1497,8 @@ class STRFMBase(ABC):
             if x.shape[1] != self.dim or t.shape[1] != 1:
                 raise ValueError("Input dimension mismatch.")
             x, t = x.view(-1, self.dim), t.view(-1, 1)
-            xt = torch.cat([x.unsqueeze(1).expand(-1, t.shape[0], -1).view(-1, 1),
-                            t.unsqueeze(0).expand(x.shape[0], -1, -1).view(-1, 1)], dim=1)
+            xt = torch.cat([x.unsqueeze(1).expand(-1, t.shape[0], -1).reshape(-1, 1),
+                            t.unsqueeze(0).expand(x.shape[0], -1, -1).reshape(-1, 1)], dim=1)
         else:
             raise ValueError("Either x and t or xt must be provided.")
         return xt
