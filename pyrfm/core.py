@@ -7,7 +7,6 @@ Created on 2024/12/13
 import time
 
 import torch
-from triton.runtime import driver
 
 from .geometry import GeometryBase, Line1D, Square2D, Cube3D, Point1D, Line2D, Square3D
 from .voronoi import Voronoi
@@ -1188,7 +1187,7 @@ class STRFMBase(ABC):
         elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
             self.W = torch.cat(self.W, dim=1)
 
-        return torch.matmul(self.features(xt = xt).cat(dim=1), self.W)
+        return torch.matmul(self.features(xt=xt).cat(dim=1), self.W)
 
     def dForward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
                  order: Union[torch.Tensor, List] = None):
