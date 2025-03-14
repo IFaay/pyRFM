@@ -7,84 +7,146 @@ Created on 2025/2/20
 import torch
 
 from .utils import *
+import numpy as np
+import torch
+from scipy.optimize import least_squares
 from typing import Callable
 
 
 def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                            x0: torch.Tensor,
                            jac: Callable[[torch.Tensor], torch.Tensor],
-                           outer_iter: Optional[int] = None,
-                           inner_iter: Optional[int] = None,
+                           method: str = None,
+                           maxfev: int = None,
                            ftol: float = 1e-08,
                            xtol: float = 1e-08,
                            gtol: float = 1e-08):
     """
-    Solves a nonlinear least squares problem.
+    Solves a nonlinear least squares problem using different optimization methods.
 
     Args:
         fcn (Callable[[torch.Tensor], torch.Tensor]): The function to minimize.
         x0 (torch.Tensor): Initial guess for the variables.
         jac (Callable[[torch.Tensor], torch.Tensor]): Function to compute the Jacobian matrix.
-        outer_iter (int, optional): Maximum number of outer iterations. Defaults to None.
-        inner_iter (int, optional): Maximum number of inner iterations. Defaults to None.
-        ftol (float, optional): Tolerance for the function value. Defaults to 1e-08.
-        xtol (float, optional): Tolerance for the solution. Defaults to 1e-08.
-        gtol (float, optional): Tolerance for the gradient. Defaults to 1e-08.
+        method (str, optional): Optimization method ('trf', 'lm', 'dogbox', 'newton'). Defaults to None.
+        maxfev (int, optional): Maximum function evaluations before termination.
+        ftol (float, optional): Tolerance for function value change. Defaults to 1e-08.
+        xtol (float, optional): Tolerance for parameter updates. Defaults to 1e-08.
+        gtol (float, optional): Tolerance for gradient norm. Defaults to 1e-08.
+
+    Returns:
+        torch.Tensor: The optimized solution.
+        int: Status of optimization termination:
+            - 0: Maximum function evaluations exceeded.
+            - 1: Gradient norm condition met.
+            - 2: Function value tolerance condition met.
+            - 3: Parameter update tolerance condition met.
+            - 4: Both function value and parameter update tolerance met.
     """
-    F_vec = fcn(x0)
-    F_jac = jac(x0)
-    F_norm = torch.linalg.norm(F_jac, ord=2, dim=1, keep_dim=True)
-    F_vec, F_jac = F_vec / F_norm, F_jac / F_norm
+    if method in ['trf', 'lm', 'dogbox']:
+        dtype, device = x0.dtype, x0.device
 
-    p = torch.lstsq(F_jac, -F_vec)[0]
-    x = x0 + p
+        def fcn_numpy(w):
+            w = torch.tensor(w, dtype=dtype, device=device).reshape(-1, 1)
+            return fcn(w).cpu().numpy().flatten()
 
-    while True:
-        if torch.norm(p) < xtol:
-            break
+        def jac_numpy(w):
+            w = torch.tensor(w, dtype=dtype, device=device).reshape(-1, 1)
+            return jac(w).cpu().numpy()
 
-        if torch.norm(F_vec) < ftol:
-            break
+        result = least_squares(fun=fcn_numpy, x0=x0.cpu().numpy().flatten(), jac=jac_numpy,
+                               method=method, tr_solver='exact',
+                               ftol=ftol, xtol=xtol, gtol=gtol)
+        return torch.tensor(result.x, dtype=dtype, device=device).reshape(-1, 1), result.status
 
-        # if torch.norm(F_jac @ p) < gtol:
-        #     break
+    elif method == "newton":
+        F_vec = fcn(x0)
+        F_jac = jac(x0)
+        scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
+        scale_inv[scale_inv == 0] = 1.0
+        p = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels').solution
+        x = x0 + p / scale_inv.T
 
-        F_vec = fcn(x)
-        F_jac = jac(x)
-        F_norm = torch.linalg.norm(F_jac, ord=2, dim=1, keep_dim=True)
-        F_vec, F_jac = F_vec / F_norm, F_jac / F_norm
+        if maxfev is None:
+            maxfev = 100 * F_jac.shape[1]
 
-        p = torch.lstsq(F_jac, -F_vec)[0]
+        while True:
+            F_vec, F_jac = fcn(x), jac(x)
+            scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
+            # scale_inv = torch.max(scale_inv, torch.linalg.norm(F_jac, dim=0, keepdim=True))
+            maxfev -= 1
 
-        def phi(step_size):
-            return torch.linalg.norm(fcn(x + step_size * p))
-
-        if inner_iter is not None:
-            alpha = line_search(phi, 0.0, 1.0, max_iter=inner_iter)
-        else:
-            alpha = line_search(phi, 0.0, (1.0 + 5 ** 0.5) / 2)
-
-        x = x + alpha * p
-
-        if outer_iter is not None:
-            if outer_iter == 0:
+            if torch.linalg.norm(F_vec) < ftol:
+                status = 2
                 break
-            outer_iter -= 1
+            if torch.linalg.norm(p) < xtol * (xtol + torch.linalg.norm(x)):
+                status = 3
+                break
+            if maxfev <= 0:
+                status = 0
+                break
+            if torch.linalg.norm(F_jac.T @ F_vec, torch.inf) < gtol:
+                status = 1
+                break
+
+            solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
+            p = solver.solution / scale_inv.T
+
+            def phi(step_size):
+                return torch.linalg.norm(fcn(x + step_size * p))
+
+            alpha, maxfev = line_search(phi, 0.0, 1.0, maxfev, ftol)
+            p *= alpha
+            x = x + p
+
+        return x, status
 
 
-def line_search(fn: Callable[[float], float], a, b, max_iter=10):
+def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
+    """
+    Performs a golden-section line search to find the step size that minimizes the function.
+
+    Args:
+        fn (Callable[[float], float]): Function to minimize.
+        a (float): Lower bound of the search interval.
+        b (float): Upper bound of the search interval.
+        maxfev (int): Maximum function evaluations.
+        ftol (float, optional): Function tolerance for convergence. Defaults to 1e-08.
+
+    Returns:
+        float: Optimal step size.
+        int: Updated maxfev count.
+    """
+    f0, f1 = fn(0.0), fn(1.0)
+    maxfev -= 2
     ratio = (1.0 + 5 ** 0.5) / 2
-    c = b - (b - a) / ratio
-    d = a + (b - a) / ratio
-    for _ in range(max_iter):
-        if fn(c) < fn(d):
-            b = d
-        else:
-            a = c
+    c, d = b - (b - a) / ratio, a + (b - a) / ratio
+    fnc, fnd = fn(c), fn(d)
 
-        c = b - (b - a) / ratio
-        d = a + (b - a) / ratio
-    return (a + b) / 2
+    while maxfev > 0:
+        maxfev -= 2
+
+        if fnc < fnd:
+            if fnc < f1:
+                a, b = a, d
+                c, d = b - (b - a) / ratio, a + (b - a) / ratio
+                fnc, fnd = fn(c), fn(d)
+            else:
+                a, b = c, 1.0
+                c, d = b - (b - a) / ratio, a + (b - a) / ratio
+                fnc, fnd = fn(c), fn(d)
+        else:
+            if fnd < f0:
+                a, b = c, b
+                c, d = b - (b - a) / ratio, a + (b - a) / ratio
+                fnc, fnd = fn(c), fn(d)
+            else:
+                a, b = 0.0, d
+                c, d = b - (b - a) / ratio, a + (b - a) / ratio
+                fnc, fnd = fn(c), fn(d)
+
+        if abs(fnc - fnd) < 0.5 * ftol * (abs(fnc) + abs(fnd)):
+            return (a + b) / 2, maxfev
 
 
 class GivensRotation:
@@ -178,7 +240,7 @@ class BatchQR:
                 self.Qtb = self.Qtb[:self.m]
                 self.R = torch.triu(self.R)[:self.m]
 
-                logger.info("Residual: {}".format(torch.norm(res) / torch.norm(torch.ones_like(res))))
+                logger.info("Residual: {}".format(torch.linalg.norm(res) / torch.linalg.norm(torch.ones_like(res))))
                 return
 
             logger.warn("More conditions are needed to determine the solution.")
@@ -196,7 +258,7 @@ class BatchQR:
             self.Qtb = self.Qtb[:self.m]
             self.R = torch.triu(self.R)[:self.m]
 
-            logger.info("Residual: {}".format(torch.norm(res) / torch.norm(torch.ones_like(res))))
+            logger.info("Residual: {}".format(torch.linalg.norm(res) / torch.linalg.norm(torch.ones_like(res))))
 
     def get_solution(self):
         """
@@ -207,3 +269,323 @@ class BatchQR:
         """
         self.solution = torch.linalg.solve_triangular(self.R, self.Qtb, upper=True)
         return self.solution
+
+# def lmpar(n: int, r: torch.Tensor,
+#           Diag: torch.Tensor,
+#           Qtb: torch.Tensor,
+#           Delta: torch.Tensor,
+#           Par: float,
+#           x: torch.Tensor,
+#           Sdiag: torch.Tensor,
+#           Wa1: torch.Tensor,
+#           Wa2: torch.Tensor):
+#     """
+#     Determine parameter par such that the least squares solution x satisfies:   A*x ≈ b,  sqrt(par)*D*x ≈ 0
+#     with the Euclidean norm of D*x (dxnorm) meeting:
+#     When par=0: (dxnorm - delta) ≤ 0.1*delta
+#     When par>0: |dxnorm - delta| ≤ 0.1*delta
+#
+#     Args:
+#         n:
+#         r:
+#         Diag:
+#         Qtb:
+#         Delta:
+#         Par:
+#         x:
+#         Sdiag:
+#         Wa1:
+#         Wa2:
+#
+#     Returns:
+#
+#     """
+#     p1 = 0.1
+#     dwarf = torch.finfo(torch.tensor(0.0).dtype).tiny  # Smallest positive value
+#
+#     nsing = n
+#     Wa1 = torch.zeros((n, 1))
+#     for j in range(n):
+#         Wa1[j] = Qtb[j]
+#         if r[j, j] == 0 and nsing == n:
+#             nsing = j
+#         if nsing < n:
+#             Wa1[j] = 0.0
+#     x = torch.linalg.solve_triangular(torch.triu(r)[:n], Wa1, upper=True)
+#
+#     iter = 0
+#     Wa2 = Diag * x
+#     dxnorm = torch.linalg.norm(Wa2)
+#     fp = dxnorm - Delta
+#
+#     if fp <= p1 * Delta:
+#         if iter == 0:
+#             Par = 0.0
+#
+#     else:
+#         parl = 0.0
+#         if nsing >= n:
+#             Wa1 = Diag * (Wa2 / dxnorm)
+#             for j in range(n):
+#                 sum = 0.0
+#                 jm1 = j - 1
+#                 if jm1 >= 0:
+#                     for i in range(jm1):
+#                         sum += r[i, j] * Wa1[i]
+#                 Wa1[j] = (Wa1[j] - sum) / r[j, j]
+#             temp = torch.linalg.norm(Wa1)
+#             parl = ((fp / Delta) / temp) / temp
+#
+#     for j in range(n):
+#         sum = 0.0
+#         for i in range(j):
+#             sum += r[i, j] * Qtb[i]
+#
+#         Wa1[j] = sum / Diag[j]
+#
+#     gnorm = torch.linalg.norm(Wa1)
+#     paru = gnorm / Delta
+#     if paru == 0.0:
+#         paru = dwarf / min(Delta, p1)
+#
+#     Par = max(Par, parl)
+#     Par = min(Par, paru)
+#     if Par == 0.0:
+#         Par = gnorm / dxnorm
+#
+#     while True:
+#         iter += 1
+#
+#         if Par == 0.0:
+#             Par = max(dwarf, 0.001 * paru)
+#         Wa1 = Par ** 0.5 * Diag
+#         r, tau = torch.geqrf(torch.cat([r, torch.diagflat(Wa1)], dim=0))
+#         x = torch.linalg.solve_triangular(r[:n, :n], Qtb[:n], upper=True)
+#         Wa2 = Diag * x
+#         dxnorm = torch.linalg.norm(Wa2)
+#         temp = fp
+#         fp = dxnorm - Delta
+#
+#         if torch.abs(fp) <= p1 * Delta or parl == 0.0 and fp <= temp and temp < 0.0 or iter == 10:
+#             if iter == 0:
+#                 Par = 0.0
+#             return r, Diag, Par, x, Sdiag, Wa1, Wa2
+#         else:
+#             for j in range(n):
+#                 Wa1[j] = Diag[j] * (Wa2[j] / dxnorm)
+#
+#             Wa1 = torch.linalg.solve_triangular(r[:n, :n], Wa1, upper=True)
+#             temp = torch.linalg.norm(Wa1)
+#             parc = ((fp / Delta) / temp) / temp
+#             if fp > 0:
+#                 parl = max(parl, Par)
+#             if fp < 0:
+#                 paru = min(paru, Par)
+#             Par = max(parl, Par + parc)
+#
+#
+# def nonlinear_least_square_2(fcn: Callable[[torch.Tensor], torch.Tensor],
+#                              x0: torch.Tensor,
+#                              jac: Callable[[torch.Tensor], torch.Tensor],
+#                              method: str = None,
+#                              maxfev: int = None,
+#                              outer_iter: Optional[int] = None,
+#                              inner_iter: Optional[int] = None,
+#                              ftol: float = 1e-08,
+#                              xtol: float = 1e-08,
+#                              gtol: float = 1e-08):
+#     # Bad performance here. Need to be fixed.
+#     dpmpar = [torch.finfo(torch.tensor(0.0).dtype).eps,
+#               torch.finfo(torch.tensor(0.0).dtype).tiny,
+#               torch.finfo(torch.tensor(0.0).dtype).max]
+#     epsmch = dpmpar[0]
+#     # Levenberg-Marquardt algorithm
+#     Factor = 100.
+#     Info = 0
+#     iflag = 0
+#     Nfev = 0
+#     Njev = 0
+#
+#     # evaluate the function at the starting point and calculate its norm.
+#     iflag = 1
+#     Fvec = fcn(x0)
+#     Fjac = jac(x0)
+#     m, n = Fjac.shape
+#     if maxfev is None:
+#         maxfev = 100 * n
+#     Nfev = 1
+#     if iflag < 0:
+#         return
+#     fnorm = torch.linalg.norm(Fvec, ord=2)
+#
+#     Wa1: torch.Tensor = torch.zeros(
+#         (n, 1))  # an output array of length n which contains the diagonal elements of r.
+#     Wa2: torch.Tensor = torch.zeros(
+#         (n,
+#          1))  # an output array of length n which contains the norms of the corresponding columns of the input matrix a.
+#     Wa3: torch.Tensor = torch.zeros(
+#         (n, 1))  # a work array of length n. if pivot is false, then wa can coincide with rdiag.
+#     Diag: torch.Tensor = torch.zeros((n, 1))  # an array of length n, diag is internally set.
+#     x = x0
+#
+#     # initialize levenberg-marquardt parameter and iteration counter.
+#     par = 0.0
+#     iter = 1
+#
+#     while True:
+#         # calculate the jacobian matrix.
+#         iflag = 2
+#         Fvec = fcn(x)
+#         Fjac = jac(x)
+#         Njev += 1
+#         if iflag < 0:
+#             return x, Info
+#
+#         # compute the qr factorization of the jacobian.
+#
+#         Fjac, tau = torch.geqrf(Fjac)
+#         Wa1 = torch.linalg.diagonal(Fjac).reshape(-1, 1)
+#         Wa2 = torch.linalg.norm(Fjac, ord=2, dim=0).reshape(-1, 1)
+#         Wa3 = Wa1
+#
+#         if iter == 1:
+#             Diag = Wa2
+#             Diag[Diag == 0] = 1.0
+#             Wa3 = Diag * x
+#             xnorm = torch.linalg.norm(Wa3, ord=2)
+#             delta = Factor * xnorm
+#             if delta == 0:
+#                 delta = Factor
+#
+#         Qtf = Wa4 = torch.ormqr(Fjac, tau, Fvec, transpose=True)
+#
+#         # compute the norm of the scaled gradient.
+#         gnorm = 0.0
+#         if fnorm != 0:
+#             for j in range(n):
+#                 l = j
+#                 if Wa2[l] != 0:
+#                     sum = 0.0
+#                     for i in range(j):
+#                         sum += Fjac[i, j] * Qtf[i] / fnorm
+#                     gnorm = max(gnorm, abs(sum / Wa2[l]))
+#
+#         # test for convergence of the gradient norm.
+#         if gnorm <= gtol:
+#             Info = 4
+#         if Info != 0:
+#             return x, Info
+#
+#         Diag = torch.max(Diag, Wa2)
+#
+#         while True:
+#             Fjac, Diag, par, Wa1, Wa2, Wa3, Wa4 = lmpar(n, Fjac, Diag, Qtf, delta, par, Wa1, Wa2, Wa3, Wa4)
+#
+#             Wa1 = -Wa1
+#             Wa2 = x + Wa1
+#             Wa3 = Diag * Wa1
+#
+#             pnorm = torch.linalg.norm(Wa3)
+#
+#             if iter == 1:
+#                 delta = min(delta, pnorm)
+#
+#             # evaluate the function at x + p and calculate its norm.
+#
+#             iflag = 1
+#
+#             Wa4 = fcn(Wa2)
+#             print("Evaluated function at x + p", Wa4.norm())
+#             Fjac = jac(Wa2)
+#             Nfev += 1
+#
+#             if iflag < 0:
+#                 return x, Info
+#             fnorm1 = torch.linalg.norm(Wa4)
+#
+#             # compute the scaled actual reduction.
+#             actred = -1.0
+#             if 0.1 * fnorm1 < fnorm:
+#                 actred = 1.0 - (fnorm1 / fnorm) ** 2
+#
+#             # compute the scaled predicted reduction and the scaled directional derivative.
+#
+#             for j in range(n):
+#                 Wa3[j] = 0.0
+#                 temp = Wa1[j]
+#                 for i in range(j):
+#                     Wa3[i] += Fjac[i, j] * temp
+#             temp1 = torch.linalg.norm(Wa3) / fnorm
+#             temp2 = (par ** 0.5 * pnorm) / fnorm
+#             prered = temp1 ** 2 + temp2 ** 2 / 0.5
+#             dirder = -(temp1 ** 2 + temp2 ** 2)
+#
+#             # compute the ratio of the actual to the predicted reduction.
+#             ratio = 0.0
+#             if prered != 0:
+#                 ratio = actred / prered
+#
+#             # update the step bound.
+#
+#             if ratio <= 0.25:
+#                 if actred >= 0:
+#                     temp = 0.5
+#                 else:
+#                     temp = 0.5 * dirder / (dirder + 0.5 * actred)
+#                 if 0.1 * fnorm1 >= fnorm or temp < 0.1:
+#                     temp = 0.1
+#                 delta = temp * min(delta, pnorm / 0.1)
+#                 par /= temp
+#             elif par == 0 or ratio >= 0.75:
+#                 delta = pnorm / 0.5
+#                 par *= 0.5
+#
+#             # test for successful iteration.
+#
+#             if ratio >= 0.0001:
+#                 # successful iteration. update x, fvec, and their norms.
+#                 x = Wa2
+#                 Wa2 = Diag * x
+#                 Fvec = Wa4
+#                 xnorm = torch.linalg.norm(Wa2)
+#                 fnorm = fnorm1
+#                 iter += 1
+#
+#             # tests for convergence.
+#             if torch.abs(actred) <= ftol and prered <= ftol and 0.5 * ratio <= 1:
+#                 Info = 1
+#             if delta <= xtol * xnorm:
+#                 Info = 2
+#             if torch.abs(actred) <= ftol and prered <= ftol and 0.5 * ratio <= 1 and Info == 2:
+#                 Info = 3
+#             if Info != 0:
+#                 return x, Info
+#
+#             # tests for termination and stringent tolerances.
+#             if Nfev >= maxfev:
+#                 Info = 5
+#             if abs(actred) <= epsmch and prered <= epsmch and 0.5 * ratio <= 1:
+#                 Info = 6
+#             if delta <= epsmch * xnorm:
+#                 Info = 7
+#             if gnorm <= epsmch:
+#                 Info = 8
+#             if Info != 0:
+#                 return x, Info
+#
+#             if ratio >= 0.0001:
+#                 break
+#
+#         # rescale if necessary.
+#         Diag = torch.max(Diag, torch.linalg.norm(Fjac, ord=2, dim=0).reshape(-1, 1))
+#
+#         # form (q transpose)*fvec and store the first n components in qtf.
+#         Wa4 = Fvec.clone()
+#         for j in range(n):
+#             if Fjac[j, j] != 0:
+#                 sum = 0.0
+#                 for i in range(j, m):
+#                     sum += Fjac[i, j] * Wa4[i]
+#                 temp = -sum / Fjac[j, j]
+#                 for i in range(j, m):
+#                     Wa4[i] += Fjac[i, j] * temp
