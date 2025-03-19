@@ -60,8 +60,14 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
         return torch.tensor(result.x, dtype=dtype, device=device).reshape(-1, 1), result.status
 
     elif method == "newton":
-        F_vec = fcn(x0)
-        F_jac = jac(x0)
+        verbose = False
+        F_vec, F_jac = fcn(x0), jac(x0)
+
+        # scale2_inv = torch.linalg.norm(F_jac, dim=1, keepdim=True)
+        # scale2_inv[scale2_inv == 0] = 1.0
+        # p = torch.linalg.lstsq(F_jac / scale2_inv, -F_vec / scale2_inv, driver='gels').solution
+        # x = x0 + p
+
         scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
         scale_inv[scale_inv == 0] = 1.0
         p = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels').solution
@@ -72,30 +78,49 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
 
         while True:
             F_vec, F_jac = fcn(x), jac(x)
+            # scale2_inv = torch.max(scale2_inv, torch.linalg.norm(F_jac, dim=1, keepdim=True))
+
             scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
-            # scale_inv = torch.max(scale_inv, torch.linalg.norm(F_jac, dim=0, keepdim=True))
+            scale_inv = torch.max(scale_inv, torch.linalg.norm(F_jac, dim=0, keepdim=True))
             maxfev -= 1
 
             if torch.linalg.norm(F_vec) < ftol:
                 status = 2
                 break
+            else:
+                print("Norm of F_vec: ", torch.linalg.norm(F_vec), ">=", ftol) if verbose else None
             if torch.linalg.norm(p) < xtol * (xtol + torch.linalg.norm(x)):
                 status = 3
                 break
+            else:
+                print("Norm of p: ", torch.linalg.norm(p), ">=",
+                      xtol * (xtol + torch.linalg.norm(x))) if verbose else None
             if maxfev <= 0:
                 status = 0
                 break
             if torch.linalg.norm(F_jac.T @ F_vec, torch.inf) < gtol:
                 status = 1
                 break
+            else:
+                print("Norm of F_jac.T @ F_vec: ", torch.linalg.norm(F_jac.T @ F_vec, torch.inf), ">=",
+                      gtol) if verbose else None
 
             solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
             p = solver.solution / scale_inv.T
+
+            # p_norm = torch.linalg.norm(p)
+            # x_norm = torch.linalg.norm(x)
+            # if p_norm > x_norm:
+            #     p = x_norm * p / p_norm
+
+            # p = torch.linalg.lstsq(F_jac / scale2_inv, -F_vec / scale2_inv, driver='gels').solution
 
             def phi(step_size):
                 return torch.linalg.norm(fcn(x + step_size * p))
 
             alpha, maxfev = line_search(phi, 0.0, 1.0, maxfev, ftol)
+
+            print("alpha: ", alpha) if verbose else None
             p *= alpha
             x = x + p
 
@@ -119,7 +144,7 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
     """
     f0, f1 = fn(0.0), fn(1.0)
     maxfev -= 2
-    ratio = (1.0 + 5 ** 0.5) / 2
+    ratio = (1.0 + 5 ** 0.5) / 2  # 1 / ratio = 0.618033988749895
     c, d = b - (b - a) / ratio, a + (b - a) / ratio
     fnc, fnd = fn(c), fn(d)
 
@@ -127,25 +152,29 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
         maxfev -= 2
 
         if fnc < fnd:
-            if fnc < f1:
+            # a, b = a, d
+            # c, d = b - (b - a) / ratio, a + (b - a) / ratio
+            # fnc, fnd = fn(c), fn(d)
+
+            if fnc < f0:
                 a, b = a, d
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
             else:
-                a, b = c, 1.0
+                a, b = 0.0, c
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
         else:
-            if fnd < f0:
+            if fnd < f1:
                 a, b = c, b
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
             else:
-                a, b = 0.0, d
+                a, b = d, 1.0
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
 
-        if abs(fnc - fnd) < 0.5 * ftol * (abs(fnc) + abs(fnd)):
+        if abs(fnc - fnd) < 0.1 * ftol * (abs(fnc) + abs(fnd)):
             return (a + b) / 2, maxfev
 
 
