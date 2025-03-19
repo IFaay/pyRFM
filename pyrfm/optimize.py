@@ -62,6 +62,7 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
     elif method == "newton":
         F_vec = fcn(x0)
         F_jac = jac(x0)
+        print("Size of Jacobi Matrix ", F_jac.shape)
         scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
         scale_inv[scale_inv == 0] = 1.0
         p = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels').solution
@@ -146,6 +147,8 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
                 fnc, fnd = fn(c), fn(d)
 
         if abs(fnc - fnd) < 0.5 * ftol * (abs(fnc) + abs(fnd)):
+            if a == 0.0:
+                return 0.0, maxfev
             return (a + b) / 2, maxfev
 
 

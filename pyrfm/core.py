@@ -1245,6 +1245,7 @@ class STRFMBase(ABC):
                             use_sparse: bool = False) -> Tensor[
         torch.Tensor]:
         xt = self.validate_and_prepare_xt(x, t, xt)
+        axis = self.dim + axis if axis < 0 else axis
         features_derivative = []
         pou_coefficients = self.pou_coefficients(xt=xt)
         pou_derivative = self.pou_derivative(xt=xt, axis=axis)
@@ -1296,6 +1297,10 @@ class STRFMBase(ABC):
                                    axis2: int = 0,
                                    use_sparse: bool = False) -> Tensor[torch.Tensor]:
         xt = self.validate_and_prepare_xt(x, t, xt)
+        if axis1 < 0:
+            axis1 = self.dim + axis1
+        if axis2 < 0:
+            axis2 = self.dim + axis2
         if axis1 > axis2:
             axis1, axis2 = axis2, axis1
 
