@@ -68,9 +68,10 @@ def func_g(x):
 
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
+
     start_time = time.time()
     domain = pyrfm.Square2D(center=[0.5, 0.5], radius=[0.5, 0.5])
-    model = pyrfm.RFMBase(dim=2, n_hidden=200, domain=domain, n_subdomains=4, pou=pyrfm.PsiB)
+    model = pyrfm.RFMBase(dim=2, n_hidden=200, domain=domain, n_subdomains=2, pou=pyrfm.PsiB)
 
     x_in = domain.in_sample(10000, with_boundary=False)
 

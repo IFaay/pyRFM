@@ -1,3 +1,4 @@
 .idea/
 pyrfm.egg-info
 test/
+examples/Nonlinear/LLG.py
