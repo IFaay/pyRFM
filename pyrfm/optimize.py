@@ -73,6 +73,7 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
 
         x = x0.clone()
         k = 0
+        alpha = 1.0
 
         if maxfev is None:
             maxfev = 100 * x0.numel()
@@ -89,7 +90,7 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
 
             solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
             p = solver.solution / scale_inv.T
-            step_norm = torch.linalg.norm(p).item()
+            step_norm = torch.linalg.norm(alpha * p).item()
 
             if verbose >= 1:
                 if k == 0:
