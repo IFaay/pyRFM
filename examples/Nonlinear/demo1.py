@@ -103,7 +103,8 @@ if __name__ == '__main__':
                                           ftol=tol,
                                           gtol=tol,
                                           xtol=tol,
-                                          method='newton')
+                                          method='newton',
+                                          verbose=2)
 
     status = result[1]
 
