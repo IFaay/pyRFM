@@ -20,7 +20,8 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                            maxfev: int = None,
                            ftol: float = 1e-08,
                            xtol: float = 1e-08,
-                           gtol: float = 1e-08):
+                           gtol: float = 1e-08,
+                           verbose: int = 0):
     """
     Solves a nonlinear least squares problem using different optimization methods.
 
@@ -33,6 +34,10 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
         ftol (float, optional): Tolerance for function value change. Defaults to 1e-08.
         xtol (float, optional): Tolerance for parameter updates. Defaults to 1e-08.
         gtol (float, optional): Tolerance for gradient norm. Defaults to 1e-08.
+        verbose (int, optional): Verbosity level.
+            0: No output.
+            1: Output at each iteration.
+            2: Output at each function evaluation. Defaults to 0.
 
     Returns:
         torch.Tensor: The optimized solution.
@@ -56,34 +61,47 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
 
         result = least_squares(fun=fcn_numpy, x0=x0.cpu().numpy().flatten(), jac=jac_numpy,
                                method=method, tr_solver='exact',
-                               ftol=ftol, xtol=xtol, gtol=gtol)
+                               ftol=ftol, xtol=xtol, gtol=gtol, verbose=verbose)
         return torch.tensor(result.x, dtype=dtype, device=device).reshape(-1, 1), result.status
 
     elif method == "newton":
-        verbose = False
-        F_vec, F_jac = fcn(x0), jac(x0)
+        def print_header():
+            print(f"{'Iter':>6} {'Cost':>12} {'||grad||_inf':>15} {'Step norm':>12}")
 
-        # scale2_inv = torch.linalg.norm(F_jac, dim=1, keepdim=True)
-        # scale2_inv[scale2_inv == 0] = 1.0
-        # p = torch.linalg.lstsq(F_jac / scale2_inv, -F_vec / scale2_inv, driver='gels').solution
-        # x = x0 + p
+        def print_iteration(k, cost, grad_norm, step_norm):
+            print(f"{k:6d} {cost:12.4e} {grad_norm:15.4e} {step_norm:12.4e}")
 
-        scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
-        scale_inv[scale_inv == 0] = 1.0
-        p = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels').solution
-        x = x0 + p / scale_inv.T
+        x = x0.clone()
+        k = 0
 
         if maxfev is None:
-            maxfev = 100 * F_jac.shape[1]
+            maxfev = 100 * x0.numel()
 
         while True:
-            F_vec, F_jac = fcn(x), jac(x)
-            # scale2_inv = torch.max(scale2_inv, torch.linalg.norm(F_jac, dim=1, keepdim=True))
+            F_vec = fcn(x)
+            F_jac = jac(x)
+            cost = 0.5 * torch.sum(F_vec ** 2).item()
+            grad = F_jac.T @ F_vec
+            grad_norm = torch.linalg.norm(grad, float('inf')).item()
 
             scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
-            scale_inv = torch.max(scale_inv, torch.linalg.norm(F_jac, dim=0, keepdim=True))
-            maxfev -= 1
+            scale_inv[scale_inv == 0] = 1.0
 
+            solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
+            p = solver.solution / scale_inv.T
+            step_norm = torch.linalg.norm(p).item()
+
+            if verbose >= 1:
+                if k == 0:
+                    print_header()
+                print_iteration(k, cost, grad_norm, step_norm)
+            if verbose == 2:
+                print(f"  Function evaluation {k}: ||F(x)|| = {torch.linalg.norm(F_vec).item():.4e}")
+
+            # Termination checks
+            if grad_norm < gtol:
+                status = 1
+                break
             if torch.linalg.norm(F_vec) < ftol:
                 status = 2
                 break
@@ -119,10 +137,13 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                 return torch.linalg.norm(fcn(x + step_size * p))
 
             alpha, maxfev = line_search(phi, 0.0, 1.0, maxfev, ftol)
+            x = x + alpha * p
 
-            print("alpha: ", alpha) if verbose else None
-            p *= alpha
-            x = x + p
+            k += 1
+            maxfev -= 1
+
+        if verbose >= 1:
+            print(f"Terminated with status {status}")
 
         return x, status
 
@@ -144,7 +165,7 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
     """
     f0, f1 = fn(0.0), fn(1.0)
     maxfev -= 2
-    ratio = (1.0 + 5 ** 0.5) / 2  # 1 / ratio = 0.618033988749895
+    ratio = (1.0 + 5 ** 0.5) / 2
     c, d = b - (b - a) / ratio, a + (b - a) / ratio
     fnc, fnd = fn(c), fn(d)
 
@@ -152,29 +173,27 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
         maxfev -= 2
 
         if fnc < fnd:
-            # a, b = a, d
-            # c, d = b - (b - a) / ratio, a + (b - a) / ratio
-            # fnc, fnd = fn(c), fn(d)
-
-            if fnc < f0:
+            if fnc < f1:
                 a, b = a, d
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
             else:
-                a, b = 0.0, c
+                a, b = c, 1.0
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
         else:
-            if fnd < f1:
+            if fnd < f0:
                 a, b = c, b
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
             else:
-                a, b = d, 1.0
+                a, b = 0.0, d
                 c, d = b - (b - a) / ratio, a + (b - a) / ratio
                 fnc, fnd = fn(c), fn(d)
 
-        if abs(fnc - fnd) < 0.1 * ftol * (abs(fnc) + abs(fnd)):
+        if abs(fnc - fnd) < 0.5 * ftol * (abs(fnc) + abs(fnd)):
+            if a == 0.0:
+                return 0.0, maxfev
             return (a + b) / 2, maxfev
 
 
