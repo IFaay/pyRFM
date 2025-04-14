@@ -142,7 +142,7 @@ def func_g(xt, dim, alpha):
 param_sets_groups = [
     [
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC"},
-        {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 10, "type": "STC", "alpha": 0.1, "T": 1.0},
+        {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
@@ -216,6 +216,7 @@ def run_rfm(args):
         else:
             def fcn(w):
                 g1 = models[i - 1].forward(xt=x_t0)
+                g1 /= torch.norm(g1, dim=1, keepdim=True)
                 return fcn_with_g1(w, g1)
 
         def jac(w):
@@ -286,12 +287,14 @@ def run_rfm(args):
 
     xt_test = models[-1].validate_and_prepare_xt(x=x_in, t=torch.tensor([[t_end]]))
     m_pred = models[-1].forward(xt=xt_test)
+    m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
     m_exact = func_m(xt_test, dim=1)
     error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
     print(f"Error: {error:.4e}")
 
 
 if __name__ == '__main__':
+    torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     parser = argparse.ArgumentParser(description="Solve the LLG equation using RFM")
     parser.add_argument("--Nx", type=int, required=True)
     parser.add_argument("--Nt", type=int, required=True)
