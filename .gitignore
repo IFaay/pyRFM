@@ -5,3 +5,5 @@
 pyrfm.egg-info
 test/
 examples/Nonlinear/LLG.py
+pyrfm/__pycache__/
+*.pyc
