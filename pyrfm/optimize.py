@@ -105,33 +105,12 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
             if torch.linalg.norm(F_vec) < ftol:
                 status = 2
                 break
-            else:
-                print("Norm of F_vec: ", torch.linalg.norm(F_vec), ">=", ftol) if verbose else None
-            if torch.linalg.norm(p) < xtol * (xtol + torch.linalg.norm(x)):
+            if step_norm < xtol * (xtol + torch.linalg.norm(x).item()):
                 status = 3
                 break
-            else:
-                print("Norm of p: ", torch.linalg.norm(p), ">=",
-                      xtol * (xtol + torch.linalg.norm(x))) if verbose else None
             if maxfev <= 0:
                 status = 0
                 break
-            if torch.linalg.norm(F_jac.T @ F_vec, torch.inf) < gtol:
-                status = 1
-                break
-            else:
-                print("Norm of F_jac.T @ F_vec: ", torch.linalg.norm(F_jac.T @ F_vec, torch.inf), ">=",
-                      gtol) if verbose else None
-
-            solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
-            p = solver.solution / scale_inv.T
-
-            # p_norm = torch.linalg.norm(p)
-            # x_norm = torch.linalg.norm(x)
-            # if p_norm > x_norm:
-            #     p = x_norm * p / p_norm
-
-            # p = torch.linalg.lstsq(F_jac / scale2_inv, -F_vec / scale2_inv, driver='gels').solution
 
             def phi(step_size):
                 return torch.linalg.norm(fcn(x + step_size * p))
