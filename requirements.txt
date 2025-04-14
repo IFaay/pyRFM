@@ -2,4 +2,6 @@ torch>=2.1.0
 spdlog
 numpy
 scipy
+pandas
+matplotlib
 setuptools
