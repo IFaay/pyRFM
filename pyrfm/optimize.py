@@ -124,6 +124,17 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
 
         if verbose >= 1:
             print(f"Terminated with status {status}")
+            if status == 0:
+                print("Maximum function evaluations exceeded.")
+            elif status == 1:
+                print("Gradient norm condition met.")
+                print("Gradient norm: ", grad_norm, " < gtol: ", gtol)
+            elif status == 2:
+                print("Function value tolerance condition met.")
+                print("Function value: ", torch.linalg.norm(F_vec), " < ftol: ", ftol)
+            elif status == 3:
+                print("Parameter update tolerance condition met.")
+                print("Step norm: ", step_norm, " < relative_xtol: ", xtol * (xtol + torch.linalg.norm(x).item()))
 
         return x, status
 
