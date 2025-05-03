@@ -5,7 +5,6 @@ Created on 2025/2/16
 @author: Yifei Sun
 
 """
-from xml.etree.ElementPath import xpath_tokenizer
 
 import pyrfm
 import torch
@@ -68,10 +67,10 @@ param_sets_groups = [
     ],
     [
         {"Nx": 2, "Nt": 1, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 1, "type": "STC"},
-        {"Nx": 2, "Nt": 1, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 2, "type": "STC"},
-        {"Nx": 2, "Nt": 1, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 3, "type": "STC"},
-        {"Nx": 2, "Nt": 1, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 4, "type": "STC"},
-        {"Nx": 2, "Nt": 1, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 5, "type": "STC"}
+        {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 1, "type": "STC"},
+        {"Nx": 2, "Nt": 3, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 1, "type": "STC"},
+        {"Nx": 2, "Nt": 4, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 1, "type": "STC"},
+        {"Nx": 2, "Nt": 5, "Qx": 20, "Qt": 20, "Jn": 400, "Nb": 1, "type": "STC"}
     ],
     [
         {"Nx": 2, "Nt": 1, "Qx": 20, "Qt": 20, "Jn": 50, "Nb": 5, "type": "STC"},
@@ -106,9 +105,6 @@ group_labels = ["Convergence w.r.t Nt",
 
 
 def run_rfm(args):
-    # model = pyrfm.STRFMBase(1, 50, [0, 1], [0, 10], 5, 3, 1,
-    #                         st_type="SoV")
-
     time_stamp = torch.linspace(start=0, end=10, steps=args.Nb + 1)
     domain = pyrfm.Line1D(x1=0.0, x2=12.0)
     models = []
@@ -119,7 +115,7 @@ def run_rfm(args):
                                       time_interval=[t0, t1],
                                       n_spatial_subdomains=args.Nx,
                                       n_temporal_subdomains=args.Nt,
-                                      st_type="SOV"))
+                                      st_type=args.type))
 
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
     x_on = domain.on_sample(2)
@@ -168,7 +164,7 @@ def run_rfm(args):
 
 
 if __name__ == "__main__":
-
+    # torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     parser = argparse.ArgumentParser(description="Solve the heat equation using RFM")
     parser.add_argument("--Nx", type=int, required=True)
     parser.add_argument("--Nt", type=int, required=True)
@@ -185,7 +181,8 @@ if __name__ == "__main__":
                 args = argparse.Namespace(**param_set)
                 print("\n" + "=" * 40)
                 print(f"Simulation Started with Parameters:")
-                print(f"Nx = {args.Nx}, Nt = {args.Nt}, Qx = {args.Qx}, Qt = {args.Qt}, Jn = {args.Jn}, Nb = {args.Nb}, type = {args.type}")
+                print(
+                    f"Nx = {args.Nx}, Nt = {args.Nt}, Qx = {args.Qx}, Qt = {args.Qt}, Jn = {args.Jn}, Nb = {args.Nb}, type = {args.type}")
                 print(f"--------------------------")
                 start_time = time.time()
                 run_rfm(args)
