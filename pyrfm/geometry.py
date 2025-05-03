@@ -962,22 +962,27 @@ class Square2D(GeometryBase):
         y_max = self.center[0, 1] + self.radius[0, 1]
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item()]
 
-    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        num_samples = int(num_samples ** (1 / 2))
-        if with_boundary:
-            x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
-                               num_samples)
-            y = torch.linspace(self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1],
-                               num_samples)
-            X, Y = torch.meshgrid(x, y, indexing='ij')
-            return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
+    def in_sample(self, num_samples: Union[int, List[int], Tuple[int, int]],
+                  with_boundary: bool = False) -> torch.Tensor:
+        if isinstance(num_samples, int):
+            num_x = num_y = int(num_samples ** 0.5)
+        elif isinstance(num_samples, (list, tuple)) and len(num_samples) == 2:
+            num_x, num_y = int(num_samples[0]), int(num_samples[1])
         else:
-            x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
-                               num_samples + 2)[1:-1]
-            y = torch.linspace(self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1],
-                               num_samples + 2)[1:-1]
-            X, Y = torch.meshgrid(x, y, indexing='ij')
-            return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
+            raise ValueError("num_samples must be an int or a list/tuple of two integers.")
+
+        x_min, x_max = self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0]
+        y_min, y_max = self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1]
+
+        if with_boundary:
+            x = torch.linspace(x_min, x_max, num_x)
+            y = torch.linspace(y_min, y_max, num_y)
+        else:
+            x = torch.linspace(x_min, x_max, num_x + 2)[1:-1]
+            y = torch.linspace(y_min, y_max, num_y + 2)[1:-1]
+
+        X, Y = torch.meshgrid(x, y, indexing='ij')
+        return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
 
     def on_sample(self, num_samples: int, with_normal: bool = False, separate: bool = False) -> Union[
         torch.Tensor, Tuple[torch.Tensor, ...]]:
@@ -1131,18 +1136,30 @@ class Cube3D(GeometryBase):
         z_max = self.center[0, 2] + self.radius[0, 2]
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
-    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        num_samples = int(num_samples ** (1 / 3))
-        if with_boundary:
-            samples = []
-            for square in self.boundary:
-                samples.append(square.in_sample(num_samples, with_boundary=True))
-            return torch.cat(samples, dim=0)
+    def in_sample(self, num_samples: Union[int, List[int], Tuple[int, int, int]],
+                  with_boundary: bool = False) -> torch.Tensor:
+        if isinstance(num_samples, int):
+            num_x = num_y = num_z = int(round(num_samples ** (1 / 3)))
+        elif isinstance(num_samples, (list, tuple)) and len(num_samples) == 3:
+            num_x, num_y, num_z = map(int, num_samples)
         else:
-            samples = []
-            for square in self.boundary:
-                samples.append(square.in_sample(num_samples + 2, with_boundary=False))
-            return torch.cat(samples, dim=0)
+            raise ValueError("num_samples must be an int or a list/tuple of three integers.")
+
+        x_min, x_max = self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0]
+        y_min, y_max = self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1]
+        z_min, z_max = self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2]
+
+        if with_boundary:
+            x = torch.linspace(x_min, x_max, num_x)
+            y = torch.linspace(y_min, y_max, num_y)
+            z = torch.linspace(z_min, z_max, num_z)
+        else:
+            x = torch.linspace(x_min, x_max, num_x + 2)[1:-1]
+            y = torch.linspace(y_min, y_max, num_y + 2)[1:-1]
+            z = torch.linspace(z_min, z_max, num_z + 2)[1:-1]
+
+        X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
+        return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         samples = []

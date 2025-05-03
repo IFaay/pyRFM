@@ -1078,6 +1078,7 @@ class STRFMBase(ABC):
         Compute the QR decomposition of matrix A.
 
         :param A: Input matrix.
+        :param complex: Whether to use complex numbers.
         :return: Self.
         """
         A = A.to(dtype=self.dtype, device=self.device)
@@ -1102,36 +1103,44 @@ class STRFMBase(ABC):
 
         :param b: Right-hand side tensor.
         :param check_condition: Whether to check the condition number of A, and switch to SVD if necessary.
+        :param complex: Whether to use complex numbers.
         """
         b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             raise ValueError("Input dimension mismatch.")
         b /= self.A_norm
 
-        y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
-        self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
-        b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
-        residual = torch.norm(b_ - b) / torch.norm(b)
+        try:
+            y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
+            self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+            b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
+            residual = torch.norm(b_ - b) / torch.norm(b)
 
-        # w_set = []
-        # b_ = b.clone()
-        # for i in range(10):
-        #     y = torch.ormqr(self.A, self.tau, b_, transpose=True)[:self.A.shape[1]]
-        #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
-        #     w_set.append(w)
-        #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
-        #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
-        #
-        # # sum up the weights
-        # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
-        # residual = torch.norm(b_) / torch.norm(b)
+            # w_set = []
+            # b_ = b.clone()
+            # for i in range(10):
+            #     y = torch.ormqr(self.A, self.tau, b_, transpose=True)[:self.A.shape[1]]
+            #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+            #     w_set.append(w)
+            #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
+            #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
+            #
+            # # sum up the weights
+            # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
+            # residual = torch.norm(b_) / torch.norm(b)
 
-        if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
-            logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
-            self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
-                                                                                      device=self.device)
-            residual = torch.norm(
-                torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+            if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
+                logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
+                self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
+                                                                                          device=self.device)
+                residual = torch.norm(
+                    torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+
+        except RuntimeError as e:
+            # Add support for minium norm solution
+            self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
+            self.W = torch.linalg.lstsq(self.A, b, driver='gels').solution
+            residual = torch.norm(torch.matmul(self.A, self.W) - b) / torch.norm(b)
 
         print(f"Least Square Relative residual: {residual:.4e}")
 
