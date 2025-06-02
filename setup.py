@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyrfm",
-    version="0.1.4",
+    version="0.1.5",
     description="A Python package for Random Feature Method (RFM)",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
