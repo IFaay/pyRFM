@@ -19,6 +19,7 @@ jobs:
     env:
       CIBW_BUILD: "cp310-*"
       CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux* pp*"
+      CIBW_BUILD_VERBOSITY: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +33,13 @@ jobs:
         run: pip install cibuildwheel==2.16.5
 
       - name: Build wheels (Python 3.10 only)
-        run: cibuildwheel --output-dir dist
+        run: |
+          if [[ -z "$(find . -name '*.c' -o -name '*.cpp' -o -name '*.pyx')" ]]; then
+            echo "Pure Python package detected, skipping cibuildwheel."
+            python setup.py sdist bdist_wheel
+          else
+            cibuildwheel --output-dir dist
+          fi
 
       - name: Publish to PyPI via Trusted Publisher
         uses: pypa/gh-action-pypi-publish@release/v1
