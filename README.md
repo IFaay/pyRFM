@@ -2,22 +2,24 @@
 
 ## Quick Install
 
-```
-pip install git+https://github.com/IFaay/pyRFM.git
+```bash
+conda create -n pyRFM python=3.10 -y
+conda activate pyRFM
+pip install pyrfm
 ```
 
-or
+To get the [source code](pyrfm) and [examples](examples), you can clone the repository:
 
-```
+```bash
 git clone https://github.com/IFaay/pyRFM.git
 cd pyRFM
-pip install .
 ```
 
 ## Update
 
-```
-pip install --upgrade --force-reinstall git+https://github.com/IFaay/pyRFM.git
+```bash
+pip install --upgrade --force-reinstall pyrfm
+# git pull  # Update local source
 ```
 
 and re-download / pull the source code.
