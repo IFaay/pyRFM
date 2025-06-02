@@ -26,10 +26,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"  # cibuildwheel runner version (not target)
+          python-version: "3.11"  # For running cibuildwheel
 
       - name: Install cibuildwheel
-        run: pip install cibuildwheel
+        run: pip install cibuildwheel==2.16.5
 
       - name: Build wheels (Python 3.10 only)
         run: cibuildwheel --output-dir dist

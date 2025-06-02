@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on 2024/12/15
+# setup.py
 
-@author: Yifei Sun
-"""
 from setuptools import setup, find_packages
 
 setup(
