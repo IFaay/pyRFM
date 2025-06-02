@@ -984,29 +984,46 @@ class Square2D(GeometryBase):
         X, Y = torch.meshgrid(x, y, indexing='ij')
         return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int, with_normal: bool = False, separate: bool = False) -> Union[
-        torch.Tensor, Tuple[torch.Tensor, ...]]:
-        a = self.boundary[0].in_sample(num_samples // 4, with_boundary=True)
-        b = self.boundary[1].in_sample(num_samples // 4, with_boundary=True)
-        c = self.boundary[2].in_sample(num_samples // 4, with_boundary=True)
-        d = self.boundary[3].in_sample(num_samples // 4, with_boundary=True)
+    def on_sample(
+            self,
+            num_samples: Union[int, List[int], Tuple],
+            with_normal: bool = False,
+            separate: bool = False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+
+        if isinstance(num_samples, int):
+            nums = [num_samples // 4] * 4
+        elif isinstance(num_samples, (list, tuple)) and len(num_samples) == 2:
+            nums = list(map(int, [num_samples[0], num_samples[1], num_samples[0], num_samples[1]]))
+        elif isinstance(num_samples, (list, tuple)) and len(num_samples) == 4:
+            nums = list(map(int, num_samples))
+        else:
+            raise ValueError("num_samples must be an int or a list/tuple of four integers.")
+
+        a = self.boundary[0].in_sample(nums[0], with_boundary=True)
+        b = self.boundary[1].in_sample(nums[1], with_boundary=True)
+        c = self.boundary[2].in_sample(nums[2], with_boundary=True)
+        d = self.boundary[3].in_sample(nums[3], with_boundary=True)
+
         if not separate:
             if with_normal:
-                return torch.cat([a, b, c, d], dim=0), torch.cat(
-                    [
-                        torch.tensor([[0.0, -1.0]] * (num_samples // 4)),
-                        torch.tensor([[1.0, 0.0]] * (num_samples // 4)),
-                        torch.tensor([[0.0, 1.0]] * (num_samples // 4)),
-                        torch.tensor([[-1.0, 0.0]] * (num_samples // 4))
-                    ], dim=0)
+                normals = torch.cat([
+                    torch.tensor([[0.0, -1.0]] * nums[0]),  # bottom
+                    torch.tensor([[1.0, 0.0]] * nums[1]),  # right
+                    torch.tensor([[0.0, 1.0]] * nums[2]),  # top
+                    torch.tensor([[-1.0, 0.0]] * nums[3])  # left
+                ], dim=0)
+                return torch.cat([a, b, c, d], dim=0), normals
             else:
                 return torch.cat([a, b, c, d], dim=0)
-
         else:
             if with_normal:
-                return a, torch.tensor([[0.0, -1.0]] * (num_samples // 4)), b, torch.tensor(
-                    [[1.0, 0.0]] * (num_samples // 4)), c, torch.tensor(
-                    [[0.0, 1.0]] * (num_samples // 4)), d, torch.tensor([[-1.0, 0.0]] * (num_samples // 4))
+                return (
+                    a, torch.tensor([[0.0, -1.0]] * nums[0]),
+                    b, torch.tensor([[1.0, 0.0]] * nums[1]),
+                    c, torch.tensor([[0.0, 1.0]] * nums[2]),
+                    d, torch.tensor([[-1.0, 0.0]] * nums[3])
+                )
             else:
                 return a, b, c, d
 

@@ -55,7 +55,7 @@ def func_psi(xt):
 
 
 def run_rfm(args):
-    time_stamp = torch.linspace(start=0, end=10, steps=args.Nt + 1)
+    time_stamp = torch.linspace(start=0, end=10, steps=args.Nb + 1)
     domain = pyrfm.Square2D(center=[2.5, 2], radius=[2.5, 2])
     models = []
     for (t0, t1) in zip(time_stamp[:-1], time_stamp[1:]):
@@ -69,7 +69,53 @@ def run_rfm(args):
                       )
 
     x_in = domain.in_sample([args.Qx * args.Nx, args.Qy * args.Ny], with_boundary=False)
-    x_on = domain.on_sample(4 * args.Nx * args.Ny * args.Qx * args.Qy)
+    x_on = domain.on_sample([args.Qx * args.Nx, args.Qy * args.Ny])
+
+    for i, model in enumerate(models):
+        t0 = torch.tensor(model.time_interval[0]).reshape(-1, 1)
+        t = torch.linspace(*model.time_interval, (args.Qt * args.Nt) + 1)[1:].reshape(-1, 1)
+
+        x_t0 = model.validate_and_prepare_xt(x=torch.cat([x_in, x_on], dim=0),
+                                             t=t0)
+        x_in_t = model.validate_and_prepare_xt(x=x_in, t=t)
+        x_on_t = model.validate_and_prepare_xt(x=x_on, t=t)
+
+        A_init = model.features(xt=x_t0).cat(dim=1)
+        A_init_1 = model.features_derivative(xt=x_t0, axis=2).cat(dim=1)
+        A_boundary = model.features(xt=x_on_t).cat(dim=1)
+        A_tt = model.features_second_derivative(xt=x_in_t, axis1=2, axis2=2).cat(dim=1)
+        A_xx = model.features_second_derivative(xt=x_in_t, axis1=0, axis2=0).cat(dim=1)
+        A_yy = model.features_second_derivative(xt=x_in_t, axis1=1, axis2=1).cat(dim=1)
+        A_pde = A_tt - (A_xx + A_yy)
+
+        if i == 0:
+            f_init = func_phi(x_t0)
+            f_init_1 = func_psi(x_t0)
+        else:
+            f_init = models[i - 1].forward(xt=x_t0)
+            f_init_1 = models[i - 1].dForward(xt=x_t0, order=[0, 0, 1])
+
+        f_boundary = torch.zeros(x_on_t.shape[0], 1)
+        f_pde = torch.zeros(x_in_t.shape[0], 1)
+
+        A = pyrfm.concat_blocks([[A_init], [A_init_1], [A_boundary], [A_pde]])
+        f = pyrfm.concat_blocks([[f_init], [f_init_1], [f_boundary], [f_pde]])
+
+        print(A.shape, f.shape)
+        model.compute(A).solve(f)
+
+    x_test = domain.in_sample(1000, with_boundary=True)
+    u_pred = []
+    u_truth = []
+    for i, (t0, t1) in enumerate(zip(time_stamp[:-1], time_stamp[1:])):
+        t_test = torch.linspace(t0, t1, 100).reshape(-1, 1)
+        x_t = models[i].validate_and_prepare_xt(x=x_test, t=t_test)
+        u_pred.append(models[i].forward(xt=x_t))
+        u_truth.append(func_u(x_t))
+
+    u_pred = torch.cat(u_pred, dim=0)
+    u_truth = torch.cat(u_truth, dim=0)
+    print("Relative Error: ", torch.linalg.norm(u_pred - u_truth) / torch.linalg.norm(u_truth))
 
 
 param_sets_groups = [
@@ -130,6 +176,23 @@ if __name__ == "__main__":
     parser.add_argument("--Jn", type=int, default=400, help="Number of neurons in each hidden layer")
     parser.add_argument("--Nb", type=int, default=1, help="Number of basis functions")
     parser.add_argument("--type", type=str, default="STC", choices=["STC", "SOV"], help="Type of RFM")
-    args = parser.parse_args()
 
-    run_rfm(args)
+    if len(sys.argv) == 1:
+        for group, label in zip(param_sets_groups, group_labels):
+            print(f"\n\n{label}")
+            for param_set in group:
+                args = argparse.Namespace(**param_set)
+                print("\n" + "=" * 40)
+                print(f"Simulation Started with Parameters:")
+                print(
+                    f"Nx = {args.Nx}, Nt = {args.Nt}, Qx = {args.Qx}, Qt = {args.Qt}, Jn = {args.Jn}, Nb = {args.Nb}, type = {args.type}")
+                print(f"--------------------------")
+                start_time = time.time()
+                run_rfm(args)
+                print(f"\nSimulation Results:")
+                print(f"--------------------------")
+                print(f"Elapsed Time: {time.time() - start_time:.2f} seconds")
+                print("=" * 40)
+    else:
+        args = parser.parse_args()
+        run_rfm(args)
