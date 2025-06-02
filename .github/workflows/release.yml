@@ -3,11 +3,11 @@ name: Build and Publish to PyPI
 on:
   push:
     branches:
-      - master  # 监听 master 分支的 push 事件
+      - master  # 每次 push 到 master 时触发构建和发布
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write  # Trusted Publisher 所需
 
 jobs:
   build-and-publish:
@@ -28,19 +28,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"  # For running cibuildwheel
+          python-version: "3.11"  # 仅用于运行 cibuildwheel 自身，不影响构建目标版本
 
-      - name: Install cibuildwheel
-        run: pip install cibuildwheel==2.16.5
-
-      - name: Build wheels (Python 3.10 only)
+      - name: Install build tools
         run: |
-          if [[ -z "$(find . -name '*.c' -o -name '*.cpp' -o -name '*.pyx')" ]]; then
-            echo "Pure Python package detected, skipping cibuildwheel."
-            python setup.py sdist bdist_wheel
-          else
-            cibuildwheel --output-dir dist
-          fi
+          pip install --upgrade pip
+          pip install cibuildwheel==2.16.5 wheel
+
+      - name: Build wheels for Python 3.10
+        run: cibuildwheel --output-dir dist
 
       - name: Publish to PyPI via Trusted Publisher
         uses: pypa/gh-action-pypi-publish@release/v1
