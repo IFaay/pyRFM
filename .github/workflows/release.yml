@@ -2,41 +2,32 @@ name: Build and Publish to PyPI
 
 on:
   push:
-    branches:
-      - master  # 每次 push 到 master 时触发构建和发布
+    branches: [ master ]          # push 到 master 时触发
 
 permissions:
   contents: read
-  id-token: write  # Trusted Publisher 所需
+  id-token: write                 # Trusted Publisher 需要
 
 jobs:
   build-and-publish:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-
-    env:
-      CIBW_BUILD: "cp310-*"
-      CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux* pp*"
-      CIBW_BUILD_VERBOSITY: "1"
+    runs-on: ubuntu-latest        # 纯 Python 包，不必再跑 Win/Mac
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"  # 仅用于运行 cibuildwheel 自身，不影响构建目标版本
+          python-version: "3.11"  # 仅用于运行 build，自行选择 ≥3.10 的版本
 
-      - name: Install build tools
+      - name: Install build backend
         run: |
-          pip install --upgrade pip
-          pip install cibuildwheel==2.16.5 wheel
+          python -m pip install --upgrade pip
+          pip install build
 
-      - name: Build wheels for Python 3.10
-        run: cibuildwheel --output-dir dist
+      - name: Build sdist & wheel
+        run: python -m build --sdist --wheel --outdir dist
 
       - name: Publish to PyPI via Trusted Publisher
         uses: pypa/gh-action-pypi-publish@release/v1
