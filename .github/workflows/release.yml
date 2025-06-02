@@ -1,3 +1,13 @@
+name: Build and Publish to PyPI
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   build-and-publish:
     name: Build wheels on ${{ matrix.os }}
@@ -17,9 +27,10 @@ jobs:
       - name: Install cibuildwheel
         run: pip install cibuildwheel
 
-      - name: Build wheels
+      - name: Build wheels (Python 3.10 only)
         env:
-          CIBW_SKIP: "cp38-win32 cp39-win32 cp310-win32 pp*"
+          CIBW_BUILD: "cp310-*"
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux* pp*"
         run: cibuildwheel --output-dir dist
 
       - name: Publish to PyPI via Trusted Publisher
