@@ -1510,7 +1510,7 @@ class STRFMBase(ABC):
             if x.shape[1] != self.dim or t.shape[1] != 1:
                 raise ValueError("Input dimension mismatch.")
             x, t = x.view(-1, self.dim), t.view(-1, 1)
-            xt = torch.cat([x.unsqueeze(1).expand(-1, t.shape[0], -1).reshape(-1, 1),
+            xt = torch.cat([x.unsqueeze(1).expand(-1, t.shape[0], -1).reshape(-1, self.dim),
                             t.unsqueeze(0).expand(x.shape[0], -1, -1).reshape(-1, 1)], dim=1)
         else:
             raise ValueError("Either x and t or xt must be provided.")
