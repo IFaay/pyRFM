@@ -1,8 +1,9 @@
 name: Build and Publish to PyPI
 
 on:
-  release:
-    types: [ published ]
+  push:
+    branches:
+      - master  # 监听 master 分支的 push 事件
 
 permissions:
   contents: read
