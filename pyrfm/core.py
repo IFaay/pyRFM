@@ -83,6 +83,7 @@ class RFTanH(RFBase):
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
         with torch.no_grad():
+            # Be careful when x in a slice
             if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
                 return self.features_buff_
             self.x_buff_ = x
@@ -151,6 +152,258 @@ class RFTanH(RFBase):
             p_n = -(2 * n - 1) * t * p_n_minus_1 - (1 - t ** 2) * p_n_minus_2
             p_n_minus_2 = p_n_minus_1
             p_n_minus_1 = p_n
+
+        for i in range(order.shape[0]):
+            for _ in range(order[i]):
+                p_n *= (self.weights[[i], :] / self.radius[0, i])
+
+        return p_n
+
+
+class RFCos(RFBase):
+    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
+                 n_hidden: int,
+                 gen: torch.Generator = None,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None):
+        class Cos(nn.Module):
+            def __init__(self):
+                super(Cos, self).__init__()
+
+            def forward(self, x):
+                return torch.cos(x)
+
+        super().__init__(dim, center, radius, Cos(), n_hidden, gen, dtype, device)
+        self.features_cos_buff_ = None
+        self.features_sin_buff_ = None
+
+    def empty_cache(self):
+        super().empty_cache()
+        self.features_cos_buff_ = None
+        self.features_sin_buff_ = None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+        with torch.no_grad():
+            # Be careful when x in a slice
+            if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                return self.features_cos_buff_
+            self.x_buff_ = x
+            self.features_cos_buff_ = torch.cos(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            self.features_sin_buff_ = None
+            return self.features_cos_buff_
+
+    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+
+        if axis >= self.dim:
+            raise ValueError('Axis out of range')
+
+        with torch.no_grad():
+            # Be careful when x in a slice
+            if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                pass
+            else:
+                self.x_buff_ = x
+                self.features_cos_buff_ = None
+                self.features_sin_buff_ = torch.sin(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+
+            return -self.features_sin_buff_ * (self.weights[[axis], :] / self.radius[0, axis])
+
+    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+
+        if axis1 >= self.dim:
+            raise ValueError('Axis1 out of range')
+
+        if axis2 >= self.dim:
+            raise ValueError('Axis2 out of range')
+
+        with torch.no_grad():
+            # Be careful when x in a slice
+            if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                pass
+            else:
+                self.x_buff_ = x
+                self.features_cos_buff_ = torch.cos(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+                self.features_sin_buff_ = None
+
+            return -self.features_cos_buff_ * (self.weights[[axis1], :] / self.radius[0, axis1]) * \
+                (self.weights[[axis2], :] / self.radius[0, axis2])
+
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        if isinstance(order, List):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+
+        if order.shape[0] != self.dim:
+            raise ValueError('Order dimension mismatch')
+
+        n_order = order.sum()
+        if n_order <= 0:
+            raise ValueError('Order must be positive')
+        if self.x_buff_ is x or torch.equal(self.x_buff_, x):
+            if self.features_cos_buff_ is not None:
+                t1 = self.features_cos_buff_
+            else:
+                t1 = torch.cos(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            if self.features_sin_buff_ is not None:
+                t2 = self.features_sin_buff_
+            else:
+                t2 = torch.sin(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        else:
+            self.x_buff_ = x
+            self.features_cos_buff_ = torch.cos(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            self.features_sin_buff_ = torch.sin(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            t1 = self.features_cos_buff_
+            t2 = self.features_sin_buff_
+
+        if n_order % 4 == 0:
+            p_n = t1
+        elif n_order % 4 == 1:
+            p_n = -t2
+        elif n_order % 4 == 2:
+            p_n = -t1
+        else:
+            p_n = t2
+
+        for i in range(order.shape[0]):
+            for _ in range(order[i]):
+                p_n *= (self.weights[[i], :] / self.radius[0, i])
+
+        return p_n
+
+
+class RFSin(RFBase):
+    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
+                 n_hidden: int,
+                 gen: torch.Generator = None,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None):
+        class Sin(nn.Module):
+            def __init__(self):
+                super(Sin, self).__init__()
+
+            def forward(self, x):
+                return torch.sin(x)
+
+        super().__init__(dim, center, radius, Sin(), n_hidden, gen, dtype, device)
+        self.features_cos_buff_ = None
+        self.features_sin_buff_ = None
+
+    def empty_cache(self):
+        super().empty_cache()
+        self.features_cos_buff_ = None
+        self.features_sin_buff_ = None
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+        with torch.no_grad():
+            # Be careful when x in a slice
+            if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                return self.features_sin_buff_
+            self.x_buff_ = x
+            self.features_sin_buff_ = torch.sin(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            self.features_cos_buff_ = None
+            return self.features_sin_buff_
+
+    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+
+        if axis >= self.dim:
+            raise ValueError('Axis out of range')
+
+        with torch.no_grad():
+            # Be careful when x in a slice
+            if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                pass
+            else:
+                self.x_buff_ = x
+                self.features_sin_buff_ = None
+                self.features_cos_buff_ = torch.cos(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+
+            return self.features_cos_buff_ * (self.weights[[axis], :] / self.radius[0, axis])
+
+    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+
+        if axis1 >= self.dim:
+            raise ValueError('Axis1 out of range')
+
+        if axis2 >= self.dim:
+            raise ValueError('Axis2 out of range')
+
+        with torch.no_grad():
+            # Be careful when x in a slice
+            if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+                pass
+            else:
+                self.x_buff_ = x
+                self.features_sin_buff_ = torch.sin(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+                self.features_cos_buff_ = None
+
+            return -self.features_sin_buff_ * (self.weights[[axis1], :] / self.radius[0, axis1]) * \
+                (self.weights[[axis2], :] / self.radius[0, axis2])
+
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        if isinstance(order, List):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+
+        if x.shape[1] != self.dim:
+            raise ValueError('Input dimension mismatch')
+
+        if order.shape[0] != self.dim:
+            raise ValueError('Order dimension mismatch')
+
+        n_order = order.sum()
+        if n_order <= 0:
+            raise ValueError('Order must be positive')
+        if self.x_buff_ is x or torch.equal(self.x_buff_, x):
+            if self.features_sin_buff_ is not None:
+                t1 = self.features_sin_buff_
+            else:
+                t1 = torch.sin(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            if self.features_cos_buff_ is not None:
+                t2 = self.features_cos_buff_
+            else:
+                t2 = torch.cos(
+                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        else:
+            self.x_buff_ = x
+            self.features_sin_buff_ = torch.sin(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            self.features_cos_buff_ = torch.cos(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            t1 = self.features_sin_buff_
+            t2 = self.features_cos_buff_
+
+        if n_order % 4 == 0:
+            p_n = t1
+        elif n_order % 4 == 1:
+            p_n = t2
+        elif n_order % 4 == 2:
+            p_n = -t1
+        else:
+            p_n = -t2
 
         for i in range(order.shape[0]):
             for _ in range(order[i]):
@@ -605,36 +858,44 @@ class RFMBase(ABC):
 
         :param b: Right-hand side tensor.
         :param check_condition: Whether to check the condition number of A, and switch to SVD if necessary.
+        :param complex: Whether to use complex numbers.
         """
         b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             raise ValueError("Input dimension mismatch.")
         b /= self.A_norm
 
-        y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
-        self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
-        b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
-        residual = torch.norm(b_ - b) / torch.norm(b)
+        try:
+            y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
+            self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+            b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
+            residual = torch.norm(b_ - b) / torch.norm(b)
 
-        # w_set = []
-        # b_ = b.clone()
-        # for i in range(10):
-        #     y = torch.ormqr(self.A, self.tau, b_, transpose=True)[:self.A.shape[1]]
-        #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
-        #     w_set.append(w)
-        #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
-        #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
-        #
-        # # sum up the weights
-        # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
-        # residual = torch.norm(b_) / torch.norm(b)
+            # w_set = []
+            # b_ = b.clone()
+            # for i in range(10):
+            #     y = torch.ormqr(self.A, self.tau, b_, transpose=True)[:self.A.shape[1]]
+            #     w = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
+            #     w_set.append(w)
+            #     b_ -= torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), w), transpose=False)
+            #     print(f"Relative residual: {torch.norm(b_) / torch.norm(b):.4e}")
+            #
+            # # sum up the weights
+            # self.W = torch.sum(torch.cat(w_set, dim=1), dim=1, keepdim=True)
+            # residual = torch.norm(b_) / torch.norm(b)
 
-        if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
-            logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
-            self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
-                                                                                      device=self.device)
-            residual = torch.norm(
-                torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+            if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
+                logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
+                self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
+                                                                                          device=self.device)
+                residual = torch.norm(
+                    torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+
+        except RuntimeError as e:
+            # Add support for minium norm solution
+            self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
+            self.W = torch.linalg.lstsq(self.A, b, driver='gels').solution
+            residual = torch.norm(torch.matmul(self.A, self.W) - b) / torch.norm(b)
 
         print(f"Least Square Relative residual: {residual:.4e}")
 

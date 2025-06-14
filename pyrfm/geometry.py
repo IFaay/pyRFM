@@ -1271,89 +1271,103 @@ class Circle2D(GeometryBase):
 
 
 class Sphere3D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple],
-                 radius: torch.float64):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: float):
         super().__init__(dim=3, intrinsic_dim=2)
-        self.center = torch.tensor(center).view(1, -1)
-        self.radius = radius
+        self.center = torch.tensor(center, dtype=torch.float32).view(1, 3)
+        self.radius = torch.tensor(radius, dtype=torch.float32)
         self.boundary = [Circle2D(self.center, self.radius)]
 
     def sdf(self, p: torch.Tensor):
-        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
-        return torch.abs(d)
+        return torch.abs(torch.norm(p - self.center.to(p.device), dim=1, keepdim=True) - self.radius.to(p.device))
 
     def get_bounding_box(self):
-        x_min = self.center[0, 0] - self.radius
-        x_max = self.center[0, 0] + self.radius
-        y_min = self.center[0, 1] - self.radius
-        y_max = self.center[0, 1] + self.radius
-        z_min = self.center[0, 2] - self.radius
-        z_max = self.center[0, 2] + self.radius
+        r = self.radius.item()
+        x_min = self.center[0, 0] - r
+        x_max = self.center[0, 0] + r
+        y_min = self.center[0, 1] - r
+        y_max = self.center[0, 1] + r
+        z_min = self.center[0, 2] - r
+        z_max = self.center[0, 2] + r
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        num_samples = int(num_samples ** (1 / 2))
-        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
-        phi = torch.linspace(0.0, torch.pi, num_samples).reshape(-1, 1)
-        R, T, P = torch.meshgrid(self.radius, theta, phi, indexing='ij')
+        device = self.center.device
+        num_samples = int(num_samples ** 0.5)
+
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples, device=device)  # 1D
+        phi = torch.linspace(0.0, torch.pi, num_samples, device=device)  # 1D
+        T, P = torch.meshgrid(theta, phi, indexing='ij')  # 2D tensors
+
+        R = self.radius.to(device)  # scalar tensor
+
         x = self.center[0, 0] + R * torch.sin(P) * torch.cos(T)
         y = self.center[0, 1] + R * torch.sin(P) * torch.sin(T)
         z = self.center[0, 2] + R * torch.cos(P)
-        return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int, with_normal: bool
-    = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        return torch.stack([x, y, z], dim=-1).reshape(-1, 3)
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         raise NotImplementedError
 
 
 class Ball3D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple],
-                 radius: torch.float64):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: float):
         super().__init__(dim=3, intrinsic_dim=3)
-        self.center = torch.tensor(center).view(1, -1)
-        self.radius = radius
+        self.center = torch.tensor(center, dtype=torch.float32).view(1, 3)
+        self.radius = torch.tensor(radius, dtype=torch.float32)
         self.boundary = [Sphere3D(self.center, self.radius)]
 
     def sdf(self, p: torch.Tensor):
-        d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
-        return d
+        return torch.norm(p - self.center.to(p.device), dim=1, keepdim=True) - self.radius.to(p.device)
 
     def get_bounding_box(self):
-        x_min = self.center[0, 0] - self.radius
-        x_max = self.center[0, 0] + self.radius
-        y_min = self.center[0, 1] - self.radius
-        y_max = self.center[0, 1] + self.radius
-        z_min = self.center[0, 2] - self.radius
-        z_max = self.center[0, 2] + self.radius
+        r = self.radius.item()
+        x_min = self.center[0, 0] - r
+        x_max = self.center[0, 0] + r
+        y_min = self.center[0, 1] - r
+        y_max = self.center[0, 1] + r
+        z_min = self.center[0, 2] - r
+        z_max = self.center[0, 2] + r
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        device = self.center.device
         num_samples = int(num_samples ** (1 / 3))
-        if with_boundary:
-            r = torch.linspace(0.0, self.radius, num_samples).reshape(-1, 1)
-        else:
-            r = torch.linspace(0.0, self.radius, num_samples + 1)[:-1].reshape(-1, 1)
-        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
-        phi = torch.linspace(0.0, torch.pi, num_samples).reshape(-1, 1)
+
+        r = torch.linspace(0.0, 1.0, num_samples, device=device)
+        if not with_boundary:
+            r = r[:-1]
+        r = r * self.radius.to(device)
+
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples, device=device)
+        phi = torch.linspace(0.0, torch.pi, num_samples, device=device)
+
         R, T, P = torch.meshgrid(r, theta, phi, indexing='ij')
+
         x = self.center[0, 0] + R * torch.sin(P) * torch.cos(T)
         y = self.center[0, 1] + R * torch.sin(P) * torch.sin(T)
         z = self.center[0, 2] + R * torch.cos(P)
-        return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)], dim=1)
+
+        return torch.stack([x, y, z], dim=-1).reshape(-1, 3)
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        theta = torch.linspace(0.0, 2 * torch.pi, num_samples).reshape(-1, 1)
-        phi = torch.linspace(0.0, torch.pi, num_samples).reshape(-1, 1)
-        R, T, P = torch.meshgrid(self.radius, theta, phi, indexing='ij')
+        device = self.center.device
+        num_samples = int(num_samples ** (1 / 2))
+        theta = torch.linspace(0.0, 2 * torch.pi, num_samples, device=device)
+        phi = torch.linspace(0.0, torch.pi, num_samples, device=device)
+
+        T, P = torch.meshgrid(theta, phi, indexing='ij')
+
+        R = self.radius.to(device)
+
         x = self.center[0, 0] + R * torch.sin(P) * torch.cos(T)
         y = self.center[0, 1] + R * torch.sin(P) * torch.sin(T)
         z = self.center[0, 2] + R * torch.cos(P)
-        a = torch.cat([x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)], dim=1)
-        an = (a - self.center) / self.radius
-        if with_normal:
-            return a, an
-        else:
-            return a
+
+        a = torch.stack([x, y, z], dim=-1).reshape(-1, 3)
+        an = (a - self.center.to(device)) / self.radius.to(device)
+
+        return (a, an) if with_normal else a
 
 
 class Polygon2D(GeometryBase):

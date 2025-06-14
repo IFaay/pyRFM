@@ -8,7 +8,9 @@ conda activate pyRFM
 pip install pyrfm
 ```
 
-To get the [source code](pyrfm) and [examples](examples), you can clone the repository:
+To get the [source code](https://github.com/IFaay/pyRFM/tree/master/pyrfm)
+and [examples](https://github.com/IFaay/pyRFM/tree/master/examples), you can clone the
+repository:
 
 ```bash
 git clone https://github.com/IFaay/pyRFM.git
