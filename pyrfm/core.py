@@ -649,7 +649,9 @@ class RFMBase(ABC):
         elif isinstance(n_subdomains, float):
             n_subdomains = [int(n_subdomains)] * self.dim
         elif isinstance(n_subdomains, (list, tuple)) and len(n_subdomains) != self.dim:
-            raise ValueError(f"n_subdomains must have {self.dim} elements when provided as a list or tuple.")
+            if len(n_subdomains) != self.dim:
+                if len(n_subdomains) != 1:
+                    raise ValueError(f"n_subdomains must have {self.dim} elements when provided as a list or tuple.")
 
         # Validate overlap
         if not (0.0 <= overlap < 1.0):
@@ -659,11 +661,16 @@ class RFMBase(ABC):
 
         # Compute centers and radii
         if centers is not None and radii is not None:
-            self.centers = torch.tensor(centers, dtype=self.dtype, device=self.device)
-            self.radii = torch.tensor(radii, dtype=self.dtype, device=self.device)
-            if self.centers.shape[-1] != self.dim or self.radii.shape[-1] != self.dim:
+            if not isinstance(centers, torch.Tensor) or not isinstance(radii, torch.Tensor):
+                self.centers = torch.tensor(centers, dtype=self.dtype, device=self.device)
+                self.radii = torch.tensor(radii, dtype=self.dtype, device=self.device)
+            else:
+                self.centers = centers.to(dtype=self.dtype, device=self.device)
+                self.radii = radii.to(dtype=self.dtype, device=self.device)
+            if self.centers.shape[-1] != self.dim or not (
+                    self.radii.shape[-1] == self.dim or self.radii.shape[-1] == 1):
                 raise ValueError("Centers and radii must have the same number of dimensions as the domain.")
-            elif self.centers.shape != self.radii.shape:
+            elif self.centers.shape[:-1] != self.radii.shape[:-1]:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
                 logger.warn("Assigned centers are not inside the domain.")
@@ -694,6 +701,9 @@ class RFMBase(ABC):
         self.A_backup: Optional[torch.tensor] = None
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
+
+    def plot(self, label="u", resolution=(800, 640)):
+        pass
 
     def add_c_condition(self, num_samples: int, order: int = 1, with_pts=False):
         """
@@ -867,6 +877,7 @@ class RFMBase(ABC):
 
         try:
             y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
+            self.A.diagonal().add_((self.A.diagonal() >= 0).float() * torch.finfo(self.dtype).eps)
             self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
             b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
             residual = torch.norm(b_ - b) / torch.norm(b)
@@ -1257,8 +1268,11 @@ class STRFMBase(ABC):
             n_spatial_subdomains = [n_spatial_subdomains] * self.dim
         elif isinstance(n_spatial_subdomains, float):
             n_spatial_subdomains = [int(n_spatial_subdomains)] * self.dim
-        elif isinstance(n_spatial_subdomains, (list, tuple)) and len(n_spatial_subdomains) != self.dim:
-            raise ValueError(f"n_spatial_subdomains must have {self.dim} elements when provided as a list or tuple.")
+        elif isinstance(n_spatial_subdomains, (list, tuple)):
+            if len(n_spatial_subdomains) != self.dim:
+                if len(n_spatial_subdomains) != 1:
+                    raise ValueError(
+                        f"n_spatial_subdomains must have {self.dim} elements when provided as a list or tuple.")
 
         # Validate overlap
         if not (0.0 <= overlap < 1.0):
@@ -1270,9 +1284,10 @@ class STRFMBase(ABC):
         if centers is not None and radii is not None:
             self.centers = torch.tensor(centers, dtype=self.dtype, device=self.device)
             self.radii = torch.tensor(radii, dtype=self.dtype, device=self.device)
-            if self.centers.shape[-1] != self.dim or self.radii.shape[-1] != self.dim:
+            if self.centers.shape[-1] != self.dim or not (
+                    self.radii.shape[-1] == self.dim or self.radii.shape[-1] != 1):
                 raise ValueError("Centers and radii must have the same number of dimensions as the domain.")
-            elif self.centers.shape != self.radii.shape:
+            elif self.centers.shape[:-1] != self.radii.shape[:-1]:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
                 logger.warn("Assigned centers are not inside the domain.")
