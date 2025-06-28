@@ -8,6 +8,7 @@ Created on 2024/12/15
 import math
 
 import spdlog
+
 logger = spdlog.ConsoleLogger('rfm_logger')
 logger.set_level(spdlog.LogLevel.DEBUG)
 
@@ -127,6 +128,14 @@ class Tensor:
         self.shape = new_shape
         self.data = self._unflatten(self.flat_data, new_shape)
         return self
+
+    def __neg__(self):
+        """
+        Unary negation of the tensor (element-wise).
+        :return: New Tensor with negated values.
+        """
+        result_data = [-x for x in self.flat_data]
+        return Tensor(result_data, shape=self.shape)
 
     def __add__(self, other):
         """
@@ -319,13 +328,30 @@ class Tensor:
         return f"Tensor(shape={self.shape}, data={self.data})"
 
 
-def concat_blocks(blocks: List[List[torch.Tensor]]) -> torch.Tensor:
+def concat_blocks(blocks: List[List[torch.Tensor]]) -> Union[torch.Tensor, Tensor]:
     """
     Construct a block matrix from a 2D list of tensors.
 
     :param blocks: 2D list of tensors (e.g., [[a, b], [c, d]])
     :return: A single tensor representing the block matrix.
     """
+    if isinstance(blocks[0][0], Tensor):
+        rows = len(blocks)
+        cols = len(blocks[0])
+        tensor_shape = blocks[0][0].shape
+        num_elements = blocks[0][0].numel()
+
+        result_flat = []
+
+        for i in range(num_elements):
+            to_concat = []
+            for r in range(rows):
+                for c in range(cols):
+                    to_concat.append(blocks[r][c].flat_data[i])
+            result_flat.append(torch.cat(to_concat, dim=0))  # or dim=1 depending on use case
+
+        return Tensor(result_flat, shape=tensor_shape)
+
     # 按行拼接每一行块
     rows = [torch.cat(row, dim=1) for row in blocks]
     # 再按列拼接所有行
