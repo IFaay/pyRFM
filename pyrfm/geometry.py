@@ -107,6 +107,17 @@ class GeometryBase(ABC):
         pass
 
     @abstractmethod
+    def glsl_sdf(self) -> str:
+        """
+        Return a GLSL expression (string) that evaluates the signed distance
+        at a coordinate variable named `p` (float for 1‑D, vec2 for 2‑D,
+        vec3 for 3‑D) which must be in scope inside the GLSL shader.
+        The expression must be syntactically valid GLSL and reference only
+        constants and the variable `p`.
+        """
+        pass
+
+    @abstractmethod
     def get_bounding_box(self) -> List[float]:
         """
         Get the bounding box of the geometry.
@@ -218,10 +229,6 @@ class GeometryBase(ABC):
 
 
 class EmptyGeometry(GeometryBase):
-    """
-    A class to represent the empty geometry.
-    """
-
     def __init__(self):
         super().__init__(dim=0, intrinsic_dim=0)
         self.boundary = []
@@ -231,6 +238,14 @@ class EmptyGeometry(GeometryBase):
         For empty geometry, the signed distance to the geometry is always infinity.
         """
         return torch.full_like(p, float('inf'))
+
+    # GLSL: empty space has effectively infinite distance
+    def glsl_sdf(self) -> str:
+        return "1e20"
+
+    """
+    A class to represent the empty geometry.
+    """
 
     def get_bounding_box(self) -> List[float]:
         """
@@ -287,6 +302,10 @@ class UnionGeometry(GeometryBase):
     def sdf(self, p: torch.Tensor):
         return torch.min(self.geomA.sdf(p), self.geomB.sdf(p))
 
+    # GLSL expression for the union: min(dA,dB)
+    def glsl_sdf(self) -> str:
+        return f"min({self.geomA.glsl_sdf()}, {self.geomB.glsl_sdf()})"
+
     def get_bounding_box(self):
         boxA = self.geomA.get_bounding_box()
         boxB = self.geomB.get_bounding_box()
@@ -330,6 +349,10 @@ class IntersectionGeometry(GeometryBase):
     def sdf(self, p: torch.Tensor):
         return torch.max(self.geomA.sdf(p), self.geomB.sdf(p))
 
+    # GLSL expression for the intersection: max(dA,dB)
+    def glsl_sdf(self) -> str:
+        return f"max({self.geomA.glsl_sdf()}, {self.geomB.glsl_sdf()})"
+
     def get_bounding_box(self):
         boxA = self.geomA.get_bounding_box()
         boxB = self.geomB.get_bounding_box()
@@ -368,6 +391,10 @@ class ComplementGeometry(GeometryBase):
     def sdf(self, p: torch.Tensor):
         return -self.geom.sdf(p)
 
+    # GLSL expression for the complement: -d
+    def glsl_sdf(self) -> str:
+        return f"-({self.geom.glsl_sdf()})"
+
     def get_bounding_box(self) -> List[float]:
         bounding_box_geom = self.geom.get_bounding_box()
         return [
@@ -381,6 +408,193 @@ class ComplementGeometry(GeometryBase):
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         return self.geom.on_sample(num_samples, with_normal)
+
+
+class ExtrudeBody(GeometryBase):
+    """
+    ExtrudeBody — turn a 2-D geometry into a 3-D solid by extruding it
+    along an arbitrary direction vector.
+
+        direction  d  (len = |d|)
+        unit dir   d̂ = d / |d|
+        half-thick h  = |d| / 2
+
+        SDF:  max( d₂(q), |dot(p,d̂)| – h )
+        q = ( dot(p,u), dot(p,v) )   with  u,v,d̂ orthonormal.
+
+    Parameters
+    ----------
+    base2d : GeometryBase
+        Any 2-D geometry that already implements `glsl_sdf`.
+    direction : (3,) sequence / torch.Tensor
+        Direction *and* length of the extrusion (e.g. (0,0,2) ⇒ thickness 2).
+    """
+
+    # ------------------------------------------------------------------ #
+    # construction helpers
+    # ------------------------------------------------------------------ #
+    def _orthonormal(self, n: torch.Tensor) -> torch.Tensor:
+        """Return a unit vector orthogonal to n (robust for all n)."""
+        ex = torch.tensor([1., 0., 0.], dtype=n.dtype, device=n.device)
+        ey = torch.tensor([0., 1., 0.], dtype=n.dtype, device=n.device)
+        v = torch.linalg.cross(n, ex)
+        if torch.norm(v) < 1e-7:
+            v = torch.linalg.cross(n, ey)
+        return v / torch.norm(v)
+
+    # ------------------------------------------------------------------ #
+    # ctor
+    # ------------------------------------------------------------------ #
+    def __init__(
+            self,
+            base2d: GeometryBase,
+            direction: Union[torch.Tensor, list, tuple] = (0.0, 0.0, 1.0),
+    ):
+        super().__init__(dim=3, intrinsic_dim=3)
+        if base2d.dim != 2:
+            raise ValueError("base2d must be 2-D")
+        self.base = base2d
+
+        d = torch.tensor(direction, dtype=torch.float32)
+        L = torch.norm(d)
+        if L < 1e-8:
+            raise ValueError("direction vector must be non-zero")
+        self.d = d / L  # unit direction
+        self.len = L.item()  # total thickness
+        self.h = self.len * 0.5  # half thickness
+
+        self.u = self._orthonormal(self.d)
+        self.v = torch.linalg.cross(self.d, self.u)
+
+    # ------------------------------------------------------------------ #
+    # SDF (Torch)
+    # ------------------------------------------------------------------ #
+    def sdf(self, p: torch.Tensor):
+        proj_u = torch.matmul(p, self.u)  # (N,)
+        proj_v = torch.matmul(p, self.v)
+        q = torch.stack([proj_u, proj_v], dim=1)  # (N,2)
+
+        d2 = self.base.sdf(q)  # (N,1) or (N,)
+        dz = torch.abs(torch.matmul(p, self.d)) - self.h
+        return torch.max(d2, dz.unsqueeze(1))
+
+    # ------------------------------------------------------------------ #
+    # Axis-aligned bounding box (tight)
+    # ------------------------------------------------------------------ #
+    def get_bounding_box(self) -> List[float]:
+        # Obtain 2-D bbox in (u,v) space
+        bx_min, bx_max, by_min, by_max = self.base.get_bounding_box()
+        corners_2d = torch.tensor(
+            [
+                [bx_min, by_min],
+                [bx_min, by_max],
+                [bx_max, by_min],
+                [bx_max, by_max],
+            ],
+            dtype=torch.float32,
+        )
+
+        pts = []
+        for s in (-self.h, self.h):
+            for x, y in corners_2d:
+                pts.append(x * self.u + y * self.v + s * self.d)
+        pts = torch.stack(pts, dim=0)  # (8,3)
+
+        xyz_min = pts.min(dim=0).values
+        xyz_max = pts.max(dim=0).values
+        return xyz_min.tolist() + xyz_max.tolist()
+
+    # ------------------------------------------------------------------ #
+    # interior sampling
+    # ------------------------------------------------------------------ #
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Uniform volume sampling:
+          * pick (u,v) inside base2d
+          * pick z uniformly in [-h, h]
+        """
+        # Number of base2d samples
+        pts2d = self.base.in_sample(num_samples, with_boundary=False)
+        # if base2d returns fewer than requested, repeat
+        if pts2d.shape[0] < num_samples:
+            reps = (num_samples + pts2d.shape[0] - 1) // pts2d.shape[0]
+            pts2d = pts2d.repeat(reps, 1)[:num_samples]
+
+        z = torch.rand(num_samples, 1) * self.len - self.h  # (-h, h)
+
+        # map to 3-D
+        xyz = pts2d[:, 0:1] * self.u + pts2d[:, 1:2] * self.v + z * self.d
+        return xyz
+
+    # ------------------------------------------------------------------ #
+    # boundary sampling
+    # ------------------------------------------------------------------ #
+    def on_sample(
+            self,
+            num_samples: int,
+            with_normal: bool = False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        """
+        * half samples on the two caps (base2d boundary)
+        * half samples on the side walls (extruded edges)
+        """
+        n_cap = num_samples // 3  # top  + bottom
+        n_side = num_samples - 2 * n_cap  # remaining for sides
+
+        # ---- caps ----
+        if with_normal:
+            cap2d, n2d = self.base.on_sample(n_cap, with_normal=True)
+        else:
+            cap2d = self.base.on_sample(n_cap, with_normal=False)
+
+        top_pts = cap2d[:, 0:1] * self.u + cap2d[:, 1:2] * self.v + self.h * self.d
+        bot_pts = cap2d[:, 0:1] * self.u + cap2d[:, 1:2] * self.v + -self.h * self.d
+        pts_cap = torch.cat([top_pts, bot_pts], dim=0)
+
+        if with_normal:
+            n_top = self.d.expand_as(top_pts)
+            n_bot = -self.d.expand_as(bot_pts)
+            normals_cap = torch.cat([n_top, n_bot], dim=0)
+
+        # ---- side walls ----
+        if with_normal:
+            edge2d, edge_n2d = self.base.on_sample(n_side, with_normal=True)
+        else:
+            edge2d = self.base.on_sample(n_side, with_normal=False)
+
+        z_side = torch.rand(n_side, 1) * self.len - self.h
+        pts_side = edge2d[:, 0:1] * self.u + edge2d[:, 1:2] * self.v + z_side * self.d
+
+        if with_normal:
+            # side normals are the projected 2-D normals
+            side_norm_vec = (
+                    edge_n2d[:, 0:1] * self.u + edge_n2d[:, 1:2] * self.v
+            )
+            side_normals = side_norm_vec / torch.norm(side_norm_vec, dim=1, keepdim=True)
+
+        # ---- merge & return ----
+        if with_normal:
+            points = torch.cat([pts_cap, pts_side], dim=0)
+            normals = torch.cat([normals_cap, side_normals], dim=0)
+            return points, normals
+        else:
+            return torch.cat([pts_cap, pts_side], dim=0)
+
+    # ------------------------------------------------------------------ #
+    # GLSL SDF expression
+    # ------------------------------------------------------------------ #
+    def glsl_sdf(self) -> str:
+        dx, dy, dz = [f"{x:.6f}" for x in self.d.tolist()]
+        ux, uy, uz = [f"{x:.6f}" for x in self.u.tolist()]
+        vx, vy, vz = [f"{x:.6f}" for x in self.v.tolist()]
+        h = f"{self.h:.6f}"
+
+        # project vec3 p → vec2 q
+        proj = (f"vec2(dot(p, vec3({ux},{uy},{uz})), "
+                f"dot(p, vec3({vx},{vy},{vz})))")
+        base_expr = self.base.glsl_sdf().replace("p", proj)
+
+        return f"max({base_expr}, abs(dot(p, vec3({dx},{dy},{dz}))) - {h})"
 
 
 class Point1D(GeometryBase):
@@ -420,6 +634,9 @@ class Point1D(GeometryBase):
             A tensor of signed distances.
         """
         return torch.abs(p - self.x)
+
+    def glsl_sdf(self) -> str:
+        return f"abs(p - {float(self.x)})"
 
     def get_bounding_box(self):
         """
@@ -532,6 +749,9 @@ class Point2D(GeometryBase):
             A tensor of signed distances.
         """
         return torch.norm(p - torch.tensor([self.x, self.y]), dim=1)
+
+    def glsl_sdf(self) -> str:
+        return f"length(p - vec2({float(self.x)}, {float(self.y)}))"
 
     def get_bounding_box(self):
         """
@@ -650,6 +870,9 @@ class Point3D(GeometryBase):
         """
         return torch.norm(p - torch.tensor([self.x, self.y, self.z]), dim=1)
 
+    def glsl_sdf(self) -> str:
+        return f"length(p - vec3({float(self.x)}, {float(self.y)}, {float(self.z)}))"
+
     def get_bounding_box(self):
         """
         Get the bounding box of the point.
@@ -766,6 +989,11 @@ class Line1D(GeometryBase):
 
         return torch.abs(p - (self.x1 + self.x2) / 2) - abs(self.x2 - self.x1) / 2
 
+    def glsl_sdf(self) -> str:
+        mid = (float(self.x1) + float(self.x2)) * 0.5
+        half = abs(float(self.x2) - float(self.x1)) * 0.5
+        return f"abs(p - {mid}) - {half}"
+
     def get_bounding_box(self):
         """
         Get the bounding box of the line segment.
@@ -844,6 +1072,12 @@ class Line2D(GeometryBase):
         t = torch.clamp(torch.dot(ap, ab) / torch.dot(ab, ab), 0, 1)
         return torch.norm(ap - t * ab)
 
+    def glsl_sdf(self) -> str:
+        return (
+            f"sdSegment(p, vec2({float(self.x1)}, {float(self.y1)}), "
+            f"vec2({float(self.x2)}, {float(self.y2)}))"
+        )
+
     def get_bounding_box(self):
         x_min = min(self.x1, self.x2)
         x_max = max(self.x1, self.x2)
@@ -895,6 +1129,9 @@ class Line3D(GeometryBase):
         ab = b - a
         t = torch.clamp(torch.dot(ap, ab) / torch.dot(ab, ab), 0, 1)
         return torch.norm(ap - t * ab)
+
+    def glsl_sdf(self) -> str:
+        raise NotImplementedError("Line3D.glsl_sdf not yet implemented")
 
     def get_bounding_box(self):
         x_min = min(self.x1, self.x2)
@@ -954,6 +1191,14 @@ class Square2D(GeometryBase):
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
             torch.max(d, dim=1, keepdim=True).values,
             max=0.0)
+
+    def glsl_sdf(self) -> str:
+        cx, cy = map(float, self.center.squeeze())
+        rx, ry = map(float, self.radius.squeeze())
+        return (
+            "length(max(abs(p - vec2({cx},{cy})) - vec2({rx},{ry}), 0.0))"
+            "+ min(max(abs(p.x-{cx})-{rx}, abs(p.y-{cy})-{ry}), 0.0)"
+        ).format(cx=cx, cy=cy, rx=rx, ry=ry)
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -1065,6 +1310,18 @@ class Square3D(GeometryBase):
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
             torch.max(d, dim=1, keepdim=True).values,
             max=0.0)
+
+    def glsl_sdf(self) -> str:
+        """
+        Return a GLSL expression that computes the signed distance from `p`
+        (a vec3 in shader scope) to this axis‑aligned cube.
+        """
+        cx, cy, cz = map(float, self.center.squeeze())
+        rx, ry, rz = map(float, self.radius.squeeze())
+        return (
+            "length(max(abs(p - vec3({cx},{cy},{cz})) - vec3({rx},{ry},{rz}), 0.0))"
+            "+ min(max(max(abs(p.x-{cx})-{rx}, abs(p.y-{cy})-{ry}), abs(p.z-{cz})-{rz}), 0.0)"
+        ).format(cx=cx, cy=cy, cz=cz, rx=rx, ry=ry, rz=rz)
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -1205,6 +1462,9 @@ class CircleArc2D(GeometryBase):
         d = torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
         return torch.abs(d)
 
+    def glsl_sdf(self) -> str:
+        raise NotImplementedError("CircleArc2D.glsl_sdf not yet implemented")
+
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius
         x_max = self.center[0, 0] + self.radius
@@ -1235,6 +1495,11 @@ class Circle2D(GeometryBase):
 
     def sdf(self, p: torch.Tensor):
         return torch.norm(p - self.center, dim=1, keepdim=True) - self.radius
+
+    def glsl_sdf(self) -> str:
+        cx, cy = map(float, self.center.squeeze())
+        r = float(self.radius)
+        return f"length(p - vec2({cx}, {cy})) - {r}"
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius
@@ -1280,6 +1545,11 @@ class Sphere3D(GeometryBase):
     def sdf(self, p: torch.Tensor):
         return torch.abs(torch.norm(p - self.center.to(p.device), dim=1, keepdim=True) - self.radius.to(p.device))
 
+    def glsl_sdf(self) -> str:
+        cx, cy, cz = map(float, self.center.squeeze())
+        r = float(self.radius)
+        return f"length(p - vec3({cx}, {cy}, {cz})) - {r}"
+
     def get_bounding_box(self):
         r = self.radius.item()
         x_min = self.center[0, 0] - r
@@ -1319,6 +1589,11 @@ class Ball3D(GeometryBase):
 
     def sdf(self, p: torch.Tensor):
         return torch.norm(p - self.center.to(p.device), dim=1, keepdim=True) - self.radius.to(p.device)
+
+    def glsl_sdf(self) -> str:
+        cx, cy, cz = map(float, self.center.squeeze())
+        r = float(self.radius)
+        return f"length(p - vec3({cx}, {cy}, {cz})) - {r}"
 
     def get_bounding_box(self):
         r = self.radius.item()
@@ -1371,6 +1646,9 @@ class Ball3D(GeometryBase):
 
 
 class Polygon2D(GeometryBase):
+    def glsl_sdf(self) -> str:
+        raise NotImplementedError("Polygon2D.glsl_sdf not yet implemented")
+
     """
     Polygon class inheriting from GeometryBase.
 
@@ -1488,6 +1766,9 @@ class Polygon2D(GeometryBase):
 
 
 class Polygon3D(GeometryBase):
+    def glsl_sdf(self) -> str:
+        raise NotImplementedError("Polygon3D.glsl_sdf not yet implemented")
+
     def __init__(self, vertices: torch.Tensor):
         super().__init__(dim=3, intrinsic_dim=2)
         if vertices.ndim != 2 or vertices.shape[1] != 3:
@@ -1528,7 +1809,7 @@ class Polygon3D(GeometryBase):
         v0 = self.vertices[0]
         v1 = self.vertices[1]
         v2 = self.vertices[2]
-        n = torch.cross(v1 - v0, v2 - v0)  # normal = (v1-v0) x (v2-v0)
+        n = torch.linalg.cross(v1 - v0, v2 - v0)  # normal = (v1-v0) x (v2-v0)
         if torch.allclose(n, torch.zeros_like(n)):
             raise ValueError("The given vertices are degenerate (normal is zero).")
 
@@ -1538,7 +1819,7 @@ class Polygon3D(GeometryBase):
         # 3. Build a local orthonormal frame {e1, e2, n}
         #    We want e1 and e2 to lie in the plane, both perpendicular to n.
         e1 = self._find_orthonormal_vector(n)
-        e2 = torch.cross(n, e1)
+        e2 = torch.linalg.cross(n, e1)
 
         # 4. Project all polygon vertices onto (e1, e2) plane
         #    We choose v0 as "plane origin" in 3D, so each vertex v_i maps to:
@@ -1593,13 +1874,13 @@ class Polygon3D(GeometryBase):
         ey = torch.tensor([0.0, 1.0, 0.0], device=n.device, dtype=n.dtype)
 
         # Check if cross(n, ex) is large enough
-        c1 = torch.cross(n, ex)
+        c1 = torch.linalg.cross(n, ex)
         if torch.norm(c1) > 1e-7:
             e1 = c1 / torch.norm(c1)
             return e1
 
         # Otherwise use ey
-        c2 = torch.cross(n, ey)
+        c2 = torch.linalg.cross(n, ey)
         if torch.norm(c2) > 1e-7:
             e1 = c2 / torch.norm(c2)
             return e1
@@ -1607,7 +1888,7 @@ class Polygon3D(GeometryBase):
         # Fallback: n might be (0, 0, ±1). Then crossing with ex or ey is 0.
         # So let's cross with ez = (0, 0, 1)
         ez = torch.tensor([0.0, 0.0, 1.0], device=n.device, dtype=n.dtype)
-        c3 = torch.cross(n, ez)
+        c3 = torch.linalg.cross(n, ez)
         e1 = c3 / torch.norm(c3)
         return e1
 
@@ -1658,3 +1939,6 @@ class HyperCube(GeometryBase):
                     x_on.append(x)
 
         return torch.cat(x_on, dim=0)
+
+    def glsl_sdf(self) -> str:
+        raise NotImplementedError("HyperCube.glsl_sdf not yet implemented")
