@@ -11,3 +11,4 @@ from .utils import *
 from .geometry import *
 from .voronoi import *
 from .optimize import *
+from .visualizer import *
