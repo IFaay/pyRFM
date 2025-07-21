@@ -5,7 +5,7 @@ ROOT = Path(__file__).parent
 
 setup(
     name="pyrfm",
-    version="0.1.7",
+    version="0.1.8",
     description="Random Feature Method (RFM) tools in Python",
     long_description=(ROOT / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
@@ -21,6 +21,9 @@ setup(
         "matplotlib>=3.5",
         "scipy>=1.9",
         "spdlog>=2.0.0",  # 若有版本要求可再加上限
+        "moderngl~=5.12.0",
+        "imgui~=2.0.0",
+        "pillow~=11.2.1"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
