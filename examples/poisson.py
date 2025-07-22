@@ -79,3 +79,8 @@ if __name__ == '__main__':
     print((u_test - u_pred).norm() / u_test.norm())
 
     print('Time:', time.time() - start_time, ", with", torch.tensor(0.).device)
+
+    visualizer = pyrfm.RFMVisualizer2D(model, resolution=(800, 800))
+    visualizer.plot()
+    visualizer.title('Poisson Equation')
+    visualizer.show()

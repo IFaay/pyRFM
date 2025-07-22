@@ -14,6 +14,8 @@ import sys
 import time
 import math
 
+from pyrfm import RFMVisualizer2D
+
 """
 Example 3.3 (Elasticity problem):
 The two-dimensional elasticity problem with complex geometry:
@@ -175,7 +177,7 @@ def run_rfm(args):
         f"Number of points inside: {x_in.shape[0]} and "
         f"on boundary: {b1.shape[0] + b2.shape[0] + b3.shape[0] + b4.shape[0] + b_circle.shape[0]}")
 
-    model = pyrfm.RFMBase(dim=2, n_hidden=args.M, domain=domain, n_subdomains=4)
+    model = pyrfm.RFMBase(dim=2, n_hidden=args.M, domain=domain, n_subdomains=2)
 
     pa = args.E / (1 - args.nu ** 2)  # Material constant
     pb = (1 - args.nu) / 2  # Auxiliary constant
@@ -184,8 +186,8 @@ def run_rfm(args):
     n_points = []
     errors = []
     counter = 0
-    solver = pyrfm.BatchQR(args.M * 4 * 4 * 2, 1)
-    n_batch = 40
+    solver = pyrfm.BatchQR(args.M * 2 * 2 * 2, 1)
+    n_batch = args.Q // (model.n_hidden * model.submodels.numel()) + 1
     for i, (
             x_in_batch, b1_batch, b1n_batch, b2_batch, b2n_batch, b3_batch, b3n_batch, b4_batch, b4n_batch,
             b_circle_batch,
@@ -253,27 +255,19 @@ def run_rfm(args):
             errors.append(((uv - uv_true).norm() / uv_true.norm()).item())
             print('Error:', errors[-1])
 
-    plt.plot(n_points, errors)
-    plt.yscale("log")
-    plt.xlabel("Number of points")
-    plt.ylabel("Relative error")
-    plt.show()
-    # # plot scatter points
-    # from matplotlib import pyplot as plt
-    #
-    # plt.scatter(x_in[:, 0], x_in[:, 1], c='blue', s=1)
-    # plt.scatter(b1[:, 0], b1[:, 1], c='red', s=1)
-    # plt.scatter(b2[:, 0], b2[:, 1], c='red', s=1)
-    # plt.scatter(b3[:, 0], b3[:, 1], c='red', s=1)
-    # plt.scatter(b4[:, 0], b4[:, 1], c='red', s=1)
-    # plt.scatter(b_circle[:, 0], b_circle[:, 1], c='green', s=1)
-    #
-    # plt.axis('equal')
+    # plt.plot(n_points, errors)
+    # plt.yscale("log")
+    # plt.xlabel("Number of points")
+    # plt.ylabel("Relative error")
     # plt.show()
+
+    visualizer = RFMVisualizer2D(model, resolution=(800, 800))
+    visualizer.plot()
+    visualizer.show()
 
 
 param_sets = [
-    {"Q": 160000, "M": 200, "E": 3e7, "nu": 0.3},
+    {"Q": 16000, "M": 200, "E": 3e7, "nu": 0.3},
 ]
 
 if __name__ == "__main__":

@@ -916,46 +916,62 @@ class RFMBase(ABC):
         else:
             raise ValueError("The output weight mismatch.")
 
-    def forward(self, x):
-        """
-        Forward pass of the model.
-
-        :param x: Input tensor.
-        :return: Output tensor after forward pass.
-        """
+    def forward(self, x: torch.Tensor, batch_size: int = 32768):
         if self.W is None:
             raise ValueError("Weights have not been computed yet.")
         elif isinstance(self.W, Tensor):
-            self.W = self.W.cat(dim=1)
+            W = self.W.cat(dim=1)
         elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
-            self.W = torch.cat(self.W, dim=1)
+            W = torch.cat(self.W, dim=1)
+        else:
+            W = self.W
 
-        return torch.matmul(self.features(x).cat(dim=1), self.W)
+        outputs = []
+        for i in range(0, x.shape[0], batch_size):
+            x_batch = x[i:i + batch_size]
+            feats = self.features(x_batch).cat(dim=1)
+            out = torch.matmul(feats, W)
+            outputs.append(out)
+        return torch.cat(outputs, dim=0)
 
-    def dForward(self, x, order: Union[torch.Tensor, List]):
+    def dForward(self, x, order: Union[torch.Tensor, List], batch_size: int = 32768):
         """
-        Compute the derivative of the forward pass.
+        Compute the derivative of the forward pass in batches.
 
         :param x: Input tensor.
         :param order: Order of the derivative.
+        :param batch_size: Max number of points per batch to avoid OOM.
         :return: Derivative tensor.
         """
         order = torch.tensor(order, dtype=self.dtype, device=self.device).view(1, -1)
         if order.shape[1] != self.dim:
             raise ValueError("Order dimension mismatch.")
         if order.sum() == 0:
-            return self.forward(x)
-        elif order.sum() == 1:
-            for d in range(self.dim):
-                if order[0, d] == 1:
-                    return torch.matmul(self.features_derivative(x, d).cat(dim=1), self.W.view(-1, 1))
+            return self.forward(x, batch_size=batch_size)
+
+        outputs = []
+        if order.sum() == 1:
+            for i in range(0, x.shape[0], batch_size):
+                x_batch = x[i:i + batch_size]
+                for d in range(self.dim):
+                    if order[0, d] == 1:
+                        feat = self.features_derivative(x_batch, d).cat(dim=1)
+                        outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                        break
+            return torch.cat(outputs, dim=0)
         elif order.sum() == 2:
-            for d1 in range(self.dim):
-                for d2 in range(self.dim):
-                    if order[0, d1] == 1 and order[0, d2] == 1:
-                        return torch.matmul(self.features_second_derivative(x, d1, d2).cat(dim=1), self.W.view(-1, 1))
+            for i in range(0, x.shape[0], batch_size):
+                x_batch = x[i:i + batch_size]
+                for d1 in range(self.dim):
+                    for d2 in range(self.dim):
+                        if order[0, d1] == 1 and order[0, d2] == 1:
+                            feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
+                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            break
+            return torch.cat(outputs, dim=0)
         else:
-            pass
+            # Fallback for higher-order derivatives (not supported in batch mode)
+            raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
 
     def features(self, x: torch.Tensor, use_sparse: bool = False) -> Tensor:
         """

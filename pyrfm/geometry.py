@@ -455,7 +455,7 @@ class ExtrudeBody(GeometryBase):
             raise ValueError("base2d must be 2-D")
         self.base = base2d
 
-        d = torch.tensor(direction, dtype=torch.float32)
+        d = torch.tensor(direction, dtype=torch.float64)
         L = torch.norm(d)
         if L < 1e-8:
             raise ValueError("direction vector must be non-zero")
@@ -491,7 +491,7 @@ class ExtrudeBody(GeometryBase):
                 [bx_max, by_min],
                 [bx_max, by_max],
             ],
-            dtype=torch.float32,
+            dtype=torch.float64,
         )
 
         pts = []
@@ -1454,7 +1454,7 @@ class CircleArc2D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple],
                  radius: torch.float64):
         super().__init__(dim=2, intrinsic_dim=1)
-        self.center = torch.tensor(center).view(1, -1)
+        self.center = torch.tensor(center).view(1, -1) if not isinstance(center, torch.Tensor) else center
         self.radius = radius
         self.boundary = [Point2D(self.center[0, 0] + self.radius, self.center[0, 1])]
 
@@ -1489,7 +1489,7 @@ class Circle2D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple],
                  radius: torch.float64):
         super().__init__(dim=2, intrinsic_dim=2)
-        self.center = torch.tensor(center).view(1, -1)
+        self.center = torch.tensor(center).view(1, -1) if not isinstance(center, torch.Tensor) else center
         self.radius = radius
         self.boundary = [CircleArc2D(center, radius)]
 
@@ -1536,10 +1536,12 @@ class Circle2D(GeometryBase):
 
 
 class Sphere3D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: float):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, float]):
         super().__init__(dim=3, intrinsic_dim=2)
-        self.center = torch.tensor(center, dtype=torch.float32).view(1, 3)
-        self.radius = torch.tensor(radius, dtype=torch.float32)
+        self.center = torch.tensor(center, dtype=torch.float64).view(1, 3) if not isinstance(center,
+                                                                                             torch.Tensor) else center.view(
+            1, 3)
+        self.radius = torch.tensor(radius, dtype=torch.float64) if not isinstance(radius, torch.Tensor) else radius
         self.boundary = [Circle2D(self.center, self.radius)]
 
     def sdf(self, p: torch.Tensor):
@@ -1583,8 +1585,10 @@ class Sphere3D(GeometryBase):
 class Ball3D(GeometryBase):
     def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: float):
         super().__init__(dim=3, intrinsic_dim=3)
-        self.center = torch.tensor(center, dtype=torch.float32).view(1, 3)
-        self.radius = torch.tensor(radius, dtype=torch.float32)
+        self.center = torch.tensor(center, dtype=torch.float64).view(1, 3) if not isinstance(center,
+                                                                                             torch.Tensor) else center.view(
+            1, 3)
+        self.radius = torch.tensor(radius, dtype=torch.float64) if not isinstance(radius, torch.Tensor) else radius
         self.boundary = [Sphere3D(self.center, self.radius)]
 
     def sdf(self, p: torch.Tensor):

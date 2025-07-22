@@ -11,4 +11,4 @@ from .utils import *
 from .geometry import *
 from .voronoi import *
 from .optimize import *
-from .visualizer import *
+from .visualizer import RFMVisualizer2D, RFMVisualizer3D
