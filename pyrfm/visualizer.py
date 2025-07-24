@@ -200,7 +200,7 @@ class RFMVisualizer3D(RFMVisualizer):
         cmap = plt.get_cmap(cmap)
         base = cmap(normed.reshape(self.resolution))[..., :3]
         base = torch.tensor(base, dtype=pts_normal.dtype, device=pts_normal.device)
-        light_dir = self.view_dir + torch.tensor([0.2, -0.2, -0.5], dtype=pts_normal.dtype,
+        light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=pts_normal.dtype,
                                                  device=pts_normal.device)
         light_dir /= torch.norm(light_dir)
         view_dir = self.view_dir
@@ -210,13 +210,13 @@ class RFMVisualizer3D(RFMVisualizer):
             torch.sum(pts_normal * light_dir[None, None, :], dim=-1), min=0.0
         )
         spec = torch.clamp(torch.sum(pts_normal * half_vector, dim=-1), min=0.0)
-        spec = torch.pow(spec, 64)
+        spec = torch.pow(spec, 32)
         col = (0.8 * base + 0.2) * diff[..., None] + base * 0.3 + spec[..., None] * 0.5
         col = torch.clamp(col, 0.0, 1.0)
         col[~hits] = 1.0  # background color (white)
         colors = col.cpu().numpy()
 
-        self.ax.imshow(colors.transpose(1, 0, 2), origin='lower')
+        self.ax.imshow(colors.transpose(1, 0, 2), origin='lower', interpolation='bilinear')
         sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
         plt.colorbar(sm, ax=self.ax)
