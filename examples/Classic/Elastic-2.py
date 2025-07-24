@@ -14,8 +14,6 @@ import sys
 import time
 import math
 
-from pyrfm import RFMVisualizer2D
-
 """
 Example 3.3 (Elasticity problem):
 The two-dimensional elasticity problem with complex geometry:
@@ -157,7 +155,7 @@ def run_rfm(args):
     domain = square - circles
 
     x_in = domain.in_sample(args.Q, with_boundary=False)
-    b1, b1n, b2, b2n, b3, b3n, b4, b4n = square.on_sample(math.isqrt(args.Q), with_normal=True, separate=True)
+    (b1, b1n), (b2, b2n), (b3, b3n), (b4, b4n) = square.on_sample(math.isqrt(args.Q), with_normal=True, separate=True)
     b_circle, b_circle_n = circles.on_sample(math.isqrt(args.Q), with_normal=True)
 
     # shuffle the points
@@ -261,9 +259,10 @@ def run_rfm(args):
     # plt.ylabel("Relative error")
     # plt.show()
 
-    visualizer = RFMVisualizer2D(model, resolution=(800, 800))
+    visualizer = pyrfm.RFMVisualizer2D(model, resolution=(800, 800))
     visualizer.plot()
     visualizer.show()
+    # visualizer.savefig('elasticity_2.png')
 
 
 param_sets = [

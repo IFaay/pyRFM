@@ -532,8 +532,9 @@ class ExtrudeBody(GeometryBase):
     def on_sample(
             self,
             num_samples: int,
-            with_normal: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+            with_normal: bool = False,
+            separate: bool = False
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
         * half samples on the two caps (base2d boundary)
         * half samples on the side walls (extruded edges)
@@ -573,12 +574,18 @@ class ExtrudeBody(GeometryBase):
             side_normals = side_norm_vec / torch.norm(side_norm_vec, dim=1, keepdim=True)
 
         # ---- merge & return ----
-        if with_normal:
-            points = torch.cat([pts_cap, pts_side], dim=0)
-            normals = torch.cat([normals_cap, side_normals], dim=0)
-            return points, normals
+        if separate:
+            if with_normal:
+                return (top_pts, n_top), (bot_pts, n_bot), (pts_side, side_normals)
+            else:
+                return top_pts, bot_pts, pts_side
         else:
-            return torch.cat([pts_cap, pts_side], dim=0)
+            if with_normal:
+                points = torch.cat([pts_cap, pts_side], dim=0)
+                normals = torch.cat([normals_cap, side_normals], dim=0)
+                return points, normals
+            else:
+                return torch.cat([pts_cap, pts_side], dim=0)
 
     # ------------------------------------------------------------------ #
     # GLSL SDF expression
@@ -1264,10 +1271,10 @@ class Square2D(GeometryBase):
         else:
             if with_normal:
                 return (
-                    a, torch.tensor([[0.0, -1.0]] * nums[0]),
-                    b, torch.tensor([[1.0, 0.0]] * nums[1]),
-                    c, torch.tensor([[0.0, 1.0]] * nums[2]),
-                    d, torch.tensor([[-1.0, 0.0]] * nums[3])
+                    (a, torch.tensor([[0.0, -1.0]] * nums[0])),
+                    (b, torch.tensor([[1.0, 0.0]] * nums[1])),
+                    (c, torch.tensor([[0.0, 1.0]] * nums[2])),
+                    (d, torch.tensor([[-1.0, 0.0]] * nums[3]))
                 )
             else:
                 return a, b, c, d

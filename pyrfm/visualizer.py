@@ -14,16 +14,17 @@ from pyrfm.core import *
 
 class VisualizerBase:
     def __init__(self):
-        self.fig, self.ax = plt.subplots(dpi=600)
+        self.fig, self.ax = plt.subplots(dpi=150)
 
     def plot(self, *args, **kwargs):
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def show(self, *args, **kwargs):
-        self.fig.show(*args, **kwargs)
+        # self.fig.show(*args, **kwargs)
+        plt.show(*args, **kwargs)
 
-    def savefig(self, *args, **kwargs):
-        self.fig.savefig(*args, **kwargs)
+    def savefig(self, fname, dpi=600, *args, **kwargs):
+        self.fig.savefig(fname=fname, dpi=dpi, *args, **kwargs)
 
     def xlabel(self, label, **kwargs):
         self.ax.set_xlabel(label, **kwargs)
@@ -88,38 +89,39 @@ class RFMVisualizer2D(RFMVisualizer):
 
 
 class RFMVisualizer3D(RFMVisualizer):
-    _VIEW_TABLE = {
-        'front': (0.0, math.pi / 2),  # 面对 XZ 平面，从 -Y 看
-        'back': (0.0, -math.pi / 2),  # 从 +Y 看
-        'left': (math.pi / 2, 0.0),  # 从 -X 看
-        'right': (-math.pi / 2, 0.0),  # 从 +X 看
-        'top': (0.0, 0.0),  # 从 +Z 看 XY
-        'bottom': (math.pi, 0.0),  # 从 -Z 看
-        'iso': (math.pi / 4, math.asin(math.sqrt(1 / 3)))  # CAD 通用等轴测
+    _CAMERA_TABLE = {
+        'front': {'view_dir': torch.tensor([0.0, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+        'back': {'view_dir': torch.tensor([0.0, 1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+        'left': {'view_dir': torch.tensor([-1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+        'right': {'view_dir': torch.tensor([1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+        'top': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
+        'bottom': {'view_dir': torch.tensor([0.0, 0.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
+        'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 1.0])},
+        'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+        'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
     }
 
     def __init__(self, model: RFMBase, resolution=(1920, 1080), component_idx=0, view='iso'):
         super().__init__(model, resolution, component_idx)
-        self.yaw, self.pitch = self._VIEW_TABLE.get(str(view).lower(), (0.0, 0.0))
-
-    def get_view_matrix(self):
-        cy, sy = math.cos(self.yaw), math.sin(self.yaw)
-        cx, sx = math.cos(self.pitch), math.sin(self.pitch)
-        return torch.tensor([
-            [cy, sx * sy, -cx * sy],
-            [0.0, cx, sx],
-            [sy, -sx * cy, cx * cy]
-        ])
+        cam = self._CAMERA_TABLE.get(str(view).lower())
+        if cam is None:
+            raise ValueError(f"Unknown view: {view}")
+        view_dir = cam['view_dir']
+        up = cam['up']
+        self.view_dir = view_dir / torch.linalg.norm(view_dir)
+        self.up = up / torch.linalg.norm(up)
 
     def generate_rays(self):
         W, H = self.resolution
         i, j = torch.meshgrid(torch.linspace(0, W - 1, W), torch.linspace(0, H - 1, H), indexing='ij')
         uv = torch.stack([(i - W / 2) / H, (j - H / 2) / H], dim=-1)  # shape: (W, H, 2)
 
-        directions = torch.cat([uv, -torch.ones_like(uv[..., :1])], dim=-1)  # (W, H, 3)
-        view = self.get_view_matrix()
-        dirs = directions @ view.T  # shape: (W, H, 3)
-        return dirs / torch.norm(dirs, dim=-1, keepdim=True)  # unit directions
+        # Compute camera basis
+        forward = -self.view_dir
+        right = torch.linalg.cross(forward, self.up)
+        dirs = forward[None, None, :] + uv[..., 0:1] * right + uv[..., 1:2] * self.up
+        dirs /= torch.linalg.norm(dirs, dim=-1, keepdim=True)
+        return dirs
 
     def ray_march(self, origins, directions, max_steps=128, epsilon=1e-3, far=100.0):
         hits = torch.zeros(origins.shape[:-1], dtype=torch.bool)
@@ -171,7 +173,7 @@ class RFMVisualizer3D(RFMVisualizer):
         normal = normal / torch.clamp(torch.norm(normal, dim=-1, keepdim=True), min=1e-8)
         return normal
 
-    def plot(self):
+    def plot(self, cmap='viridis', **kwargs):
         directions = self.generate_rays()  # (W, H, 3)
         bbox = self.bounding_box
         center = torch.tensor([
@@ -180,8 +182,8 @@ class RFMVisualizer3D(RFMVisualizer):
             (bbox[4] + bbox[5]) / 2,
         ])
         diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
-        view_dir = self.get_view_matrix() @ torch.tensor([0.0, 0.0, 1.0])
-        eye = center + view_dir * (1.2 * diag_len + 0.05)
+        # view_dir = self.get_view_matrix() @ torch.tensor([0.0, 0.0, 1.0])
+        eye = center + self.view_dir * (1.2 * diag_len + 0.1)
         origins = eye[None, None, :].expand(*directions.shape[:2], 3)
 
         t_vals, hits = self.ray_march(origins, directions)
@@ -195,13 +197,13 @@ class RFMVisualizer3D(RFMVisualizer):
         normed = (field_vals - vmin) / (vmax - vmin)
         normed = np.clip(normed, 0.0, 1.0)
 
-        cmap = plt.get_cmap('viridis')
+        cmap = plt.get_cmap(cmap)
         base = cmap(normed.reshape(self.resolution))[..., :3]
         base = torch.tensor(base, dtype=pts_normal.dtype, device=pts_normal.device)
-        light_dir = view_dir.to(pts_normal.device) + torch.tensor([0.2, -0.2, -0.5], dtype=pts_normal.dtype,
-                                                                  device=pts_normal.device)
+        light_dir = self.view_dir + torch.tensor([0.2, -0.2, -0.5], dtype=pts_normal.dtype,
+                                                 device=pts_normal.device)
         light_dir /= torch.norm(light_dir)
-        view_dir = view_dir.to(pts_normal.device)
+        view_dir = self.view_dir
         half_vector = (light_dir + view_dir).unsqueeze(0).unsqueeze(0)
         half_vector = half_vector / torch.norm(half_vector, dim=-1, keepdim=True)
         diff = torch.clamp(
@@ -214,7 +216,7 @@ class RFMVisualizer3D(RFMVisualizer):
         col[~hits] = 1.0  # background color (white)
         colors = col.cpu().numpy()
 
-        self.ax.imshow(colors.transpose(1, 0, 2))
+        self.ax.imshow(colors.transpose(1, 0, 2), origin='lower')
         sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
         plt.colorbar(sm, ax=self.ax)
@@ -225,36 +227,66 @@ class RFMVisualizer3D(RFMVisualizer):
 
         return self.fig, self.ax
 
-    def draw_view_axes(self, length=0.15, offset=0.1):
+    def draw_view_axes(self, length=0.5, offset=0.1):
         """
-        Draws a 3D coordinate axes indicator aligned with the view direction.
+        Draws a 3D coordinate axes indicator aligned with the view direction,
+        projected using the same camera setup as the main plot.
+        """
 
-        Parameters
-        ----------
-        length : float
-            Length of each axis vector.
-        offset : float
-            Offset from bottom-left corner as a fraction of figure size.
-        """
-        view = self.get_view_matrix().numpy()
-        axes_dirs = {
-            'X': (view[:, 0], 'red'),
-            'Y': (view[:, 1], 'green'),
-            'Z': (view[:, 2], 'blue'),
+        # Define 3D coordinate axes
+        axes_3d = {
+            'X': (torch.tensor([1.0, 0.0, 0.0]), 'red'),
+            'Y': (torch.tensor([0.0, 1.0, 0.0]), 'green'),
+            'Z': (torch.tensor([0.0, 0.0, 1.0]), 'blue')
         }
 
-        origin = np.array([offset, offset])
+        # Get bounding box center and camera vectors
+        bbox = self.bounding_box
+        center = torch.tensor([
+            (bbox[0] + bbox[1]) / 2,
+            (bbox[2] + bbox[3]) / 2,
+            (bbox[4] + bbox[5]) / 2,
+        ])
+        diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
+        forward = -self.view_dir
+        right = torch.linalg.cross(forward, self.up)
+        right = right / torch.norm(right)
+        up = torch.linalg.cross(right, forward)
+        origin = center + self.view_dir * (1.2 * diag_len + 0.05)
+
+        # Project function: perspective projection with depth
+        def project(pt3):
+            rel = pt3 - origin
+            depth = torch.dot(rel, forward)
+            scale = 1.0 / (1.0 + 0.4 * depth)
+            x = torch.dot(rel, right) * scale
+            y = torch.dot(rel, up) * scale
+            return torch.tensor([x.item(), y.item()]), depth
+
+        base = np.array([offset, offset])
         trans = self.ax.transAxes
 
-        for label, (dir_vec, color) in axes_dirs.items():
-            end_vec = origin + dir_vec[:2] * length  # project 3D vector to 2D
+        axes_draw = []
+        for label, (vec, color) in axes_3d.items():
+            tip = center + vec * diag_len * 0.25
+            p0, _ = project(center)
+            p1, d1 = project(tip)
+            axes_draw.append((d1.item(), label, vec, color, p0, p1))
+        axes_draw.sort(reverse=True)  # Sort by depth from farthest to nearest
+
+        for d1, label, vec, color, p0, p1 in axes_draw:
+            dir2d = p1 - p0
+            if torch.norm(dir2d) < 1e-5:
+                continue
+            dir2d = dir2d * length
+            end = base + dir2d.numpy()
             self.ax.annotate(
-                '', xy=end_vec, xytext=origin, xycoords='axes fraction',
+                '', xy=end, xytext=base, xycoords='axes fraction',
                 textcoords='axes fraction',
                 arrowprops=dict(arrowstyle='-|>', lw=2.5, color=color, alpha=0.8)
             )
             self.ax.text(
-                end_vec[0], end_vec[1], label, transform=trans,
+                end[0], end[1], label, transform=trans,
                 fontsize=10, color=color, fontweight='bold',
-                ha='center', va='center', alpha=0.9
+                ha='center', va='center'
             )
