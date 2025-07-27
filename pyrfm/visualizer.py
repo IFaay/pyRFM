@@ -94,8 +94,8 @@ class RFMVisualizer3D(RFMVisualizer):
         'back': {'view_dir': torch.tensor([0.0, 1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'left': {'view_dir': torch.tensor([-1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'right': {'view_dir': torch.tensor([1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'top': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
-        'bottom': {'view_dir': torch.tensor([0.0, 0.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
+        'top': {'view_dir': torch.tensor([0.0, 0.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
+        'bottom': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
         'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 1.0])},
         'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
@@ -123,7 +123,7 @@ class RFMVisualizer3D(RFMVisualizer):
         dirs /= torch.linalg.norm(dirs, dim=-1, keepdim=True)
         return dirs
 
-    def ray_march(self, origins, directions, max_steps=128, epsilon=1e-3, far=100.0):
+    def ray_march(self, origins, directions, max_steps=256, epsilon=1e-3, far=100.0):
         hits = torch.zeros(origins.shape[:-1], dtype=torch.bool)
         t_vals = torch.zeros_like(hits, dtype=torch.float32)
 
