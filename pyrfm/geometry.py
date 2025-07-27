@@ -608,7 +608,7 @@ class ImplicitFunctionBase(GeometryBase):
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
         pass
 
-    def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    def sdf(self, p: torch.Tensor, with_normal=False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
         Memory-efficient computation of the normalized signed distance function (SDF),
         using only first-order autograd and no graph retention (for inference).
@@ -628,6 +628,8 @@ class ImplicitFunctionBase(GeometryBase):
 
         grad_norm = torch.norm(grad, dim=-1, keepdim=True).clamp(min=1e-6)
         sdf = f / grad_norm
+        if with_normal:
+            return sdf.detach(), (grad / grad_norm).detach()  # Return SDF and normalized gradient (normal vector)
         return sdf.detach()  # Detach again if used downstream
 
 
