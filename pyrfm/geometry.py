@@ -106,7 +106,6 @@ class GeometryBase(ABC):
         """
         pass
 
-    @abstractmethod
     def glsl_sdf(self) -> str:
         """
         Return a GLSL expression (string) that evaluates the signed distance
@@ -602,6 +601,114 @@ class ExtrudeBody(GeometryBase):
         base_expr = self.base.glsl_sdf().replace("p", proj)
 
         return f"max({base_expr}, abs(dot(p, vec3({dx},{dy},{dz}))) - {h})"
+
+
+class ImplicitFunctionBase(GeometryBase):
+    @abstractmethod
+    def shape_func(self, p: torch.Tensor) -> torch.Tensor:
+        pass
+
+    def sdf(self, p: torch.Tensor) -> torch.Tensor:
+        """
+        Memory-efficient computation of the normalized signed distance function (SDF),
+        using only first-order autograd and no graph retention (for inference).
+        """
+        p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
+        f = self.shape_func(p)
+
+        # Compute gradient (∇f), discard graph after grad
+        grad = torch.autograd.grad(
+            outputs=f,
+            inputs=p,
+            grad_outputs=torch.ones_like(f),
+            create_graph=False,  # Don't retain graph
+            retain_graph=False,
+            only_inputs=True
+        )[0]
+
+        grad_norm = torch.norm(grad, dim=-1, keepdim=True).clamp(min=1e-6)
+        sdf = f / grad_norm
+        return sdf.detach()  # Detach again if used downstream
+
+
+class ImplicitSurfaceBase(ImplicitFunctionBase):
+    def __init__(self):
+        super().__init__(dim=3, intrinsic_dim=2)
+
+    @abstractmethod
+    def shape_func(self, p: torch.Tensor) -> torch.Tensor:
+        pass
+
+    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+        """
+        Sample near-surface points by rejection and iterative projection.
+
+        Args:
+            num_samples (int): Number of samples to generate.
+            with_boundary (bool): Ignored for implicit surfaces.
+
+        Returns:
+            torch.Tensor: Sampled points projected onto the surface.
+        """
+        x_min, x_max, y_min, y_max, z_min, z_max = self.get_bounding_box()
+        volume = (x_max - x_min) * (y_max - y_min) * (z_max - z_min)
+        resolution = (volume / num_samples) ** (1 / self.dim)
+        eps = 2 * resolution
+
+        collected = []
+        max_iter = 10
+        oversample = int(num_samples * 1.5)
+
+        while sum(c.shape[0] for c in collected) < num_samples:
+            rand = torch.rand(oversample, self.dim, device=self.device)
+            p = torch.empty(oversample, self.dim, dtype=self.dtype, device=self.device)
+            p[:, 0] = (x_min - eps) + rand[:, 0] * ((x_max + eps) - (x_min - eps))
+            p[:, 1] = (y_min - eps) + rand[:, 1] * ((y_max + eps) - (y_min - eps))
+            p[:, 2] = (z_min - eps) + rand[:, 2] * ((z_max + eps) - (z_min - eps))
+            p.requires_grad_(True)
+            f = self.shape_func(p)
+            grad = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
+            grad_norm = grad.norm(dim=1, keepdim=True).clamp(min=1e-6)
+            normal = grad / grad_norm
+            sdf = f / grad_norm
+            near_mask = (sdf.abs() < eps).squeeze()
+            near_points = p[near_mask]
+            near_normals = normal[near_mask]
+            near_sdf = sdf[near_mask]
+
+            for _ in range(max_iter):
+                if near_points.shape[0] == 0:
+                    break
+                near_points = near_points - near_sdf * near_normals
+                near_points.requires_grad_(True)
+                f_proj = self.shape_func(near_points)
+                grad_proj = torch.autograd.grad(f_proj, near_points, torch.ones_like(f_proj), create_graph=False)[0]
+                grad_norm_proj = grad_proj.norm(dim=1, keepdim=True).clamp(min=1e-6)
+                near_normals = grad_proj / grad_norm_proj
+                near_sdf = f_proj / grad_norm_proj
+                if near_sdf.abs().max().item() < 0.1 * resolution:
+                    break
+
+            collected.append(near_points.detach())
+
+        return torch.cat(collected, dim=0)[:num_samples]
+
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """
+        Implicit surfaces do not explicitly provide boundary samples.
+        This method returns an empty tensor compatible with Boolean ops.
+
+        Args:
+            num_samples (int): Number of samples (ignored).
+            with_normal (bool): Whether to include normals.
+
+        Returns:
+            torch.Tensor or Tuple[torch.Tensor, torch.Tensor]: Empty tensor(s).
+        """
+        empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
+        if with_normal:
+            return empty, empty
+        return empty
 
 
 class Point1D(GeometryBase):
@@ -1586,7 +1693,10 @@ class Sphere3D(GeometryBase):
         return torch.stack([x, y, z], dim=-1).reshape(-1, 3)
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        raise NotImplementedError
+        empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
+        if with_normal:
+            return empty, empty
+        return empty
 
 
 class Ball3D(GeometryBase):
