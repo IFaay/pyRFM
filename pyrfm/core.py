@@ -492,8 +492,6 @@ class POUBase(ABC):
                     prod *= self.func(x_[:, [d]])
         return prod
 
-        pass
-
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
         pass
 
@@ -927,14 +925,24 @@ class RFMBase(ABC):
             W = self.W
 
         outputs = []
-        for i in range(0, x.shape[0], batch_size):
-            x_batch = x[i:i + batch_size]
-            feats = self.features(x_batch).cat(dim=1)
-            out = torch.matmul(feats, W)
-            outputs.append(out)
-        return torch.cat(outputs, dim=0)
+        while True:
+            try:
+                for i in range(0, x.shape[0], batch_size):
+                    x_batch = x[i:i + batch_size]
+                    feats = self.features(x_batch).cat(dim=1)
+                    out = torch.matmul(feats, W)
+                    outputs.append(out)
+                return torch.cat(outputs, dim=0)
+            except RuntimeError as e:
+                if any(keyword in str(e).lower() for keyword in
+                       ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
+                    batch_size //= 2
+                    outputs = []  # Clear outputs to retry
+                    torch.cuda.empty_cache()  # Clear GPU memory
+                else:
+                    raise e
 
-    def dForward(self, x, order: Union[torch.Tensor, List], batch_size: int = 32768):
+    def dForward(self, x, order: Union[torch.Tensor, List, Tuple], batch_size: int = 32768):
         """
         Compute the derivative of the forward pass in batches.
 
@@ -950,28 +958,37 @@ class RFMBase(ABC):
             return self.forward(x, batch_size=batch_size)
 
         outputs = []
-        if order.sum() == 1:
-            for i in range(0, x.shape[0], batch_size):
-                x_batch = x[i:i + batch_size]
-                for d in range(self.dim):
-                    if order[0, d] == 1:
-                        feat = self.features_derivative(x_batch, d).cat(dim=1)
-                        outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
-                        break
-            return torch.cat(outputs, dim=0)
-        elif order.sum() == 2:
-            for i in range(0, x.shape[0], batch_size):
-                x_batch = x[i:i + batch_size]
-                for d1 in range(self.dim):
-                    for d2 in range(self.dim):
-                        if order[0, d1] == 1 and order[0, d2] == 1:
-                            feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
-                            break
-            return torch.cat(outputs, dim=0)
-        else:
-            # Fallback for higher-order derivatives (not supported in batch mode)
-            raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+        while True:
+            try:
+                if order.sum() == 1:
+                    for i in range(0, x.shape[0], batch_size):
+                        x_batch = x[i:i + batch_size]
+                        for d in range(self.dim):
+                            if order[0, d] == 1:
+                                feat = self.features_derivative(x_batch, d).cat(dim=1)
+                                outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                                break
+                    return torch.cat(outputs, dim=0)
+                elif order.sum() == 2:
+                    for i in range(0, x.shape[0], batch_size):
+                        x_batch = x[i:i + batch_size]
+                        for d1 in range(self.dim):
+                            for d2 in range(self.dim):
+                                if order[0, d1] == 1 and order[0, d2] == 1:
+                                    feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
+                                    outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                                    break
+                    return torch.cat(outputs, dim=0)
+                else:
+                    raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+            except RuntimeError as e:
+                if any(keyword in str(e).lower() for keyword in
+                       ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
+                    batch_size //= 2
+                    outputs = []  # Clear outputs to retry
+                    torch.cuda.empty_cache()  # Clear GPU memory
+                else:
+                    raise e
 
     def features(self, x: torch.Tensor, use_sparse: bool = False) -> Tensor:
         """
@@ -1365,6 +1382,15 @@ class STRFMBase(ABC):
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
+    def __call__(self, x, *args, **kwargs):
+        """
+        Make the class callable and forward the input tensor.
+
+        :param x: Input tensor.
+        :return: Output tensor after forward pass.
+        """
+        return self.forward(x)
+    
     def compute(self, A: torch.Tensor):
         """
         Compute the QR decomposition of matrix A.
@@ -1491,12 +1517,15 @@ class STRFMBase(ABC):
         return torch.matmul(self.features(xt=xt).cat(dim=1), self.W)
 
     def dForward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
-                 order: Union[torch.Tensor, List] = None):
+                 order: Union[torch.Tensor, List] = None, batch_size: int = 32768):
         """
-        Compute the derivative of the forward pass.
+        Compute the derivative of the forward pass in batches.
 
-        :param x: Input tensor.
-        :param order: Order of the derivative.
+        :param x: Spatial input tensor.
+        :param t: Temporal input tensor.
+        :param xt: Combined input tensor.
+        :param order: Derivative order.
+        :param batch_size: Max batch size to avoid OOM.
         :return: Derivative tensor.
         """
         xt = self.validate_and_prepare_xt(x, t, xt)
@@ -1505,18 +1534,39 @@ class STRFMBase(ABC):
             raise ValueError("Order dimension mismatch.")
         if order.sum() == 0:
             return self.forward(xt)
-        elif order.sum() == 1:
-            for d in range(self.dim):
-                if order[0, d] == 1:
-                    return torch.matmul(self.features_derivative(xt=xt, axis=d).cat(dim=1), self.W.view(-1, 1))
-        elif order.sum() == 2:
-            for d1 in range(self.dim):
-                for d2 in range(self.dim):
-                    if order[0, d1] == 1 and order[0, d2] == 1:
-                        return torch.matmul(self.features_second_derivative(xt=xt, axis1=d1, axis2=d2).cat(dim=1),
-                                            self.W.view(-1, 1))
-        else:
-            pass
+
+        outputs = []
+        while True:
+            try:
+                if order.sum() == 1:
+                    for i in range(0, xt.shape[0], batch_size):
+                        xt_batch = xt[i:i + batch_size]
+                        for d in range(order.shape[1]):
+                            if order[0, d] == 1:
+                                feat = self.features_derivative(xt=xt_batch, axis=d).cat(dim=1)
+                                outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                                break
+                    return torch.cat(outputs, dim=0)
+                elif order.sum() == 2:
+                    for i in range(0, xt.shape[0], batch_size):
+                        xt_batch = xt[i:i + batch_size]
+                        for d1 in range(order.shape[1]):
+                            for d2 in range(order.shape[1]):
+                                if order[0, d1] == 1 and order[0, d2] == 1:
+                                    feat = self.features_second_derivative(xt=xt_batch, axis1=d1, axis2=d2).cat(dim=1)
+                                    outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                                    break
+                    return torch.cat(outputs, dim=0)
+                else:
+                    raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+            except RuntimeError as e:
+                if any(keyword in str(e).lower() for keyword in
+                       ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
+                    batch_size //= 2
+                    outputs = []  # Clear outputs to retry
+                    torch.cuda.empty_cache()
+                else:
+                    raise e
 
     def features(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
                  use_sparse: bool = False) -> Tensor[torch.Tensor]:
