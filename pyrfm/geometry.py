@@ -608,29 +608,59 @@ class ImplicitFunctionBase(GeometryBase):
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
         pass
 
-    def sdf(self, p: torch.Tensor, with_normal=False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def sdf(self, p: torch.Tensor, with_normal=False, with_curvature=False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
         Memory-efficient computation of the normalized signed distance function (SDF),
-        using only first-order autograd and no graph retention (for inference).
+        with optional normal and mean curvature computation.
+
+        Args:
+            p (torch.Tensor): Input point cloud of shape (N, 3)
+            with_normal (bool): If True, also return normal vectors.
+            with_curvature (bool): If True, also return mean curvature.
+
+        Returns:
+            Union of tensors depending on flags:
+                - sdf
+                - (sdf, normal)
+                - (sdf, normal, mean_curvature)
         """
         p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
         f = self.shape_func(p)
 
-        # Compute gradient (∇f), discard graph after grad
+        # Compute gradient (∇f)
         grad = torch.autograd.grad(
             outputs=f,
             inputs=p,
             grad_outputs=torch.ones_like(f),
-            create_graph=False,  # Don't retain graph
-            retain_graph=False,
+            create_graph=with_curvature,  # Need graph for second-order derivative
+            retain_graph=with_curvature,
             only_inputs=True
         )[0]
 
-        grad_norm = torch.norm(grad, dim=-1, keepdim=True).clamp(min=1e-6)
+        grad_norm = torch.norm(grad, dim=-1, keepdim=True)
         sdf = f / grad_norm
-        if with_normal:
-            return sdf.detach(), (grad / grad_norm).detach()  # Return SDF and normalized gradient (normal vector)
-        return sdf.detach()  # Detach again if used downstream
+        normal = grad / grad_norm
+
+        if not (with_normal or with_curvature):
+            return sdf.detach()
+        elif with_normal and (not with_curvature):
+            return sdf.detach(), normal.detach()
+        else:
+            divergence = 0.0
+            for i in range(p.shape[-1]):  # Loop over x, y, z
+                dni = torch.autograd.grad(
+                    outputs=normal[:, i],
+                    inputs=p,
+                    grad_outputs=torch.ones_like(normal[:, i]),
+                    create_graph=False,
+                    retain_graph=True,
+                    only_inputs=True
+                )[0][:, [i]]
+                divergence += dni
+
+            mean_curvature = 0.5 * divergence  # H = ½ ∇·n
+            return sdf.detach(), normal.detach(), mean_curvature.detach()
 
 
 class ImplicitSurfaceBase(ImplicitFunctionBase):
@@ -661,8 +691,11 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
         max_iter = 10
         oversample = int(num_samples * 1.5)
 
+        gen = torch.Generator(device=self.device)
+        gen.manual_seed(100)
+
         while sum(c.shape[0] for c in collected) < num_samples:
-            rand = torch.rand(oversample, self.dim, device=self.device)
+            rand = torch.rand(oversample, self.dim, device=self.device, generator=gen)
             p = torch.empty(oversample, self.dim, dtype=self.dtype, device=self.device)
             p[:, 0] = (x_min - eps) + rand[:, 0] * ((x_max + eps) - (x_min - eps))
             p[:, 1] = (y_min - eps) + rand[:, 1] * ((y_max + eps) - (y_min - eps))
@@ -670,7 +703,7 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
             p.requires_grad_(True)
             f = self.shape_func(p)
             grad = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
-            grad_norm = grad.norm(dim=1, keepdim=True).clamp(min=1e-6)
+            grad_norm = grad.norm(dim=1, keepdim=True)
             normal = grad / grad_norm
             sdf = f / grad_norm
             near_mask = (sdf.abs() < eps).squeeze()
@@ -685,10 +718,10 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
                 near_points.requires_grad_(True)
                 f_proj = self.shape_func(near_points)
                 grad_proj = torch.autograd.grad(f_proj, near_points, torch.ones_like(f_proj), create_graph=False)[0]
-                grad_norm_proj = grad_proj.norm(dim=1, keepdim=True).clamp(min=1e-6)
+                grad_norm_proj = grad_proj.norm(dim=1, keepdim=True)
                 near_normals = grad_proj / grad_norm_proj
                 near_sdf = f_proj / grad_norm_proj
-                if near_sdf.abs().max().item() < 0.1 * resolution:
+                if near_sdf.abs().max().item() < torch.finfo(self.dtype).eps * resolution:
                     break
 
             collected.append(near_points.detach())

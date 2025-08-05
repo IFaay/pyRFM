@@ -54,18 +54,48 @@ class VisualizerBase:
 
 
 class RFMVisualizer(VisualizerBase):
-    def __init__(self, model: RFMBase, resolution=(1920, 1080), component_idx=0):
+    def __init__(self, model: Union[RFMBase, STRFMBase], t=0.0, resolution=(1920, 1080), component_idx=0,
+                 ref: Optional[Callable[[torch.Tensor], torch.Tensor]] = None):
         super().__init__()
+        self.dtype = torch.tensor(0.).dtype
+        self.device = torch.tensor(0.).device
         self.model = model
         self.resolution = resolution
         self.component_idx = component_idx
         self.bounding_box = model.domain.get_bounding_box()
+        self.t = t
+
         self.sdf = model.domain.sdf if hasattr(model.domain, 'sdf') else None
+        if ref is not None:
+            if callable(ref):
+                self.ref: Optional[..., torch.Tensor] = ref
+            else:
+                raise TypeError("ref must be a callable function.")
+        else:
+            self.ref = None
 
 
 class RFMVisualizer2D(RFMVisualizer):
-    def __init__(self, model: RFMBase, resolution=(1920, 1080), component_idx=0):
-        super().__init__(model, resolution, component_idx)
+    def __init__(self, model: Union[RFMBase, STRFMBase], t=0.0, resolution=(1920, 1080), component_idx=0, ref=None):
+        super().__init__(model, t, resolution, component_idx, ref)
+
+    def compute_field_vals(self, grid_points):
+        if isinstance(self.model, RFMBase):
+            if self.ref is not None:
+                Z = (self.model(grid_points) - self.ref(grid_points)).abs().detach().cpu().numpy()
+            else:
+                Z = self.model(grid_points).detach().cpu().numpy()
+        elif isinstance(self.model, STRFMBase):
+            xt = self.model.validate_and_prepare_xt(x=grid_points, t=torch.tensor([[self.t]]))
+            if self.ref is not None:
+                Z = (self.model.forward(xt=xt) - self.ref(xt=xt)).abs().detach().cpu().numpy()
+            else:
+                Z = self.model.forward(xt=xt).detach().cpu().numpy()
+
+        else:
+            raise NotImplementedError
+
+        return Z
 
     def plot(self, cmap='viridis', **kwargs):
         x = torch.linspace(self.bounding_box[0], self.bounding_box[1], self.resolution[0])
@@ -73,8 +103,9 @@ class RFMVisualizer2D(RFMVisualizer):
         X, Y = torch.meshgrid(x, y, indexing='ij')
         grid_points = torch.column_stack([X.ravel(), Y.ravel()])
 
-        Z = self.model(grid_points).detach().cpu().numpy()
+        Z = self.compute_field_vals(grid_points)
         Z = Z[:, self.component_idx].reshape(X.shape)
+
         # mark SDF > 0 as white
         if self.sdf is not None:
             sdf_values = self.sdf(grid_points).detach().cpu().numpy().reshape(X.shape)
@@ -96,20 +127,20 @@ class RFMVisualizer3D(RFMVisualizer):
         'right': {'view_dir': torch.tensor([1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'top': {'view_dir': torch.tensor([0.0, 0.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
         'bottom': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
-        'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 1.0])},
+        'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.25]), 'up': torch.tensor([0.5, 0.5, 1 / 1.25])},
         'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
     }
 
-    def __init__(self, model: RFMBase, resolution=(1920, 1080), component_idx=0, view='iso'):
-        super().__init__(model, resolution, component_idx)
+    def __init__(self, model: RFMBase, t=0.0, resolution=(1920, 1080), component_idx=0, view='iso', ref=None):
+        super().__init__(model, t, resolution, component_idx, ref)
         cam = self._CAMERA_TABLE.get(str(view).lower())
         if cam is None:
             raise ValueError(f"Unknown view: {view}")
         view_dir = cam['view_dir']
         up = cam['up']
-        self.view_dir = view_dir / torch.linalg.norm(view_dir)
-        self.up = up / torch.linalg.norm(up)
+        self.view_dir = (view_dir / torch.linalg.norm(view_dir)).to(dtype=self.dtype, device=self.device)
+        self.up = (up / torch.linalg.norm(up)).to(dtype=self.dtype, device=self.device)
 
     def generate_rays(self):
         W, H = self.resolution
@@ -123,21 +154,39 @@ class RFMVisualizer3D(RFMVisualizer):
         dirs /= torch.linalg.norm(dirs, dim=-1, keepdim=True)
         return dirs
 
-    def ray_march(self, origins, directions, max_steps=256, epsilon=1e-3, far=100.0):
-        hits = torch.zeros(origins.shape[:-1], dtype=torch.bool)
-        t_vals = torch.zeros_like(hits, dtype=torch.float32)
+    def ray_march(self, origins, directions, max_steps=128, epsilon=1e-3, far=200.0):
+        if self.ref is not None:
+            max_steps = 512
+            bbox = self.bounding_box
+            diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
+            epsilon = torch.finfo(self.dtype).eps * (10.0 + diag_len)
+        hits = torch.zeros(origins.shape[:-1], dtype=torch.bool, device=self.device)
+        t_vals = torch.zeros_like(hits, dtype=self.dtype, device=self.device)
 
         for step in range(max_steps):
-            pts = origins + t_vals[..., None] * directions  # shape: (..., 3)
-            dists = self.sdf(pts.reshape(-1, 3)).reshape(*pts.shape[:-1])  # (...,)
+            # Current sample positions along each ray
+            pts = origins + t_vals[..., None] * directions  # (..., 3)
 
-            mask = (dists > epsilon) & (t_vals < far)
-            t_vals = torch.where(mask, t_vals + dists, t_vals)
-            hits |= (dists < epsilon)
+            # Signed‑distance values at those positions
+            dists = self.sdf(pts.reshape(-1, 3)).reshape(*pts.shape[:-1])
+
+            # Hit detection: surface reached when |SDF| < epsilon
+            # hit_mask = torch.abs(dists) < epsilon
+            hit_mask = torch.abs(dists) <= epsilon
+            hits |= hit_mask
+
+            # Continue marching only on rays that have not yet hit
+            # and are still within the far clipping distance
+            active_mask = (~hits) & (t_vals < far)
+            if not active_mask.any():
+                break  # All rays terminated
+
+            step_scale = 1.0
+            t_vals = torch.where(active_mask, t_vals + dists * step_scale, t_vals)
 
         return t_vals, hits
 
-    def estimate_normal(self, pts, epsilon=1e-3):
+    def estimate_normal(self, pts, epsilon=1e-4):
         """
         Estimate outward normals at given 3‑D points using central finite differences
         of the domain's signed‑distance function (SDF).
@@ -158,8 +207,14 @@ class RFMVisualizer3D(RFMVisualizer):
         if self.sdf is None:
             raise RuntimeError("Domain SDF is not defined; cannot estimate normals.")
 
+        try:
+            _, normal = self.sdf(pts.reshape(-1, 3), with_normal=True)
+            return normal.reshape(*pts.shape[:-1], 3)
+        except TypeError:
+            pass  # Fallback to finite differences if with_normal is not supported
+
         # Build coordinate offsets (shape: (3, 3))
-        offsets = torch.eye(3, device=pts.device) * epsilon
+        offsets = torch.eye(3, device=self.device) * epsilon
 
         # Central finite differences for ∂SDF/∂x, ∂SDF/∂y, ∂SDF/∂z
         grads = []
@@ -170,8 +225,32 @@ class RFMVisualizer3D(RFMVisualizer):
 
         # Stack into a vector field and normalize
         normal = torch.stack(grads, dim=-1)  # (..., 3)
-        normal = normal / torch.clamp(torch.norm(normal, dim=-1, keepdim=True), min=1e-8)
+        normal = normal / torch.clamp(torch.norm(normal, dim=-1, keepdim=True), min=1e-10)
         return normal
+
+    def compute_field_values(self, pts_hit, hits):
+        if isinstance(self.model, RFMBase):
+            if self.ref is not None:
+                field_vals = self.model(pts_hit.reshape(-1, 3))
+                ref_vals = self.ref(pts_hit.reshape(-1, 3))
+                field_vals[hits.ravel()] -= ref_vals[hits.ravel()]
+                field_vals = field_vals.abs().detach().cpu().numpy()[:, self.component_idx]
+            else:
+                field_vals = self.model(pts_hit.reshape(-1, 3)).detach().cpu().numpy()[:, self.component_idx]
+        elif isinstance(self.model, STRFMBase):
+            xt = self.model.validate_and_prepare_xt(x=pts_hit.reshape(-1, 3), t=torch.tensor([[self.t]]))
+            if self.ref is not None:
+                field_vals = self.model.forward(xt=xt)
+                ref_vals = self.ref(xt=xt)
+                field_vals[hits.ravel()] -= ref_vals[hits.ravel()]
+                field_vals = field_vals.abs().detach().cpu().numpy()[:, self.component_idx]
+            else:
+                field_vals = self.model.forward(xt=xt).detach().cpu().numpy()[:, self.component_idx]
+
+        else:
+            raise NotImplementedError("Model type not supported for visualization.")
+
+        return field_vals
 
     def plot(self, cmap='viridis', **kwargs):
         directions = self.generate_rays()  # (W, H, 3)
@@ -189,19 +268,23 @@ class RFMVisualizer3D(RFMVisualizer):
         t_vals, hits = self.ray_march(origins, directions)
         pts_hit = origins + t_vals.unsqueeze(-1) * directions
         pts_normal = self.estimate_normal(pts_hit)
-        field_vals = self.model(pts_hit.reshape(-1, 3)).detach().cpu().numpy()[:, self.component_idx]
-        field_vals[~hits.numpy().ravel()] = np.nan
 
-        vmin = np.nanmin(field_vals)
-        vmax = np.nanmax(field_vals)
+        field_vals = self.compute_field_values(pts_normal, hits)
+        # field_vals = torch.norm(pts_hit.reshape(-1, 3) - eye, dim=-1).cpu().numpy()  # debug: distance to eye
+        field_vals[~hits.detach().cpu().numpy().ravel()] = np.nan
+
+        # vmin = np.nanmin(field_vals)
+        # vmax = np.nanmax(field_vals)
+        vmin = np.nanpercentile(field_vals, 2)
+        vmax = np.nanpercentile(field_vals, 98)
         normed = (field_vals - vmin) / (vmax - vmin)
         normed = np.clip(normed, 0.0, 1.0)
 
         cmap = plt.get_cmap(cmap)
         base = cmap(normed.reshape(self.resolution))[..., :3]
-        base = torch.tensor(base, dtype=pts_normal.dtype, device=pts_normal.device)
-        light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=pts_normal.dtype,
-                                                 device=pts_normal.device)
+        base = torch.tensor(base, dtype=self.dtype, device=self.device)
+        light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=self.dtype,
+                                                 device=self.device)
         light_dir /= torch.norm(light_dir)
         view_dir = self.view_dir
         half_vector = (light_dir + view_dir).unsqueeze(0).unsqueeze(0)
@@ -217,7 +300,7 @@ class RFMVisualizer3D(RFMVisualizer):
         colors = col.cpu().numpy()
 
         self.ax.imshow(colors.transpose(1, 0, 2), origin='lower', interpolation='bilinear')
-        sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=vmin, vmax=vmax))
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
         plt.colorbar(sm, ax=self.ax)
         self.ax.set_axis_off()
@@ -279,7 +362,7 @@ class RFMVisualizer3D(RFMVisualizer):
             if torch.norm(dir2d) < 1e-5:
                 continue
             dir2d = dir2d * length
-            end = base + dir2d.numpy()
+            end = base + dir2d.detach().cpu().numpy()
             self.ax.annotate(
                 '', xy=end, xytext=base, xycoords='axes fraction',
                 textcoords='axes fraction',
