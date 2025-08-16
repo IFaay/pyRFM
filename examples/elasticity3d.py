@@ -152,15 +152,16 @@ if __name__ == "__main__":
     A3 = pyrfm.concat_blocks([[u_top, torch.zeros_like(v_top), torch.zeros_like(w_top)],
                               [torch.zeros_like(u_top), v_top, torch.zeros_like(w_top)],
                               [torch.zeros_like(u_top), torch.zeros_like(v_top), w_top]])
-    b3 = torch.zeros(A3.shape[0], 1)
+    b3 = torch.cat([torch.zeros(top_pts.shape[0], 1),
+                    -0.1 * torch.ones(top_pts.shape[0], 1),
+                    torch.zeros(top_pts.shape[0], 1)], dim=0)
 
     u_bot = model.features(bot_pts).cat(dim=1)
     v_bot, w_bot = u_bot, u_bot
     A4 = pyrfm.concat_blocks([[u_bot, torch.zeros_like(v_bot), torch.zeros_like(w_bot)],
                               [torch.zeros_like(u_bot), v_bot, torch.zeros_like(w_bot)],
                               [torch.zeros_like(u_bot), torch.zeros_like(v_bot), w_bot]])
-    b4 = torch.cat([torch.zeros(u_bot.shape[0], 1), torch.zeros(u_bot.shape[0], 1), torch.ones(u_bot.shape[0], 1)],
-                   dim=0)
+    b4 = torch.zeros(A3.shape[0], 1)
 
     A = torch.cat([A1, A2, A3, A4], dim=0)
     b = torch.cat([b1, b2, b3, b4], dim=0)
