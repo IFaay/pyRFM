@@ -396,11 +396,7 @@ class ComplementGeometry(GeometryBase):
 
     def get_bounding_box(self) -> List[float]:
         bounding_box_geom = self.geom.get_bounding_box()
-        return [
-            float('-inf') if i % 2 == 0 else float('inf')
-            for d in range(self.dim)
-            for i in range(2)
-        ]
+        return [float('-inf') if i % 2 == 0 else float('inf') for d in range(self.dim) for i in range(2)]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         return self.geom.in_sample(num_samples, with_boundary)
@@ -444,17 +440,13 @@ class ExtrudeBody(GeometryBase):
     # ------------------------------------------------------------------ #
     # ctor
     # ------------------------------------------------------------------ #
-    def __init__(
-            self,
-            base2d: GeometryBase,
-            direction: Union[torch.Tensor, list, tuple] = (0.0, 0.0, 1.0),
-    ):
+    def __init__(self, base2d: GeometryBase, direction: Union[torch.Tensor, list, tuple] = (0.0, 0.0, 1.0), ):
         super().__init__(dim=3, intrinsic_dim=3)
         if base2d.dim != 2:
             raise ValueError("base2d must be 2-D")
         self.base = base2d
 
-        d = torch.tensor(direction, dtype=torch.float64)
+        d = torch.tensor(direction, dtype=self.dtype)
         L = torch.norm(d)
         if L < 1e-8:
             raise ValueError("direction vector must be non-zero")
@@ -483,15 +475,8 @@ class ExtrudeBody(GeometryBase):
     def get_bounding_box(self) -> List[float]:
         # Obtain 2-D bbox in (u,v) space
         bx_min, bx_max, by_min, by_max = self.base.get_bounding_box()
-        corners_2d = torch.tensor(
-            [
-                [bx_min, by_min],
-                [bx_min, by_max],
-                [bx_max, by_min],
-                [bx_max, by_max],
-            ],
-            dtype=torch.float64,
-        )
+        corners_2d = torch.tensor([[bx_min, by_min], [bx_min, by_max], [bx_max, by_min], [bx_max, by_max], ],
+                                  dtype=torch.float64, )
 
         pts = []
         for s in (-self.h, self.h):
@@ -501,7 +486,9 @@ class ExtrudeBody(GeometryBase):
 
         xyz_min = pts.min(dim=0).values
         xyz_max = pts.max(dim=0).values
-        return xyz_min.tolist() + xyz_max.tolist()
+        x_min, y_min, z_min = xyz_min.tolist()
+        x_max, y_max, z_max = xyz_max.tolist()
+        return [x_min, x_max, y_min, y_max, z_min, z_max]
 
     # ------------------------------------------------------------------ #
     # interior sampling
@@ -528,48 +515,44 @@ class ExtrudeBody(GeometryBase):
     # ------------------------------------------------------------------ #
     # boundary sampling
     # ------------------------------------------------------------------ #
-    def on_sample(
-            self,
-            num_samples: int,
-            with_normal: bool = False,
-            separate: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def on_sample(self, num_samples: int, with_normal: bool = False, separate: bool = False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
-        * half samples on the two caps (base2d boundary)
-        * half samples on the side walls (extruded edges)
+        * 2/3 样本在两个盖子（顶/底整块面域）
+        * 1/3 样本在侧壁（由 base2d 的边界沿 d 拉伸）
         """
-        n_cap = num_samples // 3  # top  + bottom
-        n_side = num_samples - 2 * n_cap  # remaining for sides
+        n_cap = num_samples // 3  # 顶+底共用的2D采样数（复制到两层 → 2*n_cap）
+        n_side = num_samples - 2 * n_cap  # 剩余给侧壁
 
-        # ---- caps ----
-        if with_normal:
-            cap2d, n2d = self.base.on_sample(n_cap, with_normal=True)
-        else:
-            cap2d = self.base.on_sample(n_cap, with_normal=False)
+        # ---- caps: 用 2D 面域采样 ----
+        cap2d = self.base.in_sample(n_cap, with_boundary=True)
+        # 若底层实现返回不足，重复补齐
+        if cap2d.shape[0] < n_cap:
+            reps = (n_cap + cap2d.shape[0] - 1) // cap2d.shape[0]
+            cap2d = cap2d.repeat(reps, 1)[:n_cap]
 
         top_pts = cap2d[:, 0:1] * self.u + cap2d[:, 1:2] * self.v + self.h * self.d
         bot_pts = cap2d[:, 0:1] * self.u + cap2d[:, 1:2] * self.v + -self.h * self.d
         pts_cap = torch.cat([top_pts, bot_pts], dim=0)
 
         if with_normal:
-            n_top = self.d.expand_as(top_pts)
-            n_bot = -self.d.expand_as(bot_pts)
+            n_top = self.d.expand_as(top_pts)  # 顶盖法向 = +d
+            n_bot = (-self.d).expand_as(bot_pts)  # 底盖法向 = -d
             normals_cap = torch.cat([n_top, n_bot], dim=0)
 
-        # ---- side walls ----
+        # ---- side walls: 用 2D 边界采样 ----
         if with_normal:
             edge2d, edge_n2d = self.base.on_sample(n_side, with_normal=True)
         else:
             edge2d = self.base.on_sample(n_side, with_normal=False)
 
-        z_side = torch.rand(n_side, 1) * self.len - self.h
+        m_side = edge2d.shape[0]  # 实际侧壁2D边界采样数
+        z_side = (torch.rand(m_side, 1, device=edge2d.device, dtype=edge2d.dtype) * self.len) - self.h
         pts_side = edge2d[:, 0:1] * self.u + edge2d[:, 1:2] * self.v + z_side * self.d
 
         if with_normal:
-            # side normals are the projected 2-D normals
-            side_norm_vec = (
-                    edge_n2d[:, 0:1] * self.u + edge_n2d[:, 1:2] * self.v
-            )
+            # 侧壁法向 = 由2D边界法向投影到(u,v)平面后归一化（与d正交）
+            side_norm_vec = edge_n2d[:, 0:1] * self.u + edge_n2d[:, 1:2] * self.v
             side_normals = side_norm_vec / torch.norm(side_norm_vec, dim=1, keepdim=True)
 
         # ---- merge & return ----
@@ -629,14 +612,9 @@ class ImplicitFunctionBase(GeometryBase):
         f = self.shape_func(p)
 
         # Compute gradient (∇f)
-        grad = torch.autograd.grad(
-            outputs=f,
-            inputs=p,
-            grad_outputs=torch.ones_like(f),
-            create_graph=with_curvature,  # Need graph for second-order derivative
-            retain_graph=with_curvature,
-            only_inputs=True
-        )[0]
+        grad = torch.autograd.grad(outputs=f, inputs=p, grad_outputs=torch.ones_like(f), create_graph=with_curvature,
+                                   # Need graph for second-order derivative
+                                   retain_graph=with_curvature, only_inputs=True)[0]
 
         grad_norm = torch.norm(grad, dim=-1, keepdim=True)
         sdf = f / grad_norm
@@ -649,14 +627,8 @@ class ImplicitFunctionBase(GeometryBase):
         else:
             divergence = 0.0
             for i in range(p.shape[-1]):  # Loop over x, y, z
-                dni = torch.autograd.grad(
-                    outputs=normal[:, i],
-                    inputs=p,
-                    grad_outputs=torch.ones_like(normal[:, i]),
-                    create_graph=False,
-                    retain_graph=True,
-                    only_inputs=True
-                )[0][:, [i]]
+                dni = torch.autograd.grad(outputs=normal[:, i], inputs=p, grad_outputs=torch.ones_like(normal[:, i]),
+                                          create_graph=False, retain_graph=True, only_inputs=True)[0][:, [i]]
                 divergence += dni
 
             mean_curvature = 0.5 * divergence  # H = ½ ∇·n
@@ -1196,10 +1168,8 @@ class Line1D(GeometryBase):
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
         if with_normal:
             return torch.cat([a, b], dim=0), torch.cat(
-                [
-                    torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1)]] * (num_samples // 2)),
-                    torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2)]] * (num_samples // 2))
-                ], dim=0)
+                [torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1)]] * (num_samples // 2)),
+                 torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2)]] * (num_samples // 2))], dim=0)
         else:
             return torch.cat([a, b], dim=0)
 
@@ -1222,10 +1192,8 @@ class Line2D(GeometryBase):
         return torch.norm(ap - t * ab)
 
     def glsl_sdf(self) -> str:
-        return (
-            f"sdSegment(p, vec2({float(self.x1)}, {float(self.y1)}), "
-            f"vec2({float(self.x2)}, {float(self.y2)}))"
-        )
+        return (f"sdSegment(p, vec2({float(self.x1)}, {float(self.y1)}), "
+                f"vec2({float(self.x2)}, {float(self.y2)}))")
 
     def get_bounding_box(self):
         x_min = min(self.x1, self.x2)
@@ -1248,13 +1216,11 @@ class Line2D(GeometryBase):
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
         if with_normal:
-            return torch.cat([a, b], dim=0), torch.cat(
-                [
-                    torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1),
-                                   (self.y2 - self.y1) / abs(self.y2 - self.y1)]] * (num_samples // 2)),
-                    torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2),
-                                   (self.y1 - self.y2) / abs(self.y1 - self.y2)]] * (num_samples // 2))
-                ], dim=0)
+            return torch.cat([a, b], dim=0), torch.cat([torch.tensor(
+                [[(self.x2 - self.x1) / abs(self.x2 - self.x1), (self.y2 - self.y1) / abs(self.y2 - self.y1)]] * (
+                        num_samples // 2)), torch.tensor(
+                [[(self.x1 - self.x2) / abs(self.x1 - self.x2), (self.y1 - self.y2) / abs(self.y1 - self.y2)]] * (
+                        num_samples // 2))], dim=0)
         else:
             return torch.cat([a, b], dim=0)
 
@@ -1307,15 +1273,11 @@ class Line3D(GeometryBase):
         a = self.boundary[0].in_sample(num_samples // 2, with_boundary=True)
         b = self.boundary[1].in_sample(num_samples // 2, with_boundary=True)
         if with_normal:
-            return torch.cat([a, b], dim=0), torch.cat(
-                [
-                    torch.tensor([[(self.x2 - self.x1) / abs(self.x2 - self.x1),
-                                   (self.y2 - self.y1) / abs(self.y2 - self.y1),
-                                   (self.z2 - self.z1) / abs(self.z2 - self.z1)]] * (num_samples // 2)),
-                    torch.tensor([[(self.x1 - self.x2) / abs(self.x1 - self.x2),
-                                   (self.y1 - self.y2) / abs(self.y1 - self.y2),
-                                   (self.z1 - self.z2) / abs(self.z1 - self.z2)]] * (num_samples // 2))
-                ], dim=0)
+            return torch.cat([a, b], dim=0), torch.cat([torch.tensor(
+                [[(self.x2 - self.x1) / abs(self.x2 - self.x1), (self.y2 - self.y1) / abs(self.y2 - self.y1),
+                  (self.z2 - self.z1) / abs(self.z2 - self.z1)]] * (num_samples // 2)), torch.tensor(
+                [[(self.x1 - self.x2) / abs(self.x1 - self.x2), (self.y1 - self.y2) / abs(self.y1 - self.y2),
+                  (self.z1 - self.z2) / abs(self.z1 - self.z2)]] * (num_samples // 2))], dim=0)
         else:
             return torch.cat([a, b], dim=0)
 
@@ -1338,16 +1300,13 @@ class Square2D(GeometryBase):
     def sdf(self, p: torch.Tensor):
         d = torch.abs(p - self.center) - self.radius
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
-            torch.max(d, dim=1, keepdim=True).values,
-            max=0.0)
+            torch.max(d, dim=1, keepdim=True).values, max=0.0)
 
     def glsl_sdf(self) -> str:
         cx, cy = map(float, self.center.squeeze())
         rx, ry = map(float, self.radius.squeeze())
-        return (
-            "length(max(abs(p - vec2({cx},{cy})) - vec2({rx},{ry}), 0.0))"
-            "+ min(max(abs(p.x-{cx})-{rx}, abs(p.y-{cy})-{ry}), 0.0)"
-        ).format(cx=cx, cy=cy, rx=rx, ry=ry)
+        return ("length(max(abs(p - vec2({cx},{cy})) - vec2({rx},{ry}), 0.0))"
+                "+ min(max(abs(p.x-{cx})-{rx}, abs(p.y-{cy})-{ry}), 0.0)").format(cx=cx, cy=cy, rx=rx, ry=ry)
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -1378,12 +1337,8 @@ class Square2D(GeometryBase):
         X, Y = torch.meshgrid(x, y, indexing='ij')
         return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
 
-    def on_sample(
-            self,
-            num_samples: Union[int, List[int], Tuple],
-            with_normal: bool = False,
-            separate: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def on_sample(self, num_samples: Union[int, List[int], Tuple], with_normal: bool = False, separate: bool = False) -> \
+            Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
 
         if isinstance(num_samples, int):
             nums = [num_samples // 4] * 4
@@ -1401,29 +1356,24 @@ class Square2D(GeometryBase):
 
         if not separate:
             if with_normal:
-                normals = torch.cat([
-                    torch.tensor([[0.0, -1.0]] * nums[0]),  # bottom
-                    torch.tensor([[1.0, 0.0]] * nums[1]),  # right
-                    torch.tensor([[0.0, 1.0]] * nums[2]),  # top
-                    torch.tensor([[-1.0, 0.0]] * nums[3])  # left
-                ], dim=0)
+                normals = torch.cat([torch.tensor([[0.0, -1.0]] * nums[0]),  # bottom
+                                     torch.tensor([[1.0, 0.0]] * nums[1]),  # right
+                                     torch.tensor([[0.0, 1.0]] * nums[2]),  # top
+                                     torch.tensor([[-1.0, 0.0]] * nums[3])  # left
+                                     ], dim=0)
                 return torch.cat([a, b, c, d], dim=0), normals
             else:
                 return torch.cat([a, b, c, d], dim=0)
         else:
             if with_normal:
-                return (
-                    (a, torch.tensor([[0.0, -1.0]] * nums[0])),
-                    (b, torch.tensor([[1.0, 0.0]] * nums[1])),
-                    (c, torch.tensor([[0.0, 1.0]] * nums[2])),
-                    (d, torch.tensor([[-1.0, 0.0]] * nums[3]))
-                )
+                return ((a, torch.tensor([[0.0, -1.0]] * nums[0])), (b, torch.tensor([[1.0, 0.0]] * nums[1])),
+                        (c, torch.tensor([[0.0, 1.0]] * nums[2])), (d, torch.tensor([[-1.0, 0.0]] * nums[3])))
             else:
                 return a, b, c, d
 
 
 class Square3D(GeometryBase):
-    def __init__(self, center: torch.Tensor, radius: torch.Tensor):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple]):
         super().__init__(dim=3, intrinsic_dim=2)
         self.center = torch.tensor(center).view(1, -1) if isinstance(center, (list, tuple)) else center.view(1, -1)
         self.radius = torch.tensor(radius).view(1, -1) if isinstance(radius, (list, tuple)) else radius.view(1, -1)
@@ -1446,19 +1396,13 @@ class Square3D(GeometryBase):
                 p4[j] -= 2 * self.radius[0, j]
 
                 # 使用顶点定义四条边
-                self.boundary = [
-                    Line3D(*p1, *p2),
-                    Line3D(*p2, *p3),
-                    Line3D(*p3, *p4),
-                    Line3D(*p4, *p1),
-                ]
+                self.boundary = [Line3D(*p1, *p2), Line3D(*p2, *p3), Line3D(*p3, *p4), Line3D(*p4, *p1), ]
                 break
 
     def sdf(self, p: torch.Tensor):
         d = torch.abs(p - self.center) - self.radius
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
-            torch.max(d, dim=1, keepdim=True).values,
-            max=0.0)
+            torch.max(d, dim=1, keepdim=True).values, max=0.0)
 
     def glsl_sdf(self) -> str:
         """
@@ -1467,10 +1411,10 @@ class Square3D(GeometryBase):
         """
         cx, cy, cz = map(float, self.center.squeeze())
         rx, ry, rz = map(float, self.radius.squeeze())
-        return (
-            "length(max(abs(p - vec3({cx},{cy},{cz})) - vec3({rx},{ry},{rz}), 0.0))"
-            "+ min(max(max(abs(p.x-{cx})-{rx}, abs(p.y-{cy})-{ry}), abs(p.z-{cz})-{rz}), 0.0)"
-        ).format(cx=cx, cy=cy, cz=cz, rx=rx, ry=ry, rz=rz)
+        return ("length(max(abs(p - vec3({cx},{cy},{cz})) - vec3({rx},{ry},{rz}), 0.0))"
+                "+ min(max(max(abs(p.x-{cx})-{rx}, abs(p.y-{cy})-{ry}), abs(p.z-{cz})-{rz}), 0.0)").format(cx=cx, cy=cy,
+                                                                                                           cz=cz, rx=rx,
+                                                                                                           ry=ry, rz=rz)
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -1530,25 +1474,16 @@ class Cube3D(GeometryBase):
         super().__init__(dim=3, intrinsic_dim=3)
         self.center = torch.tensor(center).view(1, -1).to(dtype=self.dtype)
         self.radius = torch.tensor(radius).view(1, -1).to(dtype=self.dtype)
-        offsets = [
-            [self.radius[0, 0], 0.0, 0.0],
-            [-self.radius[0, 0], 0.0, 0.0],
-            [0.0, self.radius[0, 1], 0.0],
-            [0.0, -self.radius[0, 1], 0.0],
-            [0.0, 0.0, self.radius[0, 2]],
-            [0.0, 0.0, -self.radius[0, 2]]
-        ]
-        self.boundary = [
-            Square3D(self.center + torch.tensor(offset),
-                     torch.tensor([self.radius[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)]))
-            for offset in offsets
-        ]
+        offsets = [[self.radius[0, 0], 0.0, 0.0], [-self.radius[0, 0], 0.0, 0.0], [0.0, self.radius[0, 1], 0.0],
+                   [0.0, -self.radius[0, 1], 0.0], [0.0, 0.0, self.radius[0, 2]], [0.0, 0.0, -self.radius[0, 2]]]
+        self.boundary = [Square3D(self.center + torch.tensor(offset),
+                                  torch.tensor([self.radius[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)])) for
+                         offset in offsets]
 
     def sdf(self, p: torch.Tensor):
         d = torch.abs(p - self.center) - self.radius
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
-            torch.max(d, dim=1, keepdim=True).values,
-            max=0.0)
+            torch.max(d, dim=1, keepdim=True).values, max=0.0)
 
     def get_bounding_box(self):
         x_min = self.center[0, 0] - self.radius[0, 0]
@@ -1600,8 +1535,7 @@ class Cube3D(GeometryBase):
 
 
 class CircleArc2D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple],
-                 radius: torch.float64):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: torch.float64):
         super().__init__(dim=2, intrinsic_dim=1)
         self.center = torch.tensor(center).view(1, -1) if not isinstance(center, torch.Tensor) else center
         self.radius = radius
@@ -1635,8 +1569,7 @@ class CircleArc2D(GeometryBase):
 
 
 class Circle2D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple],
-                 radius: torch.float64):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: torch.float64):
         super().__init__(dim=2, intrinsic_dim=2)
         self.center = torch.tensor(center).view(1, -1) if not isinstance(center, torch.Tensor) else center
         self.radius = radius
@@ -1902,8 +1835,7 @@ class Polygon2D(GeometryBase):
             return torch.cat([interior, self.on_sample(len(self.boundary) * num_samples, with_normal=False)], dim=0)
         return interior
 
-    def on_sample(self, num_samples: int, with_normal=False) -> Union[
-        torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def on_sample(self, num_samples: int, with_normal=False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = torch.cat(
             [boundary.in_sample(num_samples // len(self.boundary), with_boundary=True) for boundary in self.boundary],
             dim=0)
@@ -1930,10 +1862,10 @@ class Polygon3D(GeometryBase):
         if vertices.ndim != 2 or vertices.shape[1] != 3:
             raise ValueError("Vertices must be a tensor of shape (N, 3).")
         self.vertices = vertices
-        self.boundary = [Line3D(vertices[i, 0], vertices[i, 1], vertices[i, 2],
-                                vertices[(i + 1) % vertices.shape[0], 0],
-                                vertices[(i + 1) % vertices.shape[0], 1],
-                                vertices[(i + 1) % vertices.shape[0], 2]) for i in range(vertices.shape[0])]
+        self.boundary = [
+            Line3D(vertices[i, 0], vertices[i, 1], vertices[i, 2], vertices[(i + 1) % vertices.shape[0], 0],
+                   vertices[(i + 1) % vertices.shape[0], 1], vertices[(i + 1) % vertices.shape[0], 2]) for i in
+            range(vertices.shape[0])]
 
     def sdf(self, points: torch.Tensor) -> torch.Tensor:
         # Not implemented here
@@ -2069,8 +2001,7 @@ class HyperCube(GeometryBase):
     def sdf(self, p: torch.Tensor) -> torch.Tensor:
         d = torch.abs(p - self.center) - self.radius
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
-            torch.max(d, dim=1, keepdim=True).values,
-            max=0.0)
+            torch.max(d, dim=1, keepdim=True).values, max=0.0)
 
     def get_bounding_box(self) -> List[float]:
         bounding_box = []

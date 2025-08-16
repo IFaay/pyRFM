@@ -120,8 +120,7 @@ class RFMVisualizer2D(RFMVisualizer):
 
 
 class RFMVisualizer3D(RFMVisualizer):
-    _CAMERA_TABLE = {
-        'front': {'view_dir': torch.tensor([0.0, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+    _CAMERA_TABLE = {'front': {'view_dir': torch.tensor([0.0, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'back': {'view_dir': torch.tensor([0.0, 1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'left': {'view_dir': torch.tensor([-1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
         'right': {'view_dir': torch.tensor([1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
@@ -129,8 +128,7 @@ class RFMVisualizer3D(RFMVisualizer):
         'bottom': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
         'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.25]), 'up': torch.tensor([0.5, 0.5, 1 / 1.25])},
         'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-    }
+        'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])}, }
 
     def __init__(self, model: RFMBase, t=0.0, resolution=(1920, 1080), component_idx=0, view='iso', ref=None):
         super().__init__(model, t, resolution, component_idx, ref)
@@ -255,11 +253,7 @@ class RFMVisualizer3D(RFMVisualizer):
     def plot(self, cmap='viridis', **kwargs):
         directions = self.generate_rays()  # (W, H, 3)
         bbox = self.bounding_box
-        center = torch.tensor([
-            (bbox[0] + bbox[1]) / 2,
-            (bbox[2] + bbox[3]) / 2,
-            (bbox[4] + bbox[5]) / 2,
-        ])
+        center = torch.tensor([(bbox[0] + bbox[1]) / 2, (bbox[2] + bbox[3]) / 2, (bbox[4] + bbox[5]) / 2, ])
         diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
         # view_dir = self.get_view_matrix() @ torch.tensor([0.0, 0.0, 1.0])
         eye = center + self.view_dir * (1.2 * diag_len + 0.1)
@@ -269,7 +263,7 @@ class RFMVisualizer3D(RFMVisualizer):
         pts_hit = origins + t_vals.unsqueeze(-1) * directions
         pts_normal = self.estimate_normal(pts_hit)
 
-        field_vals = self.compute_field_values(pts_normal, hits)
+        field_vals = self.compute_field_values(pts_hit, hits)
         # field_vals = torch.norm(pts_hit.reshape(-1, 3) - eye, dim=-1).cpu().numpy()  # debug: distance to eye
         field_vals[~hits.detach().cpu().numpy().ravel()] = np.nan
 
@@ -283,15 +277,12 @@ class RFMVisualizer3D(RFMVisualizer):
         cmap = plt.get_cmap(cmap)
         base = cmap(normed.reshape(self.resolution))[..., :3]
         base = torch.tensor(base, dtype=self.dtype, device=self.device)
-        light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=self.dtype,
-                                                 device=self.device)
+        light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=self.dtype, device=self.device)
         light_dir /= torch.norm(light_dir)
         view_dir = self.view_dir
         half_vector = (light_dir + view_dir).unsqueeze(0).unsqueeze(0)
         half_vector = half_vector / torch.norm(half_vector, dim=-1, keepdim=True)
-        diff = torch.clamp(
-            torch.sum(pts_normal * light_dir[None, None, :], dim=-1), min=0.0
-        )
+        diff = torch.clamp(torch.sum(pts_normal * light_dir[None, None, :], dim=-1), min=0.0)
         spec = torch.clamp(torch.sum(pts_normal * half_vector, dim=-1), min=0.0)
         spec = torch.pow(spec, 32)
         col = (0.8 * base + 0.2) * diff[..., None] + base * 0.3 + spec[..., None] * 0.5
@@ -317,19 +308,12 @@ class RFMVisualizer3D(RFMVisualizer):
         """
 
         # Define 3D coordinate axes
-        axes_3d = {
-            'X': (torch.tensor([1.0, 0.0, 0.0]), 'red'),
-            'Y': (torch.tensor([0.0, 1.0, 0.0]), 'green'),
-            'Z': (torch.tensor([0.0, 0.0, 1.0]), 'blue')
-        }
+        axes_3d = {'X': (torch.tensor([1.0, 0.0, 0.0]), 'red'), 'Y': (torch.tensor([0.0, 1.0, 0.0]), 'green'),
+            'Z': (torch.tensor([0.0, 0.0, 1.0]), 'blue')}
 
         # Get bounding box center and camera vectors
         bbox = self.bounding_box
-        center = torch.tensor([
-            (bbox[0] + bbox[1]) / 2,
-            (bbox[2] + bbox[3]) / 2,
-            (bbox[4] + bbox[5]) / 2,
-        ])
+        center = torch.tensor([(bbox[0] + bbox[1]) / 2, (bbox[2] + bbox[3]) / 2, (bbox[4] + bbox[5]) / 2, ])
         diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
         forward = -self.view_dir
         right = torch.linalg.cross(forward, self.up)
@@ -363,13 +347,7 @@ class RFMVisualizer3D(RFMVisualizer):
                 continue
             dir2d = dir2d * length
             end = base + dir2d.detach().cpu().numpy()
-            self.ax.annotate(
-                '', xy=end, xytext=base, xycoords='axes fraction',
-                textcoords='axes fraction',
-                arrowprops=dict(arrowstyle='-|>', lw=2.5, color=color, alpha=0.8)
-            )
-            self.ax.text(
-                end[0], end[1], label, transform=trans,
-                fontsize=10, color=color, fontweight='bold',
-                ha='center', va='center'
-            )
+            self.ax.annotate('', xy=end, xytext=base, xycoords='axes fraction', textcoords='axes fraction',
+                arrowprops=dict(arrowstyle='-|>', lw=2.5, color=color, alpha=0.8))
+            self.ax.text(end[0], end[1], label, transform=trans, fontsize=10, color=color, fontweight='bold',
+                ha='center', va='center')

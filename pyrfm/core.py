@@ -966,7 +966,7 @@ class RFMBase(ABC):
                         for d in range(self.dim):
                             if order[0, d] == 1:
                                 feat = self.features_derivative(x_batch, d).cat(dim=1)
-                                outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                                outputs.append(torch.matmul(feat, self.W))
                                 break
                     return torch.cat(outputs, dim=0)
                 elif order.sum() == 2:
@@ -976,7 +976,7 @@ class RFMBase(ABC):
                             for d2 in range(self.dim):
                                 if order[0, d1] == 1 and order[0, d2] == 1:
                                     feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
-                                    outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                                    outputs.append(torch.matmul(feat, self.W))
                                     break
                     return torch.cat(outputs, dim=0)
                 else:
@@ -1390,7 +1390,7 @@ class STRFMBase(ABC):
         :return: Output tensor after forward pass.
         """
         return self.forward(x)
-    
+
     def compute(self, A: torch.Tensor):
         """
         Compute the QR decomposition of matrix A.
