@@ -26,7 +26,8 @@ I = D ** 3 / 12  # Moment of inertia
 a = E / (1 - nu ** 2)  # Material constant
 b = (1 - nu) / 2  # Auxiliary constant
 c = (1 + nu) / 2  # Auxiliary constant
-lam = E * nu / ((1 + nu) * (1 - 2 * nu))  # Lame's first parameter
+# lam = E * nu / ((1 + nu) * (1 - 2 * nu))  # Lame's first parameter
+lam = E * nu / (1 - nu ** 2)  # plane stress condition
 mu = E / (2 * (1 + nu))  # Lame's second parameter
 epsilon = 1.0e-24  # Small value for numerical stability
 
@@ -97,8 +98,13 @@ if __name__ == '__main__':
     vyy = uyy
     vxy = uxy
 
-    A_in = pyrfm.concat_blocks([[-a * (uxx + b * uyy), -a * c * vxy],
-                                [-a * c * uxy, -a * (vyy + b * vxx)]])
+    # A_in = pyrfm.concat_blocks([[-a * (uxx + b * uyy), -a * c * vxy],
+    #                             [-a * c * uxy, -a * (vyy + b * vxx)]])
+
+    A_in = pyrfm.concat_blocks([
+        [(lam + 2 * mu) * uxx + mu * uyy, (lam + mu) * vxy],
+        [(lam + mu) * uxy, mu * vxx + (lam + 2 * mu) * vyy]
+    ])
 
     x_on = domain.on_sample(400)
     u = model.features(x_on).cat(dim=1)
