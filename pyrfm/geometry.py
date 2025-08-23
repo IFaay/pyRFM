@@ -46,7 +46,7 @@ class GeometryBase(ABC):
         The boundary of the geometry.
     """
 
-    def __init__(self, dim: Optional[int] = None, intrinsic_dim: Optional[int] = None):
+    def __init__(self, dim: Optional[int] = None, intrinsic_dim: Optional[int] = None, seed: int = 100):
         """
         Initialize the GeometryBase object.
 
@@ -61,6 +61,8 @@ class GeometryBase(ABC):
         self.dtype = torch.tensor(0.).dtype
         self.device = torch.tensor(0.).device
         self.intrinsic_dim = intrinsic_dim if intrinsic_dim is not None else dim
+        self.gen = torch.Generator(device=self.device)
+        self.gen.manual_seed(seed)
         self.boundary: List = []
 
     def __eq__(self, other):
@@ -506,7 +508,7 @@ class ExtrudeBody(GeometryBase):
             reps = (num_samples + pts2d.shape[0] - 1) // pts2d.shape[0]
             pts2d = pts2d.repeat(reps, 1)[:num_samples]
 
-        z = torch.rand(num_samples, 1) * self.len - self.h  # (-h, h)
+        z = torch.rand(pts2d.shape[0], 1, generator=self.gen) * self.len - self.h  # (-h, h)
 
         # map to 3-D
         xyz = pts2d[:, 0:1] * self.u + pts2d[:, 1:2] * self.v + z * self.d
@@ -547,7 +549,8 @@ class ExtrudeBody(GeometryBase):
             edge2d = self.base.on_sample(n_side, with_normal=False)
 
         m_side = edge2d.shape[0]  # 实际侧壁2D边界采样数
-        z_side = (torch.rand(m_side, 1, device=edge2d.device, dtype=edge2d.dtype) * self.len) - self.h
+        z_side = (torch.rand(m_side, 1, device=edge2d.device, dtype=edge2d.dtype,
+                             generator=self.gen) * self.len) - self.h
         pts_side = edge2d[:, 0:1] * self.u + edge2d[:, 1:2] * self.v + z_side * self.d
 
         if with_normal:
@@ -663,11 +666,8 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
         max_iter = 10
         oversample = int(num_samples * 1.5)
 
-        gen = torch.Generator(device=self.device)
-        gen.manual_seed(100)
-
         while sum(c.shape[0] for c in collected) < num_samples:
-            rand = torch.rand(oversample, self.dim, device=self.device, generator=gen)
+            rand = torch.rand(oversample, self.dim, device=self.device, generator=self.gen)
             p = torch.empty(oversample, self.dim, dtype=self.dtype, device=self.device)
             p[:, 0] = (x_min - eps) + rand[:, 0] * ((x_max + eps) - (x_min - eps))
             p[:, 1] = (y_min - eps) + rand[:, 1] * ((y_max + eps) - (y_min - eps))
@@ -2011,7 +2011,7 @@ class HyperCube(GeometryBase):
         return bounding_box
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        x_in = torch.rand((num_samples, self.dim), dtype=self.dtype, device=self.device)
+        x_in = torch.rand((num_samples, self.dim), dtype=self.dtype, device=self.device, generator=self.gen)
         return x_in * 2 * self.radius - self.radius + self.center
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
