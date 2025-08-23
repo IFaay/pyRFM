@@ -114,9 +114,10 @@ def run_rfm(args):
     # b = torch.cat([b1, b2], dim=0)
     model.compute(A).solve(b)
 
-    visualizer = pyrfm.RFMVisualizer2D(model, component_idx=2, ref=func_p)
+    visualizer = pyrfm.RFMVisualizer2D(model, component_idx=2)
     visualizer.plot()
     visualizer.show()
+    visualizer.savefig('stokes_flow_p.png', dpi=600)
 
     uvp = model.forward(x_in)
     u, v, p = uvp[:, [0]], uvp[:, [1]], uvp[:, [2]]
