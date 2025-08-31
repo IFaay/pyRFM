@@ -8,7 +8,12 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
+try:
+    from skimage.measure import marching_cubes as mc
+except Exception as e:
+    mc = None
 from pyrfm.core import *
 
 
@@ -22,6 +27,9 @@ class VisualizerBase:
     def show(self, *args, **kwargs):
         # self.fig.show(*args, **kwargs)
         plt.show(*args, **kwargs)
+
+    def close(self, *args, **kwargs):
+        plt.close(self.fig)
 
     def savefig(self, fname, dpi=600, *args, **kwargs):
         self.fig.savefig(fname=fname, dpi=dpi, *args, **kwargs)
@@ -121,14 +129,14 @@ class RFMVisualizer2D(RFMVisualizer):
 
 class RFMVisualizer3D(RFMVisualizer):
     _CAMERA_TABLE = {'front': {'view_dir': torch.tensor([0.0, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'back': {'view_dir': torch.tensor([0.0, 1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'left': {'view_dir': torch.tensor([-1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'right': {'view_dir': torch.tensor([1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'top': {'view_dir': torch.tensor([0.0, 0.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
-        'bottom': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
-        'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.25]), 'up': torch.tensor([0.5, 0.5, 1 / 1.25])},
-        'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-        'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])}, }
+                     'back': {'view_dir': torch.tensor([0.0, 1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+                     'left': {'view_dir': torch.tensor([-1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+                     'right': {'view_dir': torch.tensor([1.0, 0.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+                     'top': {'view_dir': torch.tensor([0.0, 0.0, 1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
+                     'bottom': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
+                     'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.25]), 'up': torch.tensor([0.5, 0.5, 1 / 1.25])},
+                     'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+                     'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])}, }
 
     def __init__(self, model: RFMBase, t=0.0, resolution=(1920, 1080), component_idx=0, view='iso', ref=None):
         super().__init__(model, t, resolution, component_idx, ref)
@@ -309,7 +317,7 @@ class RFMVisualizer3D(RFMVisualizer):
 
         # Define 3D coordinate axes
         axes_3d = {'X': (torch.tensor([1.0, 0.0, 0.0]), 'red'), 'Y': (torch.tensor([0.0, 1.0, 0.0]), 'green'),
-            'Z': (torch.tensor([0.0, 0.0, 1.0]), 'blue')}
+                   'Z': (torch.tensor([0.0, 0.0, 1.0]), 'blue')}
 
         # Get bounding box center and camera vectors
         bbox = self.bounding_box
@@ -348,6 +356,258 @@ class RFMVisualizer3D(RFMVisualizer):
             dir2d = dir2d * length
             end = base + dir2d.detach().cpu().numpy()
             self.ax.annotate('', xy=end, xytext=base, xycoords='axes fraction', textcoords='axes fraction',
-                arrowprops=dict(arrowstyle='-|>', lw=2.5, color=color, alpha=0.8))
+                             arrowprops=dict(arrowstyle='-|>', lw=2.5, color=color, alpha=0.8))
             self.ax.text(end[0], end[1], label, transform=trans, fontsize=10, color=color, fontweight='bold',
-                ha='center', va='center')
+                         ha='center', va='center')
+
+
+class RFMVisualizer3DMC(RFMVisualizer3D):
+    """
+    Marching Cubes 可视化，与 RFMVisualizer3D 的参数和相机模型保持一致。
+    - 使用 SDF 的 0 等值面。
+    - 颜色映射与光照模型与 ray marching 版本一致。
+    - 投影与像素坐标系与 generate_rays() 一致（同一 pinhole 相机）。
+    """
+
+    def __init__(self, model: RFMBase, t=0.0, resolution=(1920, 1080), component_idx=0, view='iso', ref=None):
+        super().__init__(model, t, resolution, component_idx, view, ref)
+
+    # --------- 核心：在 bbox 上采样 SDF，提取 0 等值面 ---------
+    def _eval_sdf_grid(self, bbox, grid=(128, 128, 128), chunk_pts=300_000):
+        """
+        在边界盒上以规则网格采样 SDF。
+        返回:
+            volume: (Nz, Ny, Nx) numpy float32
+            axes: (xs, ys, zs) 1D numpy arrays
+            spacing: (dz, dy, dx) floats (供 marching_cubes)
+        """
+        if self.sdf is None:
+            raise RuntimeError("需要可用的 self.sdf 来进行 Marching Cubes。")
+
+        xmin, xmax, ymin, ymax, zmin, zmax = bbox
+        Nx, Ny, Nz = grid  # 注意：这里用 (Nx, Ny, Nz) 的语义，但 volume 存储为 (Nz, Ny, Nx)
+
+        xs = torch.linspace(xmin, xmax, Nx, device=self.device, dtype=self.dtype)
+        ys = torch.linspace(ymin, ymax, Ny, device=self.device, dtype=self.dtype)
+        zs = torch.linspace(zmin, zmax, Nz, device=self.device, dtype=self.dtype)
+
+        # 生成 (Nz, Ny, Nx, 3) 的点（最后一维按 (x,y,z) 排列）
+        zz, yy, xx = torch.meshgrid(zs, ys, xs, indexing='ij')
+        pts = torch.stack([xx, yy, zz], dim=-1).reshape(-1, 3)
+
+        volume = torch.empty((Nz * Ny * Nx,), device=self.device, dtype=self.dtype)
+
+        def _sdf_as_1d(x: torch.Tensor) -> torch.Tensor:
+            """
+            统一 SDF 输出为 (N,)，并确保在需要时启用梯度。
+            注意：geometry.sdf 内部会用 autograd.grad，所以必须 enable_grad + requires_grad(True)。
+            """
+            # 确保需要梯度
+            x = x.requires_grad_(True)
+            with torch.enable_grad():
+                out = self.sdf(x)
+            # 兼容返回 (dist, normal) 或 list/tuple 的情况
+            if isinstance(out, (tuple, list)):
+                out = out[0]
+            if not torch.is_tensor(out):
+                out = torch.tensor(out, device=x.device)
+            out = out.to(device=x.device, dtype=self.dtype)
+            out = out.reshape(-1)  # (N,1)/(N,) -> (N,)
+            return out.detach()  # 立刻与图断开，避免图增大
+
+        n_total = pts.shape[0]
+        for start in range(0, n_total, chunk_pts):
+            end = min(start + chunk_pts, n_total)
+            vals = _sdf_as_1d(pts[start:end])
+            assert vals.numel() == (end - start), f"SDF batch size mismatch: got {vals.shape}"
+            volume[start:end] = vals
+
+        volume = volume.reshape(Nz, Ny, Nx).detach().cpu().numpy().astype(np.float32)
+        dx = (xmax - xmin) / max(1, Nx - 1)
+        dy = (ymax - ymin) / max(1, Ny - 1)
+        dz = (zmax - zmin) / max(1, Nz - 1)
+        return volume, (xs.detach().cpu().numpy(), ys.detach().cpu().numpy(), zs.detach().cpu().numpy()), (dz, dy, dx)
+
+    def _compute_field_values_points(self, pts_world):
+        """
+        复用你在 ray-marching 版本中的字段取值逻辑，但针对任意点集合。
+        返回 numpy (N,) 的标量数组（取 component_idx 分量；若 ref 存在，做绝对差）。
+        """
+        pts_t = torch.tensor(pts_world, device=self.device, dtype=self.dtype)
+        if isinstance(self.model, RFMBase):
+            if self.ref is not None:
+                field_vals = self.model(pts_t)
+                ref_vals = self.ref(pts_t)
+                field_vals = (field_vals - ref_vals).abs().detach().cpu().numpy()[:, self.component_idx]
+            else:
+                field_vals = self.model(pts_t).detach().cpu().numpy()[:, self.component_idx]
+        elif isinstance(self.model, STRFMBase):
+            xt = self.model.validate_and_prepare_xt(x=pts_t,
+                                                    t=torch.tensor([[self.t]], device=self.device, dtype=self.dtype))
+            if self.ref is not None:
+                field_vals = self.model.forward(xt=xt)
+                ref_vals = self.ref(xt=xt)
+                field_vals = (field_vals - ref_vals).abs().detach().cpu().numpy()[:, self.component_idx]
+            else:
+                field_vals = self.model.forward(xt=xt).detach().cpu().numpy()[:, self.component_idx]
+        else:
+            raise NotImplementedError("Model type not supported for visualization.")
+        return field_vals
+
+    # --------- 相机投影（与 generate_rays() 完全一致的针孔模型） ---------
+    def _project_points(self, pts_world, eye, forward, right, up_cam):
+        """
+        将 3D 点投影到像素坐标：
+          uv_x = dot((p-eye), right) / dot((p-eye), forward)
+          uv_y = dot((p-eye), up)   / dot((p-eye), forward)
+          i = uv_x * H + W/2,  j = uv_y * H + H/2
+        返回:
+          pix: (N,2) 像素坐标 (i, j)
+          depth: (N,) 与 forward 的投影距离（越大越远）
+        """
+        W, H = self.resolution
+        P = pts_world.shape[0]
+
+        p = torch.tensor(pts_world, device=self.device, dtype=self.dtype)
+        rel = p - eye[None, :]
+        depth = torch.sum(rel * forward[None, :], dim=-1)  # 前方为正
+        # 避免除零/背面：留给上层剔除
+        uvx = torch.sum(rel * right[None, :], dim=-1) / depth
+        uvy = torch.sum(rel * up_cam[None, :], dim=-1) / depth
+
+        i = uvx * H + W / 2.0
+        j = uvy * H + H / 2.0
+        pix = torch.stack([i, j], dim=-1)
+        return pix, depth
+
+    def plot(self, cmap='viridis', level=0.0, grid=(128, 128, 128), chunk_pts=300_000, **kwargs):
+        """
+        Marching Cubes 绘制（视角/亮度与 ray-marching 版完全对齐）
+        参数：
+            cmap:    colormap 名称
+            level:   等值面（默认 0.0，SDF 零水平面）
+            grid:    体素网格分辨率 (Nx, Ny, Nz)
+            chunk_pts: SDF 批评估大小
+        """
+        # 依赖检查
+        try:
+            from skimage.measure import marching_cubes as _mc
+        except Exception:
+            _mc = None
+        if _mc is None:
+            if 'mc' not in globals() or mc is None:
+                raise RuntimeError("需要 scikit-image：请先 `pip install scikit-image`。")
+
+        # ---- 相机 / 视图（与 ray 版一致）----
+        W, H = self.resolution
+        bbox = self.bounding_box
+        center = torch.tensor([(bbox[0] + bbox[1]) / 2,
+                               (bbox[2] + bbox[3]) / 2,
+                               (bbox[4] + bbox[5]) / 2], device=self.device, dtype=self.dtype)
+        diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
+        eye = center + self.view_dir * (1.2 * diag_len + 0.1)
+
+        forward = -self.view_dir
+        right = torch.linalg.cross(forward, self.up)  # 不归一化，保持与 generate_rays 一致
+        up_cam = self.up
+
+        # ---- 体素化 + Marching Cubes ----
+        volume, (xs, ys, zs), (dz, dy, dx) = self._eval_sdf_grid(bbox, grid=grid, chunk_pts=chunk_pts)
+        try:
+            verts_v, faces, _norms_unused, _ = mc(volume, level=level, spacing=(dz, dy, dx))
+        except Exception:
+            raise RuntimeError("在当前网格或等值面参数下未提取到有效表面，请调整 level 或 grid。")
+
+        # skimage 顶点坐标顺序 (z,y,x) -> 世界坐标 (x,y,z)
+        zmin, ymin, xmin = zs[0], ys[0], xs[0]
+        verts_world = np.column_stack([
+            verts_v[:, 2] + xmin,
+            verts_v[:, 1] + ymin,
+            verts_v[:, 0] + zmin
+        ])
+
+        # ---- 顶点法线（SDF 梯度）----
+        vnorm = self.estimate_normal(torch.tensor(verts_world, device=self.device, dtype=self.dtype))
+        # 单位化（保险）
+        vnorm = vnorm / torch.clamp(torch.norm(vnorm, dim=-1, keepdim=True), min=1e-10)
+
+        # ---- 标量场 -> colormap 基色（顶点）----
+        vfield = self._compute_field_values_points(verts_world)  # numpy (N,)
+        vmin = np.nanpercentile(vfield, 2)
+        vmax = np.nanpercentile(vfield, 98)
+        denom = (vmax - vmin) if (vmax > vmin) else 1.0
+        vnormed = np.clip((vfield - vmin) / denom, 0.0, 1.0)
+        
+        cmap_obj = plt.get_cmap(cmap)
+        base_rgb_np = cmap_obj(vnormed)[..., :3]  # numpy (N,3)
+        base_rgb = torch.tensor(base_rgb_np, device=self.device, dtype=self.dtype)  # torch (N,3)
+
+        # ---- 光照向量（与 ray 版一致）----
+        light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=self.dtype, device=self.device)
+        light_dir = light_dir / torch.norm(light_dir)
+        view_dir = self.view_dir
+        half_vec = (light_dir + view_dir)
+        half_vec = half_vec / torch.norm(half_vec)
+
+        # ---- 投影到像素坐标 ----
+        pix_t, depth_t = self._project_points(verts_world, eye, forward, right, up_cam)  # torch
+        pix = pix_t.detach().cpu().numpy()
+        depth = depth_t.detach().cpu().numpy()
+
+        # 剔除后方顶点，并据此过滤面
+        valid_v = depth > 1e-6
+        valid_f = valid_v[faces].all(axis=1)
+        if not np.any(valid_f):
+            raise RuntimeError("所有三角形都被相机剔除了（可能视角在模型内部/背面）。请调整 view 或 bbox。")
+        faces = faces[valid_f]
+
+        # ---- 面级着色：与 ray 版系数完全一致 ----
+        tri2d = pix[faces]  # (F,3,2)
+        tri_depth = depth[faces].mean(axis=1)  # (F,)
+
+        # 面级 base（平均顶点 colormap）
+        tri_base_t = base_rgb[faces].mean(axis=1)  # torch (F,3)
+
+        # 面级法线（平均后单位化）
+        tri_n = vnorm[faces].mean(axis=1)  # torch (F,3)
+        tri_n = tri_n / torch.clamp(torch.norm(tri_n, dim=-1, keepdim=True), min=1e-10)
+
+        diff_f = torch.clamp((tri_n * light_dir).sum(dim=-1), min=0.0)  # (F,)
+        spec_f = torch.clamp((tri_n * half_vec).sum(dim=-1), min=0.0) ** 32  # (F,)
+
+        # 与 ray 版一致的合成公式（无 gamma）
+        tri_color = (0.8 * tri_base_t + 0.2) * diff_f[:, None] + \
+                    tri_base_t * 0.3 + \
+                    spec_f[:, None] * 0.5
+
+        tri_color = torch.clamp(tri_color, 0.0, 1.0).detach().cpu().numpy()
+
+        # Painter：远->近
+        order = np.argsort(tri_depth)[::-1]
+        tri2d = tri2d[order]
+        tri_color = tri_color[order]
+
+        # ---- 绘制 ----
+        self.ax.clear()
+        from matplotlib.collections import PolyCollection
+        polys = [tri for tri in tri2d]
+        coll = PolyCollection(polys, facecolors=tri_color, edgecolors='none', closed=True, antialiased=True)
+        self.ax.add_collection(coll)
+        self.ax.set_xlim([0, W])
+        self.ax.set_ylim([0, H])
+        self.ax.set_aspect('equal')
+        # 不翻转 y 轴；保持与 imshow(origin='lower') 一致
+        self.ax.set_axis_off()
+
+        # 背景白
+        self.ax.set_facecolor((1, 1, 1))
+
+        # 颜色条（字段值）
+        sm = plt.cm.ScalarMappable(cmap=cmap_obj, norm=plt.Normalize(vmin=vmin, vmax=vmax))
+        sm.set_array([])
+        plt.colorbar(sm, ax=self.ax)
+
+        plt.tight_layout()
+        self.draw_view_axes()
+
+        return self.fig, self.ax
