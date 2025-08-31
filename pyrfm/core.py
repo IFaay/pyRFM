@@ -82,14 +82,13 @@ class RFTanH(RFBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                return self.features_buff_
-            self.x_buff_ = x
-            self.features_buff_ = torch.tanh(
-                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        # Be careful when x in a slice
+        if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             return self.features_buff_
+        self.x_buff_ = x
+        self.features_buff_ = torch.tanh(
+            torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        return self.features_buff_
 
     def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -98,14 +97,13 @@ class RFTanH(RFBase):
         if axis >= self.dim:
             raise ValueError('Axis out of range')
 
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                pass
-            else:
-                self.forward(x)
+        # Be careful when x in a slice
+        if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            pass
+        else:
+            self.forward(x)
 
-            return (1 - torch.pow(self.features_buff_, 2)) * (self.weights[[axis], :] / self.radius[0, axis])
+        return (1 - torch.pow(self.features_buff_, 2)) * (self.weights[[axis], :] / self.radius[0, axis])
 
     def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -117,16 +115,15 @@ class RFTanH(RFBase):
         if axis2 >= self.dim:
             raise ValueError('Axis2 out of range')
 
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                pass
-            else:
-                self.forward(x)
+        # Be careful when x in a slice
+        if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            pass
+        else:
+            self.forward(x)
 
-            return -2 * self.features_buff_ * (1 - torch.pow(self.features_buff_, 2)) * \
-                (self.weights[[axis1], :] / self.radius[0, axis1]) * (
-                        self.weights[[axis2], :] / self.radius[0, axis2])
+        return -2 * self.features_buff_ * (1 - torch.pow(self.features_buff_, 2)) * \
+            (self.weights[[axis1], :] / self.radius[0, axis1]) * (
+                    self.weights[[axis2], :] / self.radius[0, axis2])
 
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
         if isinstance(order, List):
@@ -185,15 +182,14 @@ class RFCos(RFBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                return self.features_cos_buff_
-            self.x_buff_ = x
-            self.features_cos_buff_ = torch.cos(
-                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
-            self.features_sin_buff_ = None
+        # Be careful when x in a slice
+        if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             return self.features_cos_buff_
+        self.x_buff_ = x
+        self.features_cos_buff_ = torch.cos(
+            torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        self.features_sin_buff_ = None
+        return self.features_cos_buff_
 
     def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -202,17 +198,16 @@ class RFCos(RFBase):
         if axis >= self.dim:
             raise ValueError('Axis out of range')
 
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                pass
-            else:
-                self.x_buff_ = x
-                self.features_cos_buff_ = None
-                self.features_sin_buff_ = torch.sin(
-                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        # Be careful when x in a slice
+        if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            pass
+        else:
+            self.x_buff_ = x
+            self.features_cos_buff_ = None
+            self.features_sin_buff_ = torch.sin(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
 
-            return -self.features_sin_buff_ * (self.weights[[axis], :] / self.radius[0, axis])
+        return -self.features_sin_buff_ * (self.weights[[axis], :] / self.radius[0, axis])
 
     def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -224,18 +219,17 @@ class RFCos(RFBase):
         if axis2 >= self.dim:
             raise ValueError('Axis2 out of range')
 
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                pass
-            else:
-                self.x_buff_ = x
-                self.features_cos_buff_ = torch.cos(
-                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
-                self.features_sin_buff_ = None
+        # Be careful when x in a slice
+        if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            pass
+        else:
+            self.x_buff_ = x
+            self.features_cos_buff_ = torch.cos(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+            self.features_sin_buff_ = None
 
-            return -self.features_cos_buff_ * (self.weights[[axis1], :] / self.radius[0, axis1]) * \
-                (self.weights[[axis2], :] / self.radius[0, axis2])
+        return -self.features_cos_buff_ * (self.weights[[axis1], :] / self.radius[0, axis1]) * \
+            (self.weights[[axis2], :] / self.radius[0, axis2])
 
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
         if isinstance(order, List):
@@ -311,15 +305,14 @@ class RFSin(RFBase):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                return self.features_sin_buff_
-            self.x_buff_ = x
-            self.features_sin_buff_ = torch.sin(
-                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
-            self.features_cos_buff_ = None
+        # Be careful when x in a slice
+        if (self.features_sin_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             return self.features_sin_buff_
+        self.x_buff_ = x
+        self.features_sin_buff_ = torch.sin(
+            torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        self.features_cos_buff_ = None
+        return self.features_sin_buff_
 
     def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
@@ -328,17 +321,16 @@ class RFSin(RFBase):
         if axis >= self.dim:
             raise ValueError('Axis out of range')
 
-        with torch.no_grad():
-            # Be careful when x in a slice
-            if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
-                pass
-            else:
-                self.x_buff_ = x
-                self.features_sin_buff_ = None
-                self.features_cos_buff_ = torch.cos(
-                    torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
+        # Be careful when x in a slice
+        if (self.features_cos_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            pass
+        else:
+            self.x_buff_ = x
+            self.features_sin_buff_ = None
+            self.features_cos_buff_ = torch.cos(
+                torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
 
-            return self.features_cos_buff_ * (self.weights[[axis], :] / self.radius[0, axis])
+        return self.features_cos_buff_ * (self.weights[[axis], :] / self.radius[0, axis])
 
     def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
         if x.shape[1] != self.dim:
