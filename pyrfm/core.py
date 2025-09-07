@@ -76,14 +76,16 @@ class RFTanH(RFBase):
                  n_hidden: int,
                  gen: torch.Generator = None,
                  dtype: torch.dtype = None,
-                 device: torch.device = None):
+                 device: torch.device = None,
+                 use_cache: bool = True):
         super().__init__(dim, center, radius, nn.Tanh(), n_hidden, gen, dtype, device)
+        self.use_cache = use_cache
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
         # Be careful when x in a slice
-        if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+        if (self.x_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             return self.features_buff_
         self.x_buff_ = x
         self.features_buff_ = torch.tanh(
@@ -98,7 +100,7 @@ class RFTanH(RFBase):
             raise ValueError('Axis out of range')
 
         # Be careful when x in a slice
-        if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+        if (self.x_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             pass
         else:
             self.forward(x)
@@ -116,7 +118,7 @@ class RFTanH(RFBase):
             raise ValueError('Axis2 out of range')
 
         # Be careful when x in a slice
-        if (self.x_buff_ is not None) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+        if (self.x_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             pass
         else:
             self.forward(x)
@@ -137,7 +139,7 @@ class RFTanH(RFBase):
         n_order = order.sum()
         if n_order <= 0:
             raise ValueError('Order must be positive')
-        if self.x_buff_ is x or torch.equal(self.x_buff_, x):
+        if (self.x_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             t = self.features_buff_
         else:
             t = torch.tanh(
@@ -155,6 +157,268 @@ class RFTanH(RFBase):
                 p_n *= (self.weights[[i], :] / self.radius[0, i])
 
         return p_n
+
+
+class RFTanH2(RFBase):
+    """Two-layer: y = tanh( inner(x) @ W2 + b2 ), inner(x) = tanh( ((x-c)/r) @ W1 + b1 )"""
+
+    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
+                 n_hidden: int,
+                 gen: torch.Generator = None,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None,
+                 use_cache: bool = True):
+        super().__init__(n_hidden, center, radius, nn.Tanh(), n_hidden, gen, dtype, device)
+        self.inner = RFTanH(dim, center, radius, n_hidden, gen, dtype, device, use_cache)
+        self.use_cache = use_cache
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.shape[1] != self.inner.dim:
+            raise ValueError('Input dimension mismatch')
+        # Be careful when x in a slice
+        if (self.features_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            return self.features_buff_
+        self.x_buff_ = x
+        inner_features = self.inner.forward(x)
+        self.features_buff_ = torch.tanh(
+            torch.matmul(inner_features, self.weights) + self.biases)
+        return self.features_buff_
+
+    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
+        # 轴检查在原始输入维度空间
+        if x.shape[1] != self.inner.dim:
+            raise ValueError('Input dimension mismatch')
+        if axis >= self.inner.dim:
+            raise ValueError('Axis out of range')
+
+        # 准备外层前向和内层一阶
+        if (self.features_buff_ is None and self.use_cache) or not (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            self.forward(x)
+
+        y = self.features_buff_  # (N, n_hidden)
+        dh_dx_i = self.inner.first_derivative(x, axis)  # (N, n_hidden)
+
+        # d y / d x_i = (1 - y^2) ⊙ ( dh/dx_i @ W2 )
+        return (1 - y ** 2) * (dh_dx_i @ self.weights)  # 逐元素乘，最终 (N, n_hidden)
+
+    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
+        if x.shape[1] != self.inner.dim:
+            raise ValueError('Input dimension mismatch')
+        if axis1 >= self.inner.dim:
+            raise ValueError('Axis1 out of range')
+        if axis2 >= self.inner.dim:
+            raise ValueError('Axis2 out of range')
+
+        # 确保缓存
+        if (self.features_buff_ is None and self.use_cache) or not (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            self.forward(x)
+
+        y = self.features_buff_  # (N, n_hidden)
+        # 需要两种内层导数
+        dh_dxi = self.inner.first_derivative(x, axis1)  # (N, n_hidden)
+        dh_dxj = self.inner.first_derivative(x, axis2)  # (N, n_hidden)
+        d2h_dxidxj = self.inner.second_derivative(x, axis1, axis2)  # (N, n_hidden)
+
+        # 先得到 dy/dx_j 以便构造项1
+        dy_dxj = (1 - y ** 2) * (dh_dxj @ self.weights)  # (N, n_hidden)
+
+        # 项1：(-2*y ⊙ dy/dx_j) ⊙ (dh/dx_i @ W2)
+        term1 = (-2 * y * dy_dxj) * (dh_dxi @ self.weights)  # (N, n_hidden)
+
+        # 项2：(1 - y^2) ⊙ ( (d2h/dxidxj) @ W2 )
+        term2 = (1 - y ** 2) * (d2h_dxidxj @ self.weights)  # (N, n_hidden)
+
+        return term1 + term2
+
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        # 与单层保持相同的输入校验
+        if isinstance(order, List):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+        if x.shape[1] != self.inner.dim:
+            raise ValueError('Input dimension mismatch')
+        if order.shape[0] != self.inner.dim:
+            raise ValueError('Order dimension mismatch')
+
+        n_order = int(order.sum().item() if isinstance(order, torch.Tensor) else sum(order))
+        if n_order <= 0:
+            raise ValueError('Order must be positive')
+
+        # 只实现到 2 阶；更高阶需要 Faà di Bruno 型组合，若需要可继续扩展
+        if n_order == 1:
+            axis = int(torch.nonzero(order, as_tuple=False)[0].item())
+            return self.first_derivative(x, axis)
+        if n_order == 2:
+            nz = torch.nonzero(order, as_tuple=False).flatten()
+            if len(nz) == 1:
+                a = int(nz[0].item())
+                return self.second_derivative(x, a, a)
+            elif len(nz) == 2:
+                a, b = int(nz[0].item()), int(nz[1].item())
+                return self.second_derivative(x, a, b)
+            else:
+                # e.g., [1,1,0,...] 已覆盖；其它组合理论上也可拆分成 axis1, axis2
+                a, b = int(nz[0].item()), int(nz[1].item())
+                return self.second_derivative(x, a, b)
+
+        raise NotImplementedError("higher_order_derivative for order >= 3 is not implemented yet.")
+
+
+class RFReLU(RFBase):
+    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
+                 n_hidden: int,
+                 gen: torch.Generator = None,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None,
+                 use_cache: bool = True):
+        super().__init__(dim, center, radius, nn.ReLU(), n_hidden, gen, dtype, device)
+        self.use_cache = use_cache
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError("Input dimension mismatch")
+        if (self.x_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            return self.features_buff_
+
+        self.x_buff_ = x
+        z = torch.matmul((x - self.center) / self.radius, self.weights) + self.biases
+        self.features_buff_ = torch.relu(z)
+        return self.features_buff_
+
+    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
+        if x.shape[1] != self.dim:
+            raise ValueError("Input dimension mismatch")
+        if axis >= self.dim:
+            raise ValueError("Axis out of range")
+
+        if (self.x_buff_ is None or not (self.x_buff_ is x or torch.equal(self.x_buff_, x))):
+            self.forward(x)
+
+        # ReLU'(z) = 1 if z > 0 else 0
+        grad_mask = (self.features_buff_ > 0).to(self.dtype)
+        return grad_mask * (self.weights[[axis], :] / self.radius[0, axis])
+
+    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
+        # ReLU 的二阶导在几乎所有点都为 0（除了 z=0 的不可导点）
+        if x.shape[1] != self.dim:
+            raise ValueError("Input dimension mismatch")
+        if axis1 >= self.dim or axis2 >= self.dim:
+            raise ValueError("Axis out of range")
+        return torch.zeros(x.shape[0], self.n_hidden, dtype=self.dtype, device=self.device)
+
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        if isinstance(order, List):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+        if x.shape[1] != self.dim:
+            raise ValueError("Input dimension mismatch")
+        if order.shape[0] != self.dim:
+            raise ValueError("Order dimension mismatch")
+
+        n_order = order.sum()
+        if n_order <= 0:
+            raise ValueError("Order must be positive")
+        if n_order == 1:
+            axis = int(torch.nonzero(order, as_tuple=False)[0].item())
+            return self.first_derivative(x, axis)
+
+        # ReLU 高阶导数在几乎所有点都为 0
+        return torch.zeros(x.shape[0], self.n_hidden, dtype=self.dtype, device=self.device)
+
+
+class RFReLUTanH(RFBase):
+    """Two-layer: y = tanh( inner(x) @ W2 + b2 ), inner(x) = ReLU( ((x-c)/r) @ W1 + b1 )"""
+
+    def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
+                 n_hidden: int,
+                 gen: torch.Generator = None,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None,
+                 use_cache: bool = True):
+        super().__init__(n_hidden, center, radius, nn.Tanh(), n_hidden, gen, dtype, device)
+        self.inner = RFReLU(dim, center, radius, n_hidden, gen, dtype, device, use_cache)
+        self.use_cache = use_cache
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.shape[1] != self.inner.dim:
+            raise ValueError("Input dimension mismatch")
+
+        if (self.features_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            return self.features_buff_
+
+        self.x_buff_ = x
+        inner_features = self.inner.forward(x)  # (N, n_hidden)
+        self.features_buff_ = torch.tanh(
+            torch.matmul(inner_features, self.weights) + self.biases
+        )
+        return self.features_buff_
+
+    def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
+        if x.shape[1] != self.inner.dim:
+            raise ValueError("Input dimension mismatch")
+        if axis >= self.inner.dim:
+            raise ValueError("Axis out of range")
+
+        if (self.features_buff_ is None and self.use_cache) or not (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            self.forward(x)
+
+        y = self.features_buff_  # (N, n_hidden)
+        dh_dx_i = self.inner.first_derivative(x, axis)  # (N, n_hidden)
+
+        # dy/dx_i = (1 - y^2) ⊙ (dh/dx_i @ W2)
+        return (1 - y ** 2) * (dh_dx_i @ self.weights)
+
+    def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
+        if x.shape[1] != self.inner.dim:
+            raise ValueError("Input dimension mismatch")
+        if axis1 >= self.inner.dim or axis2 >= self.inner.dim:
+            raise ValueError("Axis out of range")
+
+        if (self.features_buff_ is None and self.use_cache) or not (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
+            self.forward(x)
+
+        y = self.features_buff_  # (N, n_hidden)
+        dh_dxi = self.inner.first_derivative(x, axis1)  # (N, n_hidden)
+        dh_dxj = self.inner.first_derivative(x, axis2)  # (N, n_hidden)
+        d2h_dxidxj = self.inner.second_derivative(x, axis1, axis2)  # (N, n_hidden)
+
+        # dy/dx_j
+        dy_dxj = (1 - y ** 2) * (dh_dxj @ self.weights)
+
+        # term1: (-2*y ⊙ dy/dx_j) ⊙ (dh/dx_i @ W2)
+        term1 = (-2 * y * dy_dxj) * (dh_dxi @ self.weights)
+
+        # term2: (1 - y^2) ⊙ (d2h/dxidxj @ W2)
+        term2 = (1 - y ** 2) * (d2h_dxidxj @ self.weights)
+
+        return term1 + term2
+
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        if isinstance(order, List):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+        if x.shape[1] != self.inner.dim:
+            raise ValueError("Input dimension mismatch")
+        if order.shape[0] != self.inner.dim:
+            raise ValueError("Order dimension mismatch")
+
+        n_order = int(order.sum().item() if isinstance(order, torch.Tensor) else sum(order))
+        if n_order <= 0:
+            raise ValueError("Order must be positive")
+
+        if n_order == 1:
+            axis = int(torch.nonzero(order, as_tuple=False)[0].item())
+            return self.first_derivative(x, axis)
+        if n_order == 2:
+            nz = torch.nonzero(order, as_tuple=False).flatten()
+            if len(nz) == 1:
+                a = int(nz[0].item())
+                return self.second_derivative(x, a, a)
+            elif len(nz) == 2:
+                a, b = int(nz[0].item()), int(nz[1].item())
+                return self.second_derivative(x, a, b)
+            else:
+                a, b = int(nz[0].item()), int(nz[1].item())
+                return self.second_derivative(x, a, b)
+
+        raise NotImplementedError("higher_order_derivative for order >= 3 is not implemented yet.")
 
 
 class RFCos(RFBase):
@@ -860,7 +1124,7 @@ class RFMBase(ABC):
         :param check_condition: Whether to check the condition number of A, and switch to SVD if necessary.
         :param complex: Whether to use complex numbers.
         """
-        b = b.view(-1, 1).to(dtype=self.dtype, device=self.device)
+        b = b.clone().view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             raise ValueError("Input dimension mismatch.")
         b /= self.A_norm
