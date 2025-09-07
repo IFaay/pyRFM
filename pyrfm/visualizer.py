@@ -537,7 +537,7 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         vmax = np.nanpercentile(vfield, 98)
         denom = (vmax - vmin) if (vmax > vmin) else 1.0
         vnormed = np.clip((vfield - vmin) / denom, 0.0, 1.0)
-        
+
         cmap_obj = plt.get_cmap(cmap)
         base_rgb_np = cmap_obj(vnormed)[..., :3]  # numpy (N,3)
         base_rgb = torch.tensor(base_rgb_np, device=self.device, dtype=self.dtype)  # torch (N,3)
@@ -591,7 +591,8 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         self.ax.clear()
         from matplotlib.collections import PolyCollection
         polys = [tri for tri in tri2d]
-        coll = PolyCollection(polys, facecolors=tri_color, edgecolors='none', closed=True, antialiased=True)
+        coll = PolyCollection(polys, facecolors=tri_color, edgecolors='none', closed=True, antialiased=False,
+                              linewidths=0)
         self.ax.add_collection(coll)
         self.ax.set_xlim([0, W])
         self.ax.set_ylim([0, H])
@@ -611,3 +612,189 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         self.draw_view_axes()
 
         return self.fig, self.ax
+
+    def save_ply(self, filepath,
+                 level=0.0,
+                 grid=(128, 128, 128),
+                 chunk_pts=300_000,
+                 cmap='viridis',
+                 color_mode='lit',  # 'field' 或 'lit'
+                 binary=True):
+        """
+        将 Marching Cubes 提取的网格保存为 PLY，包含：顶点位置/法向/颜色 + 三角面。
+        参数：
+            filepath: 输出路径（.ply）
+            level:    等值面，默认 0.0
+            grid:     体素网格 (Nx, Ny, Nz)
+            chunk_pts:SDF 批大小
+            cmap:     colormap 名称（用于 'field' 与 'lit' 基色）
+            color_mode: 'field'（仅按标量场着色）或 'lit'（烘焙光照）
+            binary:   True -> binary_little_endian；False -> ASCII
+        """
+        import numpy as np
+        import torch
+        import matplotlib.pyplot as plt
+
+        # ---- 体素化 + Marching Cubes 与 plot() 对齐 ----
+        try:
+            from skimage.measure import marching_cubes as _mc
+        except Exception:
+            _mc = None
+        if _mc is None:
+            if 'mc' not in globals() or mc is None:
+                raise RuntimeError("需要 scikit-image：请先 `pip install scikit-image`。")
+
+        bbox = self.bounding_box
+        volume, (xs, ys, zs), (dz, dy, dx) = self._eval_sdf_grid(bbox, grid=grid, chunk_pts=chunk_pts)
+        try:
+            verts_v, faces, _norms_unused, _ = mc(volume, level=level, spacing=(dz, dy, dx))
+        except Exception:
+            raise RuntimeError("在当前网格或等值面参数下未提取到有效表面，请调整 level 或 grid。")
+
+        # skimage 顶点坐标顺序 (z,y,x) -> 世界坐标 (x,y,z)
+        zmin, ymin, xmin = zs[0], ys[0], xs[0]
+        verts_world = np.column_stack([
+            verts_v[:, 2] + xmin,
+            verts_v[:, 1] + ymin,
+            verts_v[:, 0] + zmin
+        ])  # (V,3) float64
+
+        # ---- 顶点法向（SDF 梯度）----
+        vnorm_t = self.estimate_normal(torch.tensor(verts_world, device=self.device, dtype=self.dtype))
+        vnorm_t = vnorm_t / torch.clamp(torch.norm(vnorm_t, dim=-1, keepdim=True), min=1e-10)
+        vnorm = vnorm_t.detach().cpu().numpy().astype(np.float32)  # (V,3)
+
+        # ---- 标量场 -> colormap 基色（顶点）----
+        vfield = self._compute_field_values_points(verts_world)  # numpy (V,)
+        vmin = np.nanpercentile(vfield, 2)
+        vmax = np.nanpercentile(vfield, 98)
+        denom = (vmax - vmin) if (vmax > vmin) else 1.0
+        vnormed = np.clip((vfield - vmin) / denom, 0.0, 1.0)
+
+        cmap_obj = plt.get_cmap(cmap)
+        base_rgb = cmap_obj(vnormed)[..., :3].astype(np.float32)  # (V,3) in [0,1]
+
+        # ---- 颜色模式：field or lit（与 plot() 的光照尽量一致，但按顶点近似）----
+        if color_mode not in ('field', 'lit'):
+            raise ValueError("color_mode 只能是 'field' 或 'lit'")
+
+        if color_mode == 'lit':
+            # 与 plot() 保持一致的光照向量
+            light_dir = self.view_dir + torch.tensor([-1.0, -0.0, 1.0], dtype=self.dtype, device=self.device)
+            light_dir = light_dir / torch.norm(light_dir)
+            view_dir = self.view_dir
+            half_vec = (light_dir + view_dir)
+            half_vec = half_vec / torch.norm(half_vec)
+
+            n = vnorm_t  # (V,3) torch
+            diff = torch.clamp((n * light_dir).sum(dim=-1), min=0.0)  # (V,)
+            spec = torch.clamp((n * half_vec).sum(dim=-1), min=0.0) ** 32  # (V,)
+
+            base_rgb_t = torch.tensor(base_rgb, device=self.device, dtype=self.dtype)  # (V,3)
+            rgb_lit = (0.8 * base_rgb_t + 0.2) * diff[:, None] + \
+                      base_rgb_t * 0.3 + \
+                      spec[:, None] * 0.5
+            rgb_lit = torch.clamp(rgb_lit, 0.0, 1.0).detach().cpu().numpy().astype(np.float32)
+            rgb = rgb_lit
+        else:
+            rgb = base_rgb  # 直接用字段 colormap
+
+        # 转为 0-255 uint8
+        rgb_u8 = np.clip(np.round(rgb * 255.0), 0, 255).astype(np.uint8)  # (V,3)
+
+        # ---- 写 PLY：顶点位置/法向/颜色 + 面 ----
+        V = verts_world.shape[0]
+        F = faces.shape[0]
+
+        # ---- 写 PLY（二进制）修正版：逐面交错写入 ----
+        if binary:
+            header = (
+                "ply\n"
+                "format binary_little_endian 1.0\n"
+                f"element vertex {V}\n"
+                "property float x\n"
+                "property float y\n"
+                "property float z\n"
+                "property float nx\n"
+                "property float ny\n"
+                "property float nz\n"
+                "property uchar red\n"
+                "property uchar green\n"
+                "property uchar blue\n"
+                f"element face {F}\n"
+                "property list uchar int vertex_indices\n"
+                "end_header\n"
+            ).encode('ascii')
+
+            # 顶点打包
+            vert_pack = np.empty(V, dtype=[
+                ('x', '<f4'), ('y', '<f4'), ('z', '<f4'),
+                ('nx', '<f4'), ('ny', '<f4'), ('nz', '<f4'),
+                ('red', 'u1'), ('green', 'u1'), ('blue', 'u1')
+            ])
+            vert_pack['x'] = verts_world[:, 0].astype(np.float32)
+            vert_pack['y'] = verts_world[:, 1].astype(np.float32)
+            vert_pack['z'] = verts_world[:, 2].astype(np.float32)
+            vert_pack['nx'] = vnorm[:, 0]
+            vert_pack['ny'] = vnorm[:, 1]
+            vert_pack['nz'] = vnorm[:, 2]
+            vert_pack['red'] = rgb_u8[:, 0]
+            vert_pack['green'] = rgb_u8[:, 1]
+            vert_pack['blue'] = rgb_u8[:, 2]
+
+            # 面索引检查 & 转小端 int32
+            faces_i32 = faces.astype('<i4', copy=False)
+            if faces_i32.min() < 0 or faces_i32.max() >= V:
+                raise ValueError(f"Face index out of range: min={faces_i32.min()} max={faces_i32.max()} V={V}")
+
+            with open(filepath, 'wb') as f:
+                f.write(header)
+                vert_pack.tofile(f)
+
+                # 逐面交错写： [uchar(3), int32, int32, int32] * F
+                # 用结构化 dtype 一次性写，效率更高也更不易出错
+                face_dtype = np.dtype([('n', 'u1'),
+                                       ('i0', '<i4'), ('i1', '<i4'), ('i2', '<i4')])
+                face_pack = np.empty(F, dtype=face_dtype)
+                face_pack['n'] = 3
+                face_pack['i0'] = faces_i32[:, 0]
+                face_pack['i1'] = faces_i32[:, 1]
+                face_pack['i2'] = faces_i32[:, 2]
+                face_pack.tofile(f)
+        else:
+            # ASCII
+            header = (
+                "ply\n"
+                "format ascii 1.0\n"
+                f"element vertex {V}\n"
+                "property float x\n"
+                "property float y\n"
+                "property float z\n"
+                "property float nx\n"
+                "property float ny\n"
+                "property float nz\n"
+                "property uchar red\n"
+                "property uchar green\n"
+                "property uchar blue\n"
+                f"element face {F}\n"
+                "property list uchar int vertex_indices\n"
+                "end_header\n"
+            )
+            with open(filepath, 'w') as f:
+                f.write(header)
+                for i in range(V):
+                    x, y, z = verts_world[i]
+                    nx, ny, nz = vnorm[i]
+                    r, g, b = rgb_u8[i]
+                    f.write(f"{x:.6f} {y:.6f} {z:.6f} {nx:.6f} {ny:.6f} {nz:.6f} {int(r)} {int(g)} {int(b)}\n")
+                for i0, i1, i2 in faces:
+                    f.write(f"3 {int(i0)} {int(i1)} {int(i2)}\n")
+
+        return {
+            "vertices": V,
+            "faces": F,
+            "filepath": filepath,
+            "mode": "binary_little_endian" if binary else "ascii",
+            "color_mode": color_mode,
+            "vmin_vmax": (float(vmin), float(vmax))
+        }
