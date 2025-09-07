@@ -10,6 +10,7 @@ import pyrfm
 import torch
 import os
 
+from pyrfm import RFTanH2
 from pyrfm.optimize import BatchQR
 
 
