@@ -1093,7 +1093,7 @@ class RFMBase(ABC):
         """
         return self.forward(x)
 
-    def compute(self, A: torch.Tensor):
+    def compute(self, A: torch.Tensor, damp: float = 0.0):
         """
         Compute the QR decomposition of matrix A.
 
@@ -1104,6 +1104,8 @@ class RFMBase(ABC):
         self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
         A /= self.A_norm
         self.A_backup = A.clone().cpu()
+        if abs(damp) > 0.0:
+            A = torch.cat([A, damp * torch.eye(A.shape[1], dtype=self.dtype, device=self.device)], dim=0)
         print("Decomposing the problem size of A: ", A.shape, "with solver QR")
 
         try:
@@ -1124,10 +1126,18 @@ class RFMBase(ABC):
         :param check_condition: Whether to check the condition number of A, and switch to SVD if necessary.
         :param complex: Whether to use complex numbers.
         """
+        with_damping = None
         b = b.clone().view(-1, 1).to(dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
-            raise ValueError("Input dimension mismatch.")
+            if b.shape[0] + self.A.shape[1] == self.A.shape[0]:
+                with_damping = True
+            else:
+                raise ValueError("Input dimension mismatch.")
         b /= self.A_norm
+        b = torch.cat([b, torch.zeros((self.A.shape[0] - b.shape[0], 1), dtype=self.dtype, device=self.device)],
+                      dim=0) if with_damping else b
+
+        # detect whether A is from a damped system
 
         try:
             y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
@@ -1159,7 +1169,7 @@ class RFMBase(ABC):
         except RuntimeError as e:
             # Add support for minium norm solution
             self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
-            self.W = torch.linalg.lstsq(self.A, b, driver='gels').solution
+            self.W = torch.linalg.lstsq(self.A, b[:self.A.shape[0]], driver='gels').solution
             residual = torch.norm(torch.matmul(self.A, self.W) - b) / torch.norm(b)
 
         print(f"Least Square Relative residual: {residual:.4e}")
