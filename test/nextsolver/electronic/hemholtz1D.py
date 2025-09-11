@@ -3,25 +3,34 @@
 Created on 2025/9/2
 
 @author: Yifei Sun
+
+说明：
+- k 由 JSON 自动计算；sigma == 0 → 实数 (torch.float64)；sigma > 0 → 复数 (torch.complex128)。
+- Green 函数与数值解均兼容两种 dtype。
 """
 
 import torch
 import pyrfm
 import json
 import math
+import cmath
+import matplotlib.pyplot as plt
 
+# =========================
+# JSON 输入
+# =========================
 json_str = """
 {
   "material": {
     "relative_permittivity": 2.2,
     "relative_permeability": 1.0,
-    "conductivity": 0.0
+    "conductivity": 1.1e-4
   },
   "source": {
     "type": "discrete_port",
-    "position": 0.10,
+    "position": 0.2,
     "amplitude": 1.0,
-    "phase": 0.0,
+    "phase": 0.1,
     "unit": "V"
   },
   "boundary_conditions": {
@@ -32,84 +41,95 @@ json_str = """
 }
 """
 
-"""
-电磁一维 Helmholtz 问题（与所给 JSON 精确对应）
 
+# =========================
+# 常量 & 工具函数
+# =========================
+def compute_k_from_json(data):
+    """根据 JSON 计算传播常数 k；sigma==0 返回 float64，sigma>0 返回 complex128（主值）"""
+    eps0 = 8.854187817e-12  # F/m
+    mu0 = 4.0 * math.pi * 1e-7  # H/m
 
-一、问题描述（Problem Statement）
-- 物理场：时间谐波 TEM 近似下一维标量场 u(x) ∈ ℂ（与“V”单位对齐，可理解为电压包络）。
-- 空间域：x ∈ (0, L)，其中 L > x₀ = 0.10 m（几何长度不在本设定 JSON 中固定）。
-- 频率：f = 1.0 GHz，角频率 ω = 2πf。
-- 材料：均匀各向同性无耗介质，ε = εᵣ ε₀，μ = μᵣ μ₀，σ = 0。
-- 激励：在 x = x₀ 处的离散端口（点源），幅值 A = 1.0，相位 φ = 0（单位“V”）。
-- 边界：左端 Dirichlet（u(0) = 0 V，等效短路）；右端 Neumann（u′(L) = 0 V/m，等效开路）。
+    er = float(data["material"]["relative_permittivity"])
+    ur = float(data["material"]["relative_permeability"])
+    sigma = float(data["material"]["conductivity"])  # S/m
+    f = float(data["frequency"])  # Hz
+    omega = 2.0 * math.pi * f
 
-二、常量与派生波参数（由材料与频率给出）
-- 真空常数：ε₀ = 8.854 187 817×10⁻¹² F/m，μ₀ = 4π×10⁻⁷ H/m。
-- 相对参数：εᵣ = 2.2，μᵣ = 1.0，σ = 0（无耗）。
-- 角频率：ω = 2π × 10⁹ ≈ 6.283 185 307×10⁹ rad/s。
-- 相速度：v = 1/√(με) = c₀/√(εᵣ μᵣ) ≈ 2.021 200 339×10⁸ m/s。
-- 波长：λ = v/f ≈ 0.202 120 034 m。
-- 波数：k = 2π/λ ≈ 31.086 405 362 rad/m。
-- 介质本征阻抗：η = √(μ/ε) = η₀/√εᵣ ≈ 253.991 526 Ω（η₀ ≈ 376.730 314 Ω）。
-  说明：η 为介质的平面波/TEM 本征阻抗，非几何定义的传输线特性阻抗 Z₀。
+    eps = er * eps0
+    mu = ur * mu0
 
-三、治理方程（Governing PDE，频域，e^{-iωt} 约定）
-在 (0, L) 内，u(x) 满足一维 Helmholtz 方程含点源：
-    u″(x) + k² u(x) = − Q δ(x − x₀),     0 < x < L,
-其中 δ 为狄拉克 δ，Q ∈ ℂ 为点源强度（频域等效值）。与 JSON 中的
-“amplitude = 1.0、phase = 0” 对应，可写
-    Q = A·e^{iφ}·,
-A = 1.0，φ = 0
-
-四 点源跳跃条件（Jump Condition at Point Source）
-由于点源的存在，u(x) 在 x = x₀ 处满足跳跃条件：
-    u′(x₀⁺) − u′(x₀⁻) = − Q,
-    u(x₀⁺) = u(x₀⁻),
-其中 x₀⁺、x₀⁻ 分别表示 x₀ 处的右极限与左极限。
-
-
-# 四、点源的高斯函数极限
-# 为数值计算方便，点源可近似为高斯函数极限形式：
-#     δ(x − x₀) = lim (σ → 0) 1/(σ√(2π)) exp(−(x − x₀)²/(2σ²)) 。
-# 在实际计算中，σ 取一个小的正数（如网格尺寸的十分之一）即可.
-# 并且保证采样点均值为 1 / I, 其中 I 为区间长度.
-# 即 ∫ δ(x − x₀) dx = 1.
-
-五、边界条件（与 JSON 一致）
-- 左端 Dirichlet： u(0) = 0 V      （短路、强制电压为零）
-- 右端 Neumann：  u′(L) = 0 V/m    （开路、零法向导数/零通量）
-
-
-"""
+    if sigma == 0.0:
+        # 无耗：k 实数
+        k_val = omega * math.sqrt(mu * eps)
+        return torch.tensor(k_val, dtype=torch.float64)
+    else:
+        # 有耗：k 复数（主值）
+        k2 = (omega ** 2) * mu * eps - 1j * omega * mu * sigma
+        k_val = cmath.sqrt(k2)
+        return torch.tensor(k_val, dtype=torch.complex128)
 
 
 def func_Dirac(x, x0, sigma, L):
     """
-    高斯函数极限形式的狄拉克 δ 函数近似
-    δ(x − x₀) = lim (σ → 0) 1/(σ√(2π)) exp(−(x − x₀)²/(2σ²))
-    :param x: 输入张量
-    :param x0: 点源位置
-    :param sigma: 标准差，控制宽度（数值上取一个小的正数）
-    :param I: 区间长度，用于归一化
-    :return: 近似的 δ(x - x0)
+    高斯极限近似 δ(x-x0)，归一化到区间积分≈1/L（便于与离散采样匹配）
+    返回与 x 相同 device；dtype 为 float64（源项为实）
     """
-    coeff = 1.0 / (sigma * torch.sqrt(torch.tensor(2.0 * torch.pi)))  # 归一化系数
-    r = (x - x0).norm(dim=1, p=2, keepdim=True)
-    gauss = torch.exp(-0.5 * (r / sigma) ** 2) * coeff  # 高斯函数
+    device = x.device
+    x0_t = torch.as_tensor(x0, dtype=torch.float64, device=device)
+    sigma_t = torch.as_tensor(sigma, dtype=torch.float64, device=device)
+    L_t = torch.as_tensor(L, dtype=torch.float64, device=device)
+
+    coeff = 1.0 / (sigma_t * torch.sqrt(torch.tensor(2.0 * math.pi, dtype=torch.float64, device=device)))
+    r = (x.to(torch.float64) - x0_t).norm(dim=1, p=2, keepdim=True)
+    gauss = torch.exp(-0.5 * (r / sigma_t) ** 2) * coeff
     gauss /= gauss.mean()
-    return gauss / L  # 保证积分为 1
+    return gauss / L_t  # shape: (N,1), float64
 
 
 def func_green_dirichlet(x, x0, k, L):
-    x0 = torch.ones_like(x) * x0
-    f_left = torch.sin(k * x) * torch.sin(k * (L - x0))
-    f_right = torch.sin(k * x0) * torch.sin(k * (L - x))
-    return torch.where(x < x0, f_left, f_right) / (k * math.sin(k * L))
+    """
+    一维 Dirichlet(0) - Neumann(0) 的 Green 函数（点源在 x0），e^{-iωt} 约定。
+    关键修复：比较操作在实数 dtype 上进行，避免 CUDA 复数比较不支持的问题。
+    """
+    device = x.device
+
+    # 1) 先确定目标计算 dtype（复数或实数）
+    if torch.is_tensor(k):
+        k_t = k
+    else:
+        k_t = torch.tensor(k)
+
+    cdtype = torch.complex128 if torch.is_complex(k_t) else torch.float64
+
+    # 2) 掩码用实数来比较（CUDA 不支持复数比较）
+    x_float = x.to(torch.float64)
+    x0_float = torch.tensor(x0, dtype=torch.float64, device=device).expand_as(x_float)
+    mask = (x_float < x0_float)  # bool，device 同 x
+
+    # 3) 物理量转为目标计算 dtype（用于三角函数）
+    x_c = x_float.to(cdtype)
+    x0_c = x0_float.to(cdtype)
+    L_c = torch.tensor(L, dtype=cdtype, device=device)
+    k_c = k_t.to(cdtype).to(device)
+
+    # 4) 计算左右分支与分母（统一 dtype）
+    f_left = torch.sin(k_c * x_c) * torch.sin(k_c * (L_c - x0_c))
+    f_right = torch.sin(k_c * x0_c) * torch.sin(k_c * (L_c - x_c))
+    denom = k_c * torch.sin(k_c * L_c)
+
+    # 5) 按掩码选择
+    return torch.where(mask, f_left, f_right) / denom
 
 
+# =========================
+# 主程序
+# =========================
 if __name__ == "__main__":
-    torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
+    # 设备
+    torch.set_default_device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # 采样点
     input_points = """
 0.00000000
 0.00010064
@@ -213,104 +233,141 @@ if __name__ == "__main__":
 0.96615779
 0.98535984
 1.00000000
-    """
+    """.strip().split()
 
-    points_list = input_points.strip().split("\n")
-    # 转换为浮点数
-    points_float = [float(x) for x in points_list]
-    # 转换为 PyTorch 张量
-    points = torch.tensor(points_float).reshape(-1, 1)
-
-    print(points)
-
-    data = json.loads(json_str)
-    print(data)
+    points = torch.tensor([float(x) for x in input_points], dtype=torch.float64).reshape(-1, 1)
     x_min = points[:, 0].min().item()
     x_max = points[:, 0].max().item()
-    print(f"x_min: {x_min}, x_max: {x_max}")
+    L = x_max - x_min
 
-    # x0 = 0.5
-    #
-    # domain1 = pyrfm.Line1D(x_min, x0)
-    # domain2 = pyrfm.Line1D(x0, x_max)
-    # model1 = pyrfm.RFMBase(dim=1, n_hidden=200, domain=domain1, n_subdomains=1)
-    # model2 = pyrfm.RFMBase(dim=1, n_hidden=200, domain=domain2, n_subdomains=1)
-    # x_in_1 = domain1.in_sample(num_samples=5000, with_boundary=False)
-    # x_in_2 = domain2.in_sample(num_samples=5000, with_boundary=False)
-    # x_on_1 = torch.tensor([[x_min]])
-    # x_on_2 = torch.tensor([[x_max]])
-    # x_c = torch.tensor([[x0]])
-    #
-    # A_in_1 = model1.features(x_in_1).cat(dim=1)
-    # A_in_2 = model2.features(x_in_2).cat(dim=1)
-    # A_in_xx_1 = model1.features_second_derivative(x_in_1, axis1=0, axis2=0).cat(dim=1)
-    # A_in_xx_2 = model2.features_second_derivative(x_in_2, axis1=0, axis2=0).cat(dim=1)
-    # A_on_1 = model1.features(x_on_1).cat(dim=1)
-    # A_on_2 = model2.features(x_on_2).cat(dim=1)
-    # A_c_1 = model1.features(x_c).cat(dim=1)
-    # A_c_2 = model2.features(x_c).cat(dim=1)
-    # A_c_x_1 = model1.features_derivative(x_c, axis=0).cat(dim=1)
-    # A_c_x_2 = model2.features_derivative(x_c, axis=0).cat(dim=1)
-    #
-    # k = 31.086405362
-    # A = pyrfm.concat_blocks([[A_in_xx_1 + k ** 2 * A_in_1, torch.zeros_like(A_in_1)],
-    #                          [torch.zeros_like(A_in_2), A_in_xx_2 + k ** 2 * A_in_2],
-    #                          [A_on_1, torch.zeros_like(A_on_1)],
-    #                          [torch.zeros_like(A_on_2), A_on_2],
-    #                          [A_c_1, -A_c_2],
-    #                          [A_c_x_1, -A_c_x_2]])
-    # b = torch.cat([torch.zeros((x_in_1.shape[0], 1), device=A.device),
-    #                torch.zeros((x_in_2.shape[0], 1), device=A.device),
-    #                torch.zeros((x_on_1.shape[0], 1), device=A.device),
-    #                torch.zeros((x_on_2.shape[0], 1), device=A.device),
-    #                torch.zeros((x_c.shape[0], 1), device=A.device),
-    #                torch.tensor([[1.0]], device=A.device)], dim=0)
-    #
-    # A_normed = A.norm(dim=1, p=2, keepdim=True)
-    # A = A / A_normed
-    # b = b / A_normed
-    # W = torch.linalg.lstsq(A, b)[0]
-    # model1.W = W[:model1.n_hidden, :]
-    # model2.W = W[model1.n_hidden:, :]
-    #
-    # x_in = torch.cat([x_in_1, x_in_2], dim=0)
-    # f_in = torch.cat([model1(x_in_1), model2(x_in_2)], dim=0)
-    #
-    # import matplotlib.pyplot as plt
-    #
-    # plt.plot(x_in.cpu(), f_in.detach().cpu(), label='RFM')
-    # plt.plot(x_in.cpu(), func_green_dirichlet(x_in, 0.5, k, x_max - x_min).cpu(), label='Exact')
-    # plt.legend()
-    # plt.show()
+    # 解析 JSON & k
+    data = json.loads(json_str)
+    k = compute_k_from_json(data)  # torch.float64 或 torch.complex128
+    print("Computed k:", k)
+    sigma = float(data["material"]["conductivity"])
 
+    # 几何/源
+    x0 = 0.5  # 点源位置（可改为 data["source"]["position"] 若要与 JSON 绑定）
+    x0 = float(data["source"]["position"]) if "position" in data.get("source", {}) else x0
+
+    # 域与采样
     domain = pyrfm.Line1D(x_min, x_max)
-    x0 = 0.5
-    x_in = domain.in_sample(num_samples=10000, with_boundary=False)
-    x_in = torch.cat([x_in, torch.tensor([[x0]], device=x_in.device)], dim=0)
+    num_samples = int((x_max - x_min) * k.abs().item() * 5) * 10  # 简单经验：每波长采 5 个点
+    print("Number of interior samples (approx.):", int(num_samples))
+    x_in = domain.in_sample(num_samples=num_samples, with_boundary=False)
+    x_in = torch.cat([x_in, torch.tensor([[x0]], dtype=torch.float64, device=x_in.device)], dim=0)
     x_in, _ = torch.sort(x_in, dim=0)
-    x_on = domain.on_sample(num_samples=20)
+    x_on = domain.on_sample(num_samples=2)
 
-    f_in = -func_Dirac(x_in, x0, 1e-6, x_max - x_min)
-    k = 100
+    # 源项（实数）
+    f_in = func_Dirac(x_in, x0, 1e-14, L)  # (N,1) float64
+    phase = data["source"]["phase"]
+    if phase > 0:
+        Q = data["source"]["amplitude"] * (math.cos(phase) + 1j * math.sin(phase))
+    else:
+        Q = data["source"]["amplitude"]
 
-    model = pyrfm.RFMBase(dim=1, n_hidden=40, domain=domain, n_subdomains=k // 10)
+    f_in = -f_in * Q
 
-    A_in = model.features(x_in).cat(dim=1)
-    A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
-    A_on = model.features(x_on).cat(dim=1)
+    use_complex = True if torch.is_complex(k) or torch.is_complex(f_in) else False
 
-    A = pyrfm.concat_blocks([[A_in_xx + k ** 2 * A_in], [A_on]])
-    b = torch.cat([f_in, torch.zeros((x_on.shape[0], 1), device=A.device)], dim=0)
+    # —— 解析解（用于对比）——
+    u_exact = func_green_dirichlet(x_in, x0, k, L) * Q  # (N,1) float/complex
 
-    model.compute(A, damp=1e-8).solve(b)
+    # =========================
+    # RFM 数值解
+    # =========================
+    # if use_complex:
+    #     # ---------- 无耗：单模型、实数 ----------
+    #     n_sub = max(1, int(abs(float(k)) // 10))  # 简单经验
+    #     model = pyrfm.RFMBase(dim=1, n_hidden=40, domain=domain, n_subdomains=n_sub)
+    #
+    #     A_in = model.features(x_in).cat(dim=1)  # (N, M)
+    #     A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)  # (N, M)
+    #     A_on = model.features(x_on).cat(dim=1)  # (Nb, M)
+    #
+    #     A = torch.cat([A_in_xx + (float(k) ** 2) * A_in, A_on], dim=0)  # (N+Nb, M), float64
+    #     b = torch.cat([f_in, torch.zeros((x_on.shape[0], 1), dtype=torch.float64, device=A.device)], dim=0)
+    #
+    #     model.compute(A, damp=1e-8).solve(b)
+    #
+    #     u_num = model(x_in)  # (N,1) float64
+    #
+    #     # 误差（相对 L2）
+    #     err = torch.linalg.norm(u_num - u_exact.to(torch.float64)) / torch.linalg.norm(u_exact.to(torch.float64))
+    #
+    #     # 绘图（实数）
+    #     plt.figure()
+    #     plt.plot(x_in.cpu(), u_exact.real.detach().cpu(), label='Exact (real)')
+    #     plt.plot(x_in.cpu(), u_num.detach().cpu(), '--', label='RFM (real)')
+    #     plt.legend();
+    #     plt.xlabel('x [m]');
+    #     plt.ylabel('u')
+    #     plt.title('Helmholtz 1D (lossless)')
+    #     plt.show()
+    #
+    #     print(f"Relative L2 Error (real): {err.item():.4e}")
+    #
+    # else:
+    # ---------- 无耗：单模型、实数 ----------
+    n_sub = max(1, int(k.abs().item() // 10))  # 简单经验
+    print("Number of subdomains:", n_sub)
+    model = pyrfm.RFMBase(dim=1, n_hidden=40, domain=domain, n_subdomains=n_sub)
 
-    import matplotlib.pyplot as plt
+    A_in = model.features(x_in).cat(dim=1)  # (N, M)
+    A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)  # (N, M)
+    A_on = model.features(x_on).cat(dim=1)  # (Nb, M)
 
-    u_exact = func_green_dirichlet(x_in, x0, k, x_max - x_min)
+    A = torch.cat([A_in_xx + k ** 2 * A_in, A_on], dim=0)  # (N+Nb, M), float64
+    b = torch.cat([f_in, torch.zeros((x_on.shape[0], 1), dtype=torch.float64, device=A.device)], dim=0)
+    model.compute(A, damp=1e-8, use_complex=True).solve(b)
+    u_num = model(x_in)
 
-    plt.plot(x_in.cpu(), u_exact.cpu())
-    plt.plot(x_in.cpu(), model(x_in).detach().cpu())
+    A = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1) + k ** 2 * model.features(x_in).cat(
+        dim=1)
+    A /= A.norm(dim=1, p=2, keepdim=True)  # 列归一化，避免 k 很大时 PDE loss 过大
+    res = torch.linalg.norm(A.to(device=model.device, dtype=model.dtype) @ model.W) / torch.linalg.norm(
+        torch.ones(A.shape[0]))
+
+    print("PDE Loss : {:.4e}".format(res))
+
+    # # 误差：分别评估实部/虚部（或幅值）
+    u_ex = u_exact.to(model.dtype)
+    err_magnitude = torch.linalg.norm(torch.abs(u_num) - torch.abs(u_ex)) / torch.linalg.norm(torch.abs(u_ex))
+    err_real = torch.linalg.norm(u_num.real - u_ex.real) / torch.linalg.norm(u_ex.real)
+    # # 若解析虚部接近 0，分母可能很小；加个保护
+    denom_im = torch.linalg.norm(u_ex.imag).clamp_min(1e-16)
+    err_imag = torch.linalg.norm(u_num.imag - u_ex.imag) / denom_im
+
+    # 绘图：幅值 & 实部 & 虚部
+
+    plt.figure()
+    plt.plot(x_in.cpu(), u_ex.real.detach().cpu(), label='Exact Re(u)')
+    plt.plot(x_in.cpu(), u_num.real.detach().cpu(), '--', label='RFM Re(u)')
+    plt.legend();
+    plt.xlabel('x [m]');
+    plt.ylabel('Re(u)')
+    plt.title('Helmholtz 1D (lossy) - Real part')
     plt.show()
 
-    error = torch.linalg.norm(model(x_in) - u_exact, dim=0, ord=2) / torch.linalg.norm(u_exact, dim=0, ord=2)
-    print(f"Relative L2 Error: {error.item():.4e}")
+    plt.figure()
+    plt.plot(x_in.cpu(), u_ex.imag.detach().cpu(), label='Exact Im(u)')
+    plt.plot(x_in.cpu(), u_num.imag.detach().cpu(), '--', label='RFM Im(u)')
+    plt.legend();
+    plt.xlabel('x [m]');
+    plt.ylabel('Im(u)')
+    plt.title('Helmholtz 1D (lossy) - Imaginary part')
+    plt.show()
+
+    plt.figure()
+    plt.plot(x_in.cpu(), torch.abs(u_ex).detach().cpu(), label='Exact |u|')
+    plt.plot(x_in.cpu(), torch.abs(u_num).detach().cpu(), '--', label='RFM |u|')
+    plt.legend();
+    plt.xlabel('x [m]');
+    plt.ylabel('|u|')
+    plt.title('Helmholtz 1D (lossy) - Magnitude')
+    plt.show()
+
+    print(f"Relative L2 Error (magnitude): {err_magnitude.item():.4e}")
+    print(f"Relative L2 Error (real): {err_real.item():.4e}")
+    print(f"Relative L2 Error (imag): {err_imag.item():.4e}")

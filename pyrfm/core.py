@@ -1093,13 +1093,17 @@ class RFMBase(ABC):
         """
         return self.forward(x)
 
-    def compute(self, A: torch.Tensor, damp: float = 0.0):
+    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False):
         """
         Compute the QR decomposition of matrix A.
 
         :param A: Input matrix.
+        :param damp: Damping factor for regularization.
+        :param use_complex: Whether to use complex numbers.
         :return: Self.
         """
+        if use_complex:
+            self.dtype = torch.complex128 if self.dtype == torch.float64 else torch.complex64
         A = A.to(dtype=self.dtype, device=self.device)
         self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
         A /= self.A_norm
@@ -1134,6 +1138,7 @@ class RFMBase(ABC):
             else:
                 raise ValueError("Input dimension mismatch.")
         b /= self.A_norm
+        b_backup = b.clone().cpu()
         b = torch.cat([b, torch.zeros((self.A.shape[0] - b.shape[0], 1), dtype=self.dtype, device=self.device)],
                       dim=0) if with_damping else b
 
@@ -1141,7 +1146,13 @@ class RFMBase(ABC):
 
         try:
             y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
-            self.A.diagonal().add_((self.A.diagonal() >= 0).float() * torch.finfo(self.dtype).eps)
+            diag = self.A.diagonal()
+            if torch.is_complex(diag):
+                diag_to_compare = diag.real  # 只用实部来判断正负
+            else:
+                diag_to_compare = diag
+
+            diag.add_((diag_to_compare >= 0).float() * torch.finfo(self.dtype).eps)
             self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
             b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
             residual = torch.norm(b_ - b) / torch.norm(b)
@@ -1169,7 +1180,9 @@ class RFMBase(ABC):
         except RuntimeError as e:
             # Add support for minium norm solution
             self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
-            self.W = torch.linalg.lstsq(self.A, b[:self.A.shape[0]], driver='gels').solution
+            b = b_backup.to(dtype=self.dtype, device=self.device)
+            self.W = torch.linalg.lstsq(self.A, b,
+                                        driver='gels').solution
             residual = torch.norm(torch.matmul(self.A, self.W) - b) / torch.norm(b)
 
         print(f"Least Square Relative residual: {residual:.4e}")
