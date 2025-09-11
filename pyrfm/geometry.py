@@ -1126,7 +1126,7 @@ class Line1D(GeometryBase):
         """
         return [self.x1, self.x2] if self.x1 < self.x2 else [self.x2, self.x1]
 
-    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+    def in_sample(self, num_samples: int, with_boundary: bool = False, with_random: bool = False) -> torch.Tensor:
         """
         Generate samples within the line segment.
 
