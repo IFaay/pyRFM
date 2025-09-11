@@ -1,0 +1,35 @@
+2025-09-07 16:27:06 [INFO] Logging to: logs/tanh-tanh/train_20250907_162706.log
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_best.pt
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_last.pt
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_last_plain.pt
+[Clean] checkpoints/ and renders/ are reset for tag=tanh-tanh.
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=1, best=inf)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=1, best=1.461544e-02)
+Epoch [1/2000] Loss: 1.461544e-02 | Best: 1.461544e-02 | LR: 1.000000e-04 | Val|SDF|: 5.912846e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=2, best=1.461544e-02)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=2, best=5.956407e-03)
+Epoch [2/2000] Loss: 5.956407e-03 | Best: 5.956407e-03 | LR: 1.000000e-04 | Val|SDF|: 5.417573e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=3, best=5.956407e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=3, best=4.193932e-03)
+Epoch [3/2000] Loss: 4.193932e-03 | Best: 4.193932e-03 | LR: 1.000000e-04 | Val|SDF|: 4.443513e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=4, best=4.193932e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=4, best=3.091225e-03)
+Epoch [4/2000] Loss: 3.091225e-03 | Best: 3.091225e-03 | LR: 1.000000e-04 | Val|SDF|: 3.622190e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=5, best=3.091225e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=5, best=2.312833e-03)
+Epoch [5/2000] Loss: 2.312833e-03 | Best: 2.312833e-03 | LR: 1.000000e-04 | Val|SDF|: 3.123065e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=6, best=2.312833e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=6, best=1.744882e-03)
+Epoch [6/2000] Loss: 1.744882e-03 | Best: 1.744882e-03 | LR: 1.000000e-04 | Val|SDF|: 2.547508e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=7, best=1.744882e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=7, best=1.395939e-03)
+Epoch [7/2000] Loss: 1.395939e-03 | Best: 1.395939e-03 | LR: 1.000000e-04 | Val|SDF|: 2.287722e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=8, best=1.395939e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=8, best=1.187267e-03)
+Epoch [8/2000] Loss: 1.187267e-03 | Best: 1.187267e-03 | LR: 1.000000e-04 | Val|SDF|: 2.110442e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=9, best=1.187267e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=9, best=1.045265e-03)
+Epoch [9/2000] Loss: 1.045265e-03 | Best: 1.045265e-03 | LR: 1.000000e-04 | Val|SDF|: 2.175544e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=10, best=1.045265e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=10, best=9.425460e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0010_e0010.png

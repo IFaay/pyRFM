@@ -1,0 +1,5 @@
+2025-09-08 23:12:41 [INFO] Logging to: logs/tanh-tanh/train_20250908_231241.log
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_best.pt
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_last.pt
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_last_plain.pt
+[Clean] checkpoints/ and renders/ are reset for tag=tanh-tanh.

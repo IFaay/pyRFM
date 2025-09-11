@@ -1,0 +1,13 @@
+2025-09-08 19:44:01 [INFO] Logging to: logs/relu-tanh/train_20250908_194401.log
+[Clean-relu-tanh] removed: checkpoints/relu-tanh/sdf_best.pt
+[Clean-relu-tanh] removed: checkpoints/relu-tanh/sdf_last.pt
+[Clean] checkpoints/ and renders/ are reset for tag=relu-tanh.
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=1, best=inf)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=1, best=3.161517e-02)
+Epoch [1/4000] Loss: 3.161517e-02 | Best: 3.161517e-02 | LR: 1.000000e-04 | ValAngle(deg): mean=22.556, max=121.849  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=2, best=3.161517e-02)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=2, best=1.927938e-02)
+Epoch [2/4000] Loss: 1.927938e-02 | Best: 1.927938e-02 | LR: 1.000000e-04 | ValAngle(deg): mean=19.164, max=146.051  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3, best=1.927938e-02)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3, best=1.646940e-02)
+Epoch [3/4000] Loss: 1.646940e-02 | Best: 1.646940e-02 | LR: 1.000000e-04 | ValAngle(deg): mean=17.402, max=138.597  <BEST>

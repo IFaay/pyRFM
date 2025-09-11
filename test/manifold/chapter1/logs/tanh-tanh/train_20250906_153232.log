@@ -1,0 +1,1175 @@
+2025-09-06 15:32:32 [INFO] Logging to: logs/tanh-tanh/train_20250906_153232.log
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_best.pt
+[Clean-tanh-tanh] removed: checkpoints/tanh-tanh/sdf_last.pt
+[Clean] checkpoints/ and renders/ are reset for tag=tanh-tanh.
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=1, best=inf)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=1, best=1.779695e-02)
+Epoch [1/2000] Loss: 1.779695e-02 | Best: 1.779695e-02 | LR: 1.000000e-04 | Val|SDF|: 5.613960e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=2, best=1.779695e-02)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=2, best=5.836617e-03)
+Epoch [2/2000] Loss: 5.836617e-03 | Best: 5.836617e-03 | LR: 1.000000e-04 | Val|SDF|: 4.896963e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=3, best=5.836617e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=3, best=4.254908e-03)
+Epoch [3/2000] Loss: 4.254908e-03 | Best: 4.254908e-03 | LR: 1.000000e-04 | Val|SDF|: 3.881859e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=4, best=4.254908e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=4, best=3.103762e-03)
+Epoch [4/2000] Loss: 3.103762e-03 | Best: 3.103762e-03 | LR: 1.000000e-04 | Val|SDF|: 3.577912e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=5, best=3.103762e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=5, best=2.271314e-03)
+Epoch [5/2000] Loss: 2.271314e-03 | Best: 2.271314e-03 | LR: 1.000000e-04 | Val|SDF|: 2.832101e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=6, best=2.271314e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=6, best=1.817149e-03)
+Epoch [6/2000] Loss: 1.817149e-03 | Best: 1.817149e-03 | LR: 1.000000e-04 | Val|SDF|: 2.594916e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=7, best=1.817149e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=7, best=1.545013e-03)
+Epoch [7/2000] Loss: 1.545013e-03 | Best: 1.545013e-03 | LR: 1.000000e-04 | Val|SDF|: 2.495081e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=8, best=1.545013e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=8, best=1.373450e-03)
+Epoch [8/2000] Loss: 1.373450e-03 | Best: 1.373450e-03 | LR: 1.000000e-04 | Val|SDF|: 2.474096e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=9, best=1.373450e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=9, best=1.219007e-03)
+Epoch [9/2000] Loss: 1.219007e-03 | Best: 1.219007e-03 | LR: 1.000000e-04 | Val|SDF|: 2.451528e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=10, best=1.219007e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=10, best=1.083823e-03)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0010_e0010.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0010_e0010.png | PLY: renders/tanh-tanh/iso_best0010_e0010.ply
+Epoch [10/2000] Loss: 1.083823e-03 | Best: 1.083823e-03 | LR: 1.000000e-04 | Val|SDF|: 2.133770e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=11, best=1.083823e-03)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=11, best=9.612372e-04)
+Epoch [11/2000] Loss: 9.612372e-04 | Best: 9.612372e-04 | LR: 1.000000e-04 | Val|SDF|: 2.224117e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=12, best=9.612372e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=12, best=8.977633e-04)
+Epoch [12/2000] Loss: 8.977633e-04 | Best: 8.977633e-04 | LR: 1.000000e-04 | Val|SDF|: 2.364000e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=13, best=8.977633e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=13, best=8.073214e-04)
+Epoch [13/2000] Loss: 8.073214e-04 | Best: 8.073214e-04 | LR: 1.000000e-04 | Val|SDF|: 2.000391e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=14, best=8.073214e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=14, best=7.250484e-04)
+Epoch [14/2000] Loss: 7.250484e-04 | Best: 7.250484e-04 | LR: 1.000000e-04 | Val|SDF|: 1.969999e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=15, best=7.250484e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=15, best=6.670617e-04)
+Epoch [15/2000] Loss: 6.670617e-04 | Best: 6.670617e-04 | LR: 1.000000e-04 | Val|SDF|: 1.832368e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=16, best=6.670617e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=16, best=6.109867e-04)
+Epoch [16/2000] Loss: 6.109867e-04 | Best: 6.109867e-04 | LR: 1.000000e-04 | Val|SDF|: 1.590073e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=17, best=6.109867e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=17, best=5.731587e-04)
+Epoch [17/2000] Loss: 5.731587e-04 | Best: 5.731587e-04 | LR: 1.000000e-04 | Val|SDF|: 1.680531e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=18, best=5.731587e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=18, best=5.388764e-04)
+Epoch [18/2000] Loss: 5.388764e-04 | Best: 5.388764e-04 | LR: 1.000000e-04 | Val|SDF|: 1.575296e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=19, best=5.388764e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=19, best=5.048631e-04)
+Epoch [19/2000] Loss: 5.048631e-04 | Best: 5.048631e-04 | LR: 1.000000e-04 | Val|SDF|: 1.568347e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=20, best=5.048631e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=20, best=4.914647e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0020_e0020.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0020_e0020.png | PLY: renders/tanh-tanh/iso_best0020_e0020.ply
+Epoch [20/2000] Loss: 4.914647e-04 | Best: 4.914647e-04 | LR: 1.000000e-04 | Val|SDF|: 1.415039e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=21, best=4.914647e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=21, best=4.672252e-04)
+Epoch [21/2000] Loss: 4.672252e-04 | Best: 4.672252e-04 | LR: 1.000000e-04 | Val|SDF|: 1.488498e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=22, best=4.672252e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=22, best=4.419894e-04)
+Epoch [22/2000] Loss: 4.419894e-04 | Best: 4.419894e-04 | LR: 1.000000e-04 | Val|SDF|: 1.409775e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=23, best=4.419894e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=23, best=4.283556e-04)
+Epoch [23/2000] Loss: 4.283556e-04 | Best: 4.283556e-04 | LR: 1.000000e-04 | Val|SDF|: 1.519776e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=24, best=4.283556e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=24, best=4.171403e-04)
+Epoch [24/2000] Loss: 4.171403e-04 | Best: 4.171403e-04 | LR: 1.000000e-04 | Val|SDF|: 1.345665e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=25, best=4.171403e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=25, best=4.044133e-04)
+Epoch [25/2000] Loss: 4.044133e-04 | Best: 4.044133e-04 | LR: 1.000000e-04 | Val|SDF|: 1.384407e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=26, best=4.044133e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=26, best=3.889855e-04)
+Epoch [26/2000] Loss: 3.889855e-04 | Best: 3.889855e-04 | LR: 1.000000e-04 | Val|SDF|: 1.377109e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=27, best=3.889855e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=27, best=3.845425e-04)
+Epoch [27/2000] Loss: 3.845425e-04 | Best: 3.845425e-04 | LR: 1.000000e-04 | Val|SDF|: 1.693257e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=28, best=3.845425e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=28, best=3.691546e-04)
+Epoch [28/2000] Loss: 3.691546e-04 | Best: 3.691546e-04 | LR: 1.000000e-04 | Val|SDF|: 1.366592e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=29, best=3.691546e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=29, best=3.593019e-04)
+Epoch [29/2000] Loss: 3.593019e-04 | Best: 3.593019e-04 | LR: 1.000000e-04 | Val|SDF|: 1.262139e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=30, best=3.593019e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=30, best=3.514797e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0030_e0030.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0030_e0030.png | PLY: renders/tanh-tanh/iso_best0030_e0030.ply
+Epoch [30/2000] Loss: 3.514797e-04 | Best: 3.514797e-04 | LR: 1.000000e-04 | Val|SDF|: 1.233195e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=31, best=3.514797e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=31, best=3.429410e-04)
+Epoch [31/2000] Loss: 3.429410e-04 | Best: 3.429410e-04 | LR: 1.000000e-04 | Val|SDF|: 1.300883e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=32, best=3.429410e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=32, best=3.329767e-04)
+Epoch [32/2000] Loss: 3.329767e-04 | Best: 3.329767e-04 | LR: 1.000000e-04 | Val|SDF|: 1.246333e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=33, best=3.329767e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=33, best=3.254094e-04)
+Epoch [33/2000] Loss: 3.254094e-04 | Best: 3.254094e-04 | LR: 1.000000e-04 | Val|SDF|: 1.778865e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=34, best=3.254094e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=34, best=3.204773e-04)
+Epoch [34/2000] Loss: 3.204773e-04 | Best: 3.204773e-04 | LR: 1.000000e-04 | Val|SDF|: 1.269167e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=35, best=3.204773e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=35, best=3.149863e-04)
+Epoch [35/2000] Loss: 3.149863e-04 | Best: 3.149863e-04 | LR: 1.000000e-04 | Val|SDF|: 1.265053e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=36, best=3.149863e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=36, best=3.050867e-04)
+Epoch [36/2000] Loss: 3.050867e-04 | Best: 3.050867e-04 | LR: 1.000000e-04 | Val|SDF|: 1.353328e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=37, best=3.050867e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=37, best=3.013212e-04)
+Epoch [37/2000] Loss: 3.013212e-04 | Best: 3.013212e-04 | LR: 1.000000e-04 | Val|SDF|: 1.260513e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=38, best=3.013212e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=38, best=2.876418e-04)
+Epoch [38/2000] Loss: 2.876418e-04 | Best: 2.876418e-04 | LR: 1.000000e-04 | Val|SDF|: 1.290489e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=39, best=2.876418e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=39, best=2.840632e-04)
+Epoch [39/2000] Loss: 2.840632e-04 | Best: 2.840632e-04 | LR: 1.000000e-04 | Val|SDF|: 1.155716e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=40, best=2.840632e-04)
+Epoch [40/2000] Loss: 2.863441e-04 | Best: 2.840632e-04 | LR: 1.000000e-04 | Val|SDF|: 1.130117e-02 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=41, best=2.840632e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=41, best=2.797383e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0040_e0041.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0040_e0041.png | PLY: renders/tanh-tanh/iso_best0040_e0041.ply
+Epoch [41/2000] Loss: 2.797383e-04 | Best: 2.797383e-04 | LR: 1.000000e-04 | Val|SDF|: 1.116704e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=42, best=2.797383e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=42, best=2.746915e-04)
+Epoch [42/2000] Loss: 2.746915e-04 | Best: 2.746915e-04 | LR: 1.000000e-04 | Val|SDF|: 1.151552e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=43, best=2.746915e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=43, best=2.689494e-04)
+Epoch [43/2000] Loss: 2.689494e-04 | Best: 2.689494e-04 | LR: 1.000000e-04 | Val|SDF|: 1.134765e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=44, best=2.689494e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=44, best=2.664466e-04)
+Epoch [44/2000] Loss: 2.664466e-04 | Best: 2.664466e-04 | LR: 1.000000e-04 | Val|SDF|: 1.144892e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=45, best=2.664466e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=45, best=2.614248e-04)
+Epoch [45/2000] Loss: 2.614248e-04 | Best: 2.614248e-04 | LR: 1.000000e-04 | Val|SDF|: 1.119476e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=46, best=2.614248e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=46, best=2.602946e-04)
+Epoch [46/2000] Loss: 2.602946e-04 | Best: 2.602946e-04 | LR: 1.000000e-04 | Val|SDF|: 1.052932e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=47, best=2.602946e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=47, best=2.555737e-04)
+Epoch [47/2000] Loss: 2.555737e-04 | Best: 2.555737e-04 | LR: 1.000000e-04 | Val|SDF|: 1.198543e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=48, best=2.555737e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=48, best=2.480708e-04)
+Epoch [48/2000] Loss: 2.480708e-04 | Best: 2.480708e-04 | LR: 1.000000e-04 | Val|SDF|: 1.052159e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=49, best=2.480708e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=49, best=2.460034e-04)
+Epoch [49/2000] Loss: 2.460034e-04 | Best: 2.460034e-04 | LR: 1.000000e-04 | Val|SDF|: 1.091887e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=50, best=2.460034e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=50, best=2.432144e-04)
+Epoch [50/2000] Loss: 2.432144e-04 | Best: 2.432144e-04 | LR: 1.000000e-04 | Val|SDF|: 1.083494e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=51, best=2.432144e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=51, best=2.396994e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0050_e0051.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0050_e0051.png | PLY: renders/tanh-tanh/iso_best0050_e0051.ply
+Epoch [51/2000] Loss: 2.396994e-04 | Best: 2.396994e-04 | LR: 1.000000e-04 | Val|SDF|: 1.066380e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=52, best=2.396994e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=52, best=2.343620e-04)
+Epoch [52/2000] Loss: 2.343620e-04 | Best: 2.343620e-04 | LR: 1.000000e-04 | Val|SDF|: 1.013318e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=53, best=2.343620e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=53, best=2.310938e-04)
+Epoch [53/2000] Loss: 2.310938e-04 | Best: 2.310938e-04 | LR: 1.000000e-04 | Val|SDF|: 1.012931e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=54, best=2.310938e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=54, best=2.309753e-04)
+Epoch [54/2000] Loss: 2.309753e-04 | Best: 2.309753e-04 | LR: 1.000000e-04 | Val|SDF|: 1.320922e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=55, best=2.309753e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=55, best=2.271127e-04)
+Epoch [55/2000] Loss: 2.271127e-04 | Best: 2.271127e-04 | LR: 1.000000e-04 | Val|SDF|: 1.070988e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=56, best=2.271127e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=56, best=2.211074e-04)
+Epoch [56/2000] Loss: 2.211074e-04 | Best: 2.211074e-04 | LR: 1.000000e-04 | Val|SDF|: 1.070815e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=57, best=2.211074e-04)
+Epoch [57/2000] Loss: 2.225103e-04 | Best: 2.211074e-04 | LR: 1.000000e-04 | Val|SDF|: 1.021931e-02 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=58, best=2.211074e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=58, best=2.191467e-04)
+Epoch [58/2000] Loss: 2.191467e-04 | Best: 2.191467e-04 | LR: 1.000000e-04 | Val|SDF|: 1.110626e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=59, best=2.191467e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=59, best=2.161030e-04)
+Epoch [59/2000] Loss: 2.161030e-04 | Best: 2.161030e-04 | LR: 1.000000e-04 | Val|SDF|: 9.834271e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=60, best=2.161030e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=60, best=2.133944e-04)
+Epoch [60/2000] Loss: 2.133944e-04 | Best: 2.133944e-04 | LR: 1.000000e-04 | Val|SDF|: 1.400618e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=61, best=2.133944e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=61, best=2.124081e-04)
+Epoch [61/2000] Loss: 2.124081e-04 | Best: 2.124081e-04 | LR: 1.000000e-04 | Val|SDF|: 1.008859e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=62, best=2.124081e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=62, best=2.081261e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0060_e0062.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0060_e0062.png | PLY: renders/tanh-tanh/iso_best0060_e0062.ply
+Epoch [62/2000] Loss: 2.081261e-04 | Best: 2.081261e-04 | LR: 1.000000e-04 | Val|SDF|: 1.012029e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=63, best=2.081261e-04)
+Epoch [63/2000] Loss: 2.081827e-04 | Best: 2.081261e-04 | LR: 1.000000e-04 | Val|SDF|: 9.747417e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=64, best=2.081261e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=64, best=2.049417e-04)
+Epoch [64/2000] Loss: 2.049417e-04 | Best: 2.049417e-04 | LR: 1.000000e-04 | Val|SDF|: 1.018697e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=65, best=2.049417e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=65, best=2.030209e-04)
+Epoch [65/2000] Loss: 2.030209e-04 | Best: 2.030209e-04 | LR: 1.000000e-04 | Val|SDF|: 9.702701e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=66, best=2.030209e-04)
+Epoch [66/2000] Loss: 2.037573e-04 | Best: 2.030209e-04 | LR: 1.000000e-04 | Val|SDF|: 9.672181e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=67, best=2.030209e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=67, best=1.970191e-04)
+Epoch [67/2000] Loss: 1.970191e-04 | Best: 1.970191e-04 | LR: 1.000000e-04 | Val|SDF|: 1.003258e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=68, best=1.970191e-04)
+Epoch [68/2000] Loss: 1.972476e-04 | Best: 1.970191e-04 | LR: 1.000000e-04 | Val|SDF|: 9.654530e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=69, best=1.970191e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=69, best=1.945078e-04)
+Epoch [69/2000] Loss: 1.945078e-04 | Best: 1.945078e-04 | LR: 1.000000e-04 | Val|SDF|: 9.349956e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=70, best=1.945078e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=70, best=1.918966e-04)
+Epoch [70/2000] Loss: 1.918966e-04 | Best: 1.918966e-04 | LR: 1.000000e-04 | Val|SDF|: 9.822310e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=71, best=1.918966e-04)
+Epoch [71/2000] Loss: 1.934366e-04 | Best: 1.918966e-04 | LR: 1.000000e-04 | Val|SDF|: 9.184323e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=72, best=1.918966e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=72, best=1.892817e-04)
+Epoch [72/2000] Loss: 1.892817e-04 | Best: 1.892817e-04 | LR: 1.000000e-04 | Val|SDF|: 1.079312e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=73, best=1.892817e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=73, best=1.888179e-04)
+Epoch [73/2000] Loss: 1.888179e-04 | Best: 1.888179e-04 | LR: 1.000000e-04 | Val|SDF|: 9.244822e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=74, best=1.888179e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=74, best=1.870999e-04)
+Epoch [74/2000] Loss: 1.870999e-04 | Best: 1.870999e-04 | LR: 1.000000e-04 | Val|SDF|: 9.422257e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=75, best=1.870999e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=75, best=1.848846e-04)
+Epoch [75/2000] Loss: 1.848846e-04 | Best: 1.848846e-04 | LR: 1.000000e-04 | Val|SDF|: 9.918273e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=76, best=1.848846e-04)
+Epoch [76/2000] Loss: 1.863809e-04 | Best: 1.848846e-04 | LR: 1.000000e-04 | Val|SDF|: 9.044980e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=77, best=1.848846e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=77, best=1.830554e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0070_e0077.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0070_e0077.png | PLY: renders/tanh-tanh/iso_best0070_e0077.ply
+Epoch [77/2000] Loss: 1.830554e-04 | Best: 1.830554e-04 | LR: 1.000000e-04 | Val|SDF|: 9.238327e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=78, best=1.830554e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=78, best=1.802219e-04)
+Epoch [78/2000] Loss: 1.802219e-04 | Best: 1.802219e-04 | LR: 1.000000e-04 | Val|SDF|: 9.291455e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=79, best=1.802219e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=79, best=1.779497e-04)
+Epoch [79/2000] Loss: 1.779497e-04 | Best: 1.779497e-04 | LR: 1.000000e-04 | Val|SDF|: 9.157926e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=80, best=1.779497e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=80, best=1.774836e-04)
+Epoch [80/2000] Loss: 1.774836e-04 | Best: 1.774836e-04 | LR: 1.000000e-04 | Val|SDF|: 1.126490e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=81, best=1.774836e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=81, best=1.767758e-04)
+Epoch [81/2000] Loss: 1.767758e-04 | Best: 1.767758e-04 | LR: 1.000000e-04 | Val|SDF|: 9.493770e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=82, best=1.767758e-04)
+Epoch [82/2000] Loss: 1.770791e-04 | Best: 1.767758e-04 | LR: 1.000000e-04 | Val|SDF|: 9.906005e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=83, best=1.767758e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=83, best=1.742285e-04)
+Epoch [83/2000] Loss: 1.742285e-04 | Best: 1.742285e-04 | LR: 1.000000e-04 | Val|SDF|: 8.909492e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=84, best=1.742285e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=84, best=1.722336e-04)
+Epoch [84/2000] Loss: 1.722336e-04 | Best: 1.722336e-04 | LR: 1.000000e-04 | Val|SDF|: 1.073746e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=85, best=1.722336e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=85, best=1.719283e-04)
+Epoch [85/2000] Loss: 1.719283e-04 | Best: 1.719283e-04 | LR: 1.000000e-04 | Val|SDF|: 8.893223e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=86, best=1.719283e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=86, best=1.706414e-04)
+Epoch [86/2000] Loss: 1.706414e-04 | Best: 1.706414e-04 | LR: 1.000000e-04 | Val|SDF|: 8.820809e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=87, best=1.706414e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=87, best=1.672311e-04)
+Epoch [87/2000] Loss: 1.672311e-04 | Best: 1.672311e-04 | LR: 1.000000e-04 | Val|SDF|: 9.315917e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=88, best=1.672311e-04)
+Epoch [88/2000] Loss: 1.683404e-04 | Best: 1.672311e-04 | LR: 1.000000e-04 | Val|SDF|: 9.350318e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=89, best=1.672311e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=89, best=1.666635e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0080_e0089.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0080_e0089.png | PLY: renders/tanh-tanh/iso_best0080_e0089.ply
+Epoch [89/2000] Loss: 1.666635e-04 | Best: 1.666635e-04 | LR: 1.000000e-04 | Val|SDF|: 8.985835e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=90, best=1.666635e-04)
+Epoch [90/2000] Loss: 1.668070e-04 | Best: 1.666635e-04 | LR: 1.000000e-04 | Val|SDF|: 9.148166e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=91, best=1.666635e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=91, best=1.645182e-04)
+Epoch [91/2000] Loss: 1.645182e-04 | Best: 1.645182e-04 | LR: 1.000000e-04 | Val|SDF|: 1.018889e-02  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=92, best=1.645182e-04)
+Epoch [92/2000] Loss: 1.649738e-04 | Best: 1.645182e-04 | LR: 1.000000e-04 | Val|SDF|: 8.921951e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=93, best=1.645182e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=93, best=1.632255e-04)
+Epoch [93/2000] Loss: 1.632255e-04 | Best: 1.632255e-04 | LR: 1.000000e-04 | Val|SDF|: 8.814202e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=94, best=1.632255e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=94, best=1.629846e-04)
+Epoch [94/2000] Loss: 1.629846e-04 | Best: 1.629846e-04 | LR: 1.000000e-04 | Val|SDF|: 8.804269e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=95, best=1.629846e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=95, best=1.596344e-04)
+Epoch [95/2000] Loss: 1.596344e-04 | Best: 1.596344e-04 | LR: 1.000000e-04 | Val|SDF|: 8.438711e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=96, best=1.596344e-04)
+Epoch [96/2000] Loss: 1.617816e-04 | Best: 1.596344e-04 | LR: 1.000000e-04 | Val|SDF|: 9.375613e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=97, best=1.596344e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=97, best=1.584124e-04)
+Epoch [97/2000] Loss: 1.584124e-04 | Best: 1.584124e-04 | LR: 1.000000e-04 | Val|SDF|: 8.529735e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=98, best=1.584124e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=98, best=1.582286e-04)
+Epoch [98/2000] Loss: 1.582286e-04 | Best: 1.582286e-04 | LR: 1.000000e-04 | Val|SDF|: 8.696169e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=99, best=1.582286e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=99, best=1.562126e-04)
+Epoch [99/2000] Loss: 1.562126e-04 | Best: 1.562126e-04 | LR: 1.000000e-04 | Val|SDF|: 8.508310e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=100, best=1.562126e-04)
+Epoch [100/2000] Loss: 1.568587e-04 | Best: 1.562126e-04 | LR: 1.000000e-04 | Val|SDF|: 8.522725e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=101, best=1.562126e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=101, best=1.554275e-04)
+Epoch [101/2000] Loss: 1.554275e-04 | Best: 1.554275e-04 | LR: 1.000000e-04 | Val|SDF|: 9.046269e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=102, best=1.554275e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=102, best=1.537826e-04)
+Epoch [102/2000] Loss: 1.537826e-04 | Best: 1.537826e-04 | LR: 1.000000e-04 | Val|SDF|: 8.664268e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=103, best=1.537826e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=103, best=1.531547e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0090_e0103.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0090_e0103.png | PLY: renders/tanh-tanh/iso_best0090_e0103.ply
+Epoch [103/2000] Loss: 1.531547e-04 | Best: 1.531547e-04 | LR: 1.000000e-04 | Val|SDF|: 8.560683e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=104, best=1.531547e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=104, best=1.519128e-04)
+Epoch [104/2000] Loss: 1.519128e-04 | Best: 1.519128e-04 | LR: 1.000000e-04 | Val|SDF|: 8.666085e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=105, best=1.519128e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=105, best=1.511365e-04)
+Epoch [105/2000] Loss: 1.511365e-04 | Best: 1.511365e-04 | LR: 1.000000e-04 | Val|SDF|: 8.331432e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=106, best=1.511365e-04)
+Epoch [106/2000] Loss: 1.517115e-04 | Best: 1.511365e-04 | LR: 1.000000e-04 | Val|SDF|: 8.459437e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=107, best=1.511365e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=107, best=1.499920e-04)
+Epoch [107/2000] Loss: 1.499920e-04 | Best: 1.499920e-04 | LR: 1.000000e-04 | Val|SDF|: 8.307179e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=108, best=1.499920e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=108, best=1.490020e-04)
+Epoch [108/2000] Loss: 1.490020e-04 | Best: 1.490020e-04 | LR: 1.000000e-04 | Val|SDF|: 8.341910e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=109, best=1.490020e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=109, best=1.460521e-04)
+Epoch [109/2000] Loss: 1.460521e-04 | Best: 1.460521e-04 | LR: 1.000000e-04 | Val|SDF|: 8.618874e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=110, best=1.460521e-04)
+Epoch [110/2000] Loss: 1.474421e-04 | Best: 1.460521e-04 | LR: 1.000000e-04 | Val|SDF|: 8.737642e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=111, best=1.460521e-04)
+Epoch [111/2000] Loss: 1.460722e-04 | Best: 1.460521e-04 | LR: 1.000000e-04 | Val|SDF|: 8.554953e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=112, best=1.460521e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=112, best=1.447560e-04)
+Epoch [112/2000] Loss: 1.447560e-04 | Best: 1.447560e-04 | LR: 1.000000e-04 | Val|SDF|: 8.298263e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=113, best=1.447560e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=113, best=1.430781e-04)
+Epoch [113/2000] Loss: 1.430781e-04 | Best: 1.430781e-04 | LR: 1.000000e-04 | Val|SDF|: 8.241076e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=114, best=1.430781e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=114, best=1.416363e-04)
+Epoch [114/2000] Loss: 1.416363e-04 | Best: 1.416363e-04 | LR: 1.000000e-04 | Val|SDF|: 8.206043e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=115, best=1.416363e-04)
+Epoch [115/2000] Loss: 1.429054e-04 | Best: 1.416363e-04 | LR: 1.000000e-04 | Val|SDF|: 8.242441e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=116, best=1.416363e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=116, best=1.413283e-04)
+Epoch [116/2000] Loss: 1.413283e-04 | Best: 1.413283e-04 | LR: 1.000000e-04 | Val|SDF|: 8.340470e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=117, best=1.413283e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=117, best=1.409697e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0100_e0117.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0100_e0117.png | PLY: renders/tanh-tanh/iso_best0100_e0117.ply
+Epoch [117/2000] Loss: 1.409697e-04 | Best: 1.409697e-04 | LR: 1.000000e-04 | Val|SDF|: 7.924754e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=118, best=1.409697e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=118, best=1.393989e-04)
+Epoch [118/2000] Loss: 1.393989e-04 | Best: 1.393989e-04 | LR: 1.000000e-04 | Val|SDF|: 8.012643e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=119, best=1.393989e-04)
+Epoch [119/2000] Loss: 1.409039e-04 | Best: 1.393989e-04 | LR: 1.000000e-04 | Val|SDF|: 9.004884e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=120, best=1.393989e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=120, best=1.373750e-04)
+Epoch [120/2000] Loss: 1.373750e-04 | Best: 1.373750e-04 | LR: 1.000000e-04 | Val|SDF|: 7.924173e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=121, best=1.373750e-04)
+Epoch [121/2000] Loss: 1.387892e-04 | Best: 1.373750e-04 | LR: 1.000000e-04 | Val|SDF|: 8.393240e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=122, best=1.373750e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=122, best=1.361825e-04)
+Epoch [122/2000] Loss: 1.361825e-04 | Best: 1.361825e-04 | LR: 1.000000e-04 | Val|SDF|: 9.643296e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=123, best=1.361825e-04)
+Epoch [123/2000] Loss: 1.363567e-04 | Best: 1.361825e-04 | LR: 1.000000e-04 | Val|SDF|: 8.135566e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=124, best=1.361825e-04)
+Epoch [124/2000] Loss: 1.369986e-04 | Best: 1.361825e-04 | LR: 1.000000e-04 | Val|SDF|: 8.012817e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=125, best=1.361825e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=125, best=1.348789e-04)
+Epoch [125/2000] Loss: 1.348789e-04 | Best: 1.348789e-04 | LR: 1.000000e-04 | Val|SDF|: 8.369329e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=126, best=1.348789e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=126, best=1.343215e-04)
+Epoch [126/2000] Loss: 1.343215e-04 | Best: 1.343215e-04 | LR: 1.000000e-04 | Val|SDF|: 8.012785e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=127, best=1.343215e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=127, best=1.342845e-04)
+Epoch [127/2000] Loss: 1.342845e-04 | Best: 1.342845e-04 | LR: 1.000000e-04 | Val|SDF|: 7.919927e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=128, best=1.342845e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=128, best=1.331136e-04)
+Epoch [128/2000] Loss: 1.331136e-04 | Best: 1.331136e-04 | LR: 1.000000e-04 | Val|SDF|: 7.875967e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=129, best=1.331136e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=129, best=1.303939e-04)
+Epoch [129/2000] Loss: 1.303939e-04 | Best: 1.303939e-04 | LR: 1.000000e-04 | Val|SDF|: 7.742371e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=130, best=1.303939e-04)
+Epoch [130/2000] Loss: 1.337187e-04 | Best: 1.303939e-04 | LR: 1.000000e-04 | Val|SDF|: 7.735535e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=131, best=1.303939e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=131, best=1.300138e-04)
+Epoch [131/2000] Loss: 1.300138e-04 | Best: 1.300138e-04 | LR: 1.000000e-04 | Val|SDF|: 7.915093e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=132, best=1.300138e-04)
+Epoch [132/2000] Loss: 1.302241e-04 | Best: 1.300138e-04 | LR: 1.000000e-04 | Val|SDF|: 8.433542e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=133, best=1.300138e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=133, best=1.298520e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0110_e0133.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0110_e0133.png | PLY: renders/tanh-tanh/iso_best0110_e0133.ply
+Epoch [133/2000] Loss: 1.298520e-04 | Best: 1.298520e-04 | LR: 1.000000e-04 | Val|SDF|: 7.670043e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=134, best=1.298520e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=134, best=1.289153e-04)
+Epoch [134/2000] Loss: 1.289153e-04 | Best: 1.289153e-04 | LR: 1.000000e-04 | Val|SDF|: 7.663319e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=135, best=1.289153e-04)
+Epoch [135/2000] Loss: 1.289615e-04 | Best: 1.289153e-04 | LR: 1.000000e-04 | Val|SDF|: 7.882412e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=136, best=1.289153e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=136, best=1.258478e-04)
+Epoch [136/2000] Loss: 1.258478e-04 | Best: 1.258478e-04 | LR: 1.000000e-04 | Val|SDF|: 7.664915e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=137, best=1.258478e-04)
+Epoch [137/2000] Loss: 1.266983e-04 | Best: 1.258478e-04 | LR: 1.000000e-04 | Val|SDF|: 7.816554e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=138, best=1.258478e-04)
+Epoch [138/2000] Loss: 1.275182e-04 | Best: 1.258478e-04 | LR: 1.000000e-04 | Val|SDF|: 7.611651e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=139, best=1.258478e-04)
+Epoch [139/2000] Loss: 1.259041e-04 | Best: 1.258478e-04 | LR: 1.000000e-04 | Val|SDF|: 8.406042e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=140, best=1.258478e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=140, best=1.255208e-04)
+Epoch [140/2000] Loss: 1.255208e-04 | Best: 1.255208e-04 | LR: 1.000000e-04 | Val|SDF|: 7.786758e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=141, best=1.255208e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=141, best=1.231966e-04)
+Epoch [141/2000] Loss: 1.231966e-04 | Best: 1.231966e-04 | LR: 1.000000e-04 | Val|SDF|: 8.333697e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=142, best=1.231966e-04)
+Epoch [142/2000] Loss: 1.240862e-04 | Best: 1.231966e-04 | LR: 1.000000e-04 | Val|SDF|: 8.347812e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=143, best=1.231966e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=143, best=1.219038e-04)
+Epoch [143/2000] Loss: 1.219038e-04 | Best: 1.219038e-04 | LR: 1.000000e-04 | Val|SDF|: 7.433324e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=144, best=1.219038e-04)
+Epoch [144/2000] Loss: 1.222724e-04 | Best: 1.219038e-04 | LR: 1.000000e-04 | Val|SDF|: 7.878312e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=145, best=1.219038e-04)
+Epoch [145/2000] Loss: 1.220183e-04 | Best: 1.219038e-04 | LR: 1.000000e-04 | Val|SDF|: 7.638293e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=146, best=1.219038e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=146, best=1.209631e-04)
+Epoch [146/2000] Loss: 1.209631e-04 | Best: 1.209631e-04 | LR: 1.000000e-04 | Val|SDF|: 7.244317e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=147, best=1.209631e-04)
+Epoch [147/2000] Loss: 1.212397e-04 | Best: 1.209631e-04 | LR: 1.000000e-04 | Val|SDF|: 8.534794e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=148, best=1.209631e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=148, best=1.183783e-04)
+Epoch [148/2000] Loss: 1.183783e-04 | Best: 1.183783e-04 | LR: 1.000000e-04 | Val|SDF|: 8.254199e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=149, best=1.183783e-04)
+Epoch [149/2000] Loss: 1.192565e-04 | Best: 1.183783e-04 | LR: 1.000000e-04 | Val|SDF|: 7.751730e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=150, best=1.183783e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=150, best=1.173873e-04)
+Epoch [150/2000] Loss: 1.173873e-04 | Best: 1.173873e-04 | LR: 1.000000e-04 | Val|SDF|: 7.209348e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=151, best=1.173873e-04)
+Epoch [151/2000] Loss: 1.175044e-04 | Best: 1.173873e-04 | LR: 1.000000e-04 | Val|SDF|: 7.460168e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=152, best=1.173873e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=152, best=1.172674e-04)
+Epoch [152/2000] Loss: 1.172674e-04 | Best: 1.172674e-04 | LR: 1.000000e-04 | Val|SDF|: 7.601960e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=153, best=1.172674e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=153, best=1.168180e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0120_e0153.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0120_e0153.png | PLY: renders/tanh-tanh/iso_best0120_e0153.ply
+Epoch [153/2000] Loss: 1.168180e-04 | Best: 1.168180e-04 | LR: 1.000000e-04 | Val|SDF|: 7.580976e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=154, best=1.168180e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=154, best=1.155692e-04)
+Epoch [154/2000] Loss: 1.155692e-04 | Best: 1.155692e-04 | LR: 1.000000e-04 | Val|SDF|: 7.290156e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=155, best=1.155692e-04)
+Epoch [155/2000] Loss: 1.161777e-04 | Best: 1.155692e-04 | LR: 1.000000e-04 | Val|SDF|: 7.756015e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=156, best=1.155692e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=156, best=1.142265e-04)
+Epoch [156/2000] Loss: 1.142265e-04 | Best: 1.142265e-04 | LR: 1.000000e-04 | Val|SDF|: 7.307508e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=157, best=1.142265e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=157, best=1.136526e-04)
+Epoch [157/2000] Loss: 1.136526e-04 | Best: 1.136526e-04 | LR: 1.000000e-04 | Val|SDF|: 7.252368e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=158, best=1.136526e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=158, best=1.126119e-04)
+Epoch [158/2000] Loss: 1.126119e-04 | Best: 1.126119e-04 | LR: 1.000000e-04 | Val|SDF|: 7.201918e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=159, best=1.126119e-04)
+Epoch [159/2000] Loss: 1.138043e-04 | Best: 1.126119e-04 | LR: 1.000000e-04 | Val|SDF|: 7.138985e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=160, best=1.126119e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=160, best=1.112194e-04)
+Epoch [160/2000] Loss: 1.112194e-04 | Best: 1.112194e-04 | LR: 1.000000e-04 | Val|SDF|: 7.898358e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=161, best=1.112194e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=161, best=1.102490e-04)
+Epoch [161/2000] Loss: 1.102490e-04 | Best: 1.102490e-04 | LR: 1.000000e-04 | Val|SDF|: 7.238855e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=162, best=1.102490e-04)
+Epoch [162/2000] Loss: 1.112405e-04 | Best: 1.102490e-04 | LR: 1.000000e-04 | Val|SDF|: 7.158850e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=163, best=1.102490e-04)
+Epoch [163/2000] Loss: 1.104832e-04 | Best: 1.102490e-04 | LR: 1.000000e-04 | Val|SDF|: 9.639571e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=164, best=1.102490e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=164, best=1.100967e-04)
+Epoch [164/2000] Loss: 1.100967e-04 | Best: 1.100967e-04 | LR: 1.000000e-04 | Val|SDF|: 7.156969e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=165, best=1.100967e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=165, best=1.085069e-04)
+Epoch [165/2000] Loss: 1.085069e-04 | Best: 1.085069e-04 | LR: 1.000000e-04 | Val|SDF|: 6.958811e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=166, best=1.085069e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=166, best=1.077298e-04)
+Epoch [166/2000] Loss: 1.077298e-04 | Best: 1.077298e-04 | LR: 1.000000e-04 | Val|SDF|: 7.532824e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=167, best=1.077298e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=167, best=1.076448e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0130_e0167.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0130_e0167.png | PLY: renders/tanh-tanh/iso_best0130_e0167.ply
+Epoch [167/2000] Loss: 1.076448e-04 | Best: 1.076448e-04 | LR: 1.000000e-04 | Val|SDF|: 7.555933e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=168, best=1.076448e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=168, best=1.074202e-04)
+Epoch [168/2000] Loss: 1.074202e-04 | Best: 1.074202e-04 | LR: 1.000000e-04 | Val|SDF|: 7.018900e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=169, best=1.074202e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=169, best=1.063199e-04)
+Epoch [169/2000] Loss: 1.063199e-04 | Best: 1.063199e-04 | LR: 1.000000e-04 | Val|SDF|: 7.255232e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=170, best=1.063199e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=170, best=1.058340e-04)
+Epoch [170/2000] Loss: 1.058340e-04 | Best: 1.058340e-04 | LR: 1.000000e-04 | Val|SDF|: 6.946965e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=171, best=1.058340e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=171, best=1.057795e-04)
+Epoch [171/2000] Loss: 1.057795e-04 | Best: 1.057795e-04 | LR: 1.000000e-04 | Val|SDF|: 6.981763e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=172, best=1.057795e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=172, best=1.048624e-04)
+Epoch [172/2000] Loss: 1.048624e-04 | Best: 1.048624e-04 | LR: 1.000000e-04 | Val|SDF|: 7.095902e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=173, best=1.048624e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=173, best=1.042162e-04)
+Epoch [173/2000] Loss: 1.042162e-04 | Best: 1.042162e-04 | LR: 1.000000e-04 | Val|SDF|: 7.305467e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=174, best=1.042162e-04)
+Epoch [174/2000] Loss: 1.043206e-04 | Best: 1.042162e-04 | LR: 1.000000e-04 | Val|SDF|: 6.964603e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=175, best=1.042162e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=175, best=1.032904e-04)
+Epoch [175/2000] Loss: 1.032904e-04 | Best: 1.032904e-04 | LR: 1.000000e-04 | Val|SDF|: 7.181329e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=176, best=1.032904e-04)
+Epoch [176/2000] Loss: 1.039967e-04 | Best: 1.032904e-04 | LR: 1.000000e-04 | Val|SDF|: 6.753834e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=177, best=1.032904e-04)
+Epoch [177/2000] Loss: 1.045036e-04 | Best: 1.032904e-04 | LR: 1.000000e-04 | Val|SDF|: 7.635134e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=178, best=1.032904e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=178, best=1.018649e-04)
+Epoch [178/2000] Loss: 1.018649e-04 | Best: 1.018649e-04 | LR: 1.000000e-04 | Val|SDF|: 7.316836e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=179, best=1.018649e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=179, best=1.013347e-04)
+Epoch [179/2000] Loss: 1.013347e-04 | Best: 1.013347e-04 | LR: 1.000000e-04 | Val|SDF|: 7.143791e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=180, best=1.013347e-04)
+Epoch [180/2000] Loss: 1.021490e-04 | Best: 1.013347e-04 | LR: 1.000000e-04 | Val|SDF|: 6.686735e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=181, best=1.013347e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=181, best=1.001751e-04)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0140_e0181.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0140_e0181.png | PLY: renders/tanh-tanh/iso_best0140_e0181.ply
+Epoch [181/2000] Loss: 1.001751e-04 | Best: 1.001751e-04 | LR: 1.000000e-04 | Val|SDF|: 7.239290e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=182, best=1.001751e-04)
+Epoch [182/2000] Loss: 1.004566e-04 | Best: 1.001751e-04 | LR: 1.000000e-04 | Val|SDF|: 7.044475e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=183, best=1.001751e-04)
+Epoch [183/2000] Loss: 1.002608e-04 | Best: 1.001751e-04 | LR: 1.000000e-04 | Val|SDF|: 6.619737e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=184, best=1.001751e-04)
+Epoch [184/2000] Loss: 1.010210e-04 | Best: 1.001751e-04 | LR: 1.000000e-04 | Val|SDF|: 7.853302e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=185, best=1.001751e-04)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=185, best=9.916806e-05)
+Epoch [185/2000] Loss: 9.916806e-05 | Best: 9.916806e-05 | LR: 1.000000e-04 | Val|SDF|: 6.882420e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=186, best=9.916806e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=186, best=9.905134e-05)
+Epoch [186/2000] Loss: 9.905134e-05 | Best: 9.905134e-05 | LR: 1.000000e-04 | Val|SDF|: 6.692864e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=187, best=9.905134e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=187, best=9.839058e-05)
+Epoch [187/2000] Loss: 9.839058e-05 | Best: 9.839058e-05 | LR: 1.000000e-04 | Val|SDF|: 6.943549e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=188, best=9.839058e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=188, best=9.819260e-05)
+Epoch [188/2000] Loss: 9.819260e-05 | Best: 9.819260e-05 | LR: 1.000000e-04 | Val|SDF|: 7.128604e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=189, best=9.819260e-05)
+Epoch [189/2000] Loss: 9.920289e-05 | Best: 9.819260e-05 | LR: 1.000000e-04 | Val|SDF|: 6.573065e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=190, best=9.819260e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=190, best=9.741308e-05)
+Epoch [190/2000] Loss: 9.741308e-05 | Best: 9.741308e-05 | LR: 1.000000e-04 | Val|SDF|: 6.722234e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=191, best=9.741308e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=191, best=9.662610e-05)
+Epoch [191/2000] Loss: 9.662610e-05 | Best: 9.662610e-05 | LR: 1.000000e-04 | Val|SDF|: 6.879035e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=192, best=9.662610e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=192, best=9.648735e-05)
+Epoch [192/2000] Loss: 9.648735e-05 | Best: 9.648735e-05 | LR: 1.000000e-04 | Val|SDF|: 6.743774e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=193, best=9.648735e-05)
+Epoch [193/2000] Loss: 9.664198e-05 | Best: 9.648735e-05 | LR: 1.000000e-04 | Val|SDF|: 6.969230e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=194, best=9.648735e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=194, best=9.631435e-05)
+Epoch [194/2000] Loss: 9.631435e-05 | Best: 9.631435e-05 | LR: 1.000000e-04 | Val|SDF|: 6.652434e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=195, best=9.631435e-05)
+Epoch [195/2000] Loss: 9.634083e-05 | Best: 9.631435e-05 | LR: 1.000000e-04 | Val|SDF|: 6.593756e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=196, best=9.631435e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=196, best=9.584865e-05)
+Epoch [196/2000] Loss: 9.584865e-05 | Best: 9.584865e-05 | LR: 1.000000e-04 | Val|SDF|: 6.962013e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=197, best=9.584865e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=197, best=9.395365e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0150_e0197.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0150_e0197.png | PLY: renders/tanh-tanh/iso_best0150_e0197.ply
+Epoch [197/2000] Loss: 9.395365e-05 | Best: 9.395365e-05 | LR: 1.000000e-04 | Val|SDF|: 6.981578e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=198, best=9.395365e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=198, best=9.346277e-05)
+Epoch [198/2000] Loss: 9.346277e-05 | Best: 9.346277e-05 | LR: 1.000000e-04 | Val|SDF|: 6.943309e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=199, best=9.346277e-05)
+Epoch [199/2000] Loss: 9.526572e-05 | Best: 9.346277e-05 | LR: 1.000000e-04 | Val|SDF|: 6.808246e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=200, best=9.346277e-05)
+Epoch [200/2000] Loss: 9.466877e-05 | Best: 9.346277e-05 | LR: 1.000000e-04 | Val|SDF|: 6.714413e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=201, best=9.346277e-05)
+Epoch [201/2000] Loss: 9.376347e-05 | Best: 9.346277e-05 | LR: 1.000000e-04 | Val|SDF|: 6.820932e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=202, best=9.346277e-05)
+Epoch [202/2000] Loss: 9.394620e-05 | Best: 9.346277e-05 | LR: 1.000000e-04 | Val|SDF|: 7.081552e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=203, best=9.346277e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=203, best=9.308565e-05)
+Epoch [203/2000] Loss: 9.308565e-05 | Best: 9.308565e-05 | LR: 1.000000e-04 | Val|SDF|: 6.802691e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=204, best=9.308565e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=204, best=9.127765e-05)
+Epoch [204/2000] Loss: 9.127765e-05 | Best: 9.127765e-05 | LR: 1.000000e-04 | Val|SDF|: 6.705170e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=205, best=9.127765e-05)
+Epoch [205/2000] Loss: 9.346044e-05 | Best: 9.127765e-05 | LR: 1.000000e-04 | Val|SDF|: 6.596694e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=206, best=9.127765e-05)
+Epoch [206/2000] Loss: 9.251776e-05 | Best: 9.127765e-05 | LR: 1.000000e-04 | Val|SDF|: 6.990468e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=207, best=9.127765e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=207, best=9.121879e-05)
+Epoch [207/2000] Loss: 9.121879e-05 | Best: 9.121879e-05 | LR: 1.000000e-04 | Val|SDF|: 6.573181e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=208, best=9.121879e-05)
+Epoch [208/2000] Loss: 9.160806e-05 | Best: 9.121879e-05 | LR: 1.000000e-04 | Val|SDF|: 6.516698e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=209, best=9.121879e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=209, best=9.078167e-05)
+Epoch [209/2000] Loss: 9.078167e-05 | Best: 9.078167e-05 | LR: 1.000000e-04 | Val|SDF|: 7.471659e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=210, best=9.078167e-05)
+Epoch [210/2000] Loss: 9.133104e-05 | Best: 9.078167e-05 | LR: 1.000000e-04 | Val|SDF|: 6.861511e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=211, best=9.078167e-05)
+Epoch [211/2000] Loss: 9.152155e-05 | Best: 9.078167e-05 | LR: 1.000000e-04 | Val|SDF|: 6.581694e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=212, best=9.078167e-05)
+Epoch [212/2000] Loss: 9.103378e-05 | Best: 9.078167e-05 | LR: 1.000000e-04 | Val|SDF|: 6.681479e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=213, best=9.078167e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=213, best=8.948749e-05)
+Epoch [213/2000] Loss: 8.948749e-05 | Best: 8.948749e-05 | LR: 1.000000e-04 | Val|SDF|: 6.572338e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=214, best=8.948749e-05)
+Epoch [214/2000] Loss: 9.027778e-05 | Best: 8.948749e-05 | LR: 1.000000e-04 | Val|SDF|: 6.710496e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=215, best=8.948749e-05)
+Epoch [215/2000] Loss: 8.965296e-05 | Best: 8.948749e-05 | LR: 1.000000e-04 | Val|SDF|: 7.594721e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=216, best=8.948749e-05)
+Epoch [216/2000] Loss: 9.074863e-05 | Best: 8.948749e-05 | LR: 1.000000e-04 | Val|SDF|: 6.494075e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=217, best=8.948749e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=217, best=8.899148e-05)
+Epoch [217/2000] Loss: 8.899148e-05 | Best: 8.899148e-05 | LR: 1.000000e-04 | Val|SDF|: 6.372398e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=218, best=8.899148e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=218, best=8.892742e-05)
+Epoch [218/2000] Loss: 8.892742e-05 | Best: 8.892742e-05 | LR: 1.000000e-04 | Val|SDF|: 6.678938e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=219, best=8.892742e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=219, best=8.875091e-05)
+Epoch [219/2000] Loss: 8.875091e-05 | Best: 8.875091e-05 | LR: 1.000000e-04 | Val|SDF|: 6.680534e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=220, best=8.875091e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=220, best=8.797858e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0160_e0220.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0160_e0220.png | PLY: renders/tanh-tanh/iso_best0160_e0220.ply
+Epoch [220/2000] Loss: 8.797858e-05 | Best: 8.797858e-05 | LR: 1.000000e-04 | Val|SDF|: 6.364791e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=221, best=8.797858e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=221, best=8.761836e-05)
+Epoch [221/2000] Loss: 8.761836e-05 | Best: 8.761836e-05 | LR: 1.000000e-04 | Val|SDF|: 7.527858e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=222, best=8.761836e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=222, best=8.728463e-05)
+Epoch [222/2000] Loss: 8.728463e-05 | Best: 8.728463e-05 | LR: 1.000000e-04 | Val|SDF|: 6.574410e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=223, best=8.728463e-05)
+Epoch [223/2000] Loss: 8.791166e-05 | Best: 8.728463e-05 | LR: 1.000000e-04 | Val|SDF|: 6.249702e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=224, best=8.728463e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=224, best=8.715964e-05)
+Epoch [224/2000] Loss: 8.715964e-05 | Best: 8.715964e-05 | LR: 1.000000e-04 | Val|SDF|: 6.417527e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=225, best=8.715964e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=225, best=8.673534e-05)
+Epoch [225/2000] Loss: 8.673534e-05 | Best: 8.673534e-05 | LR: 1.000000e-04 | Val|SDF|: 6.675638e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=226, best=8.673534e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=226, best=8.633488e-05)
+Epoch [226/2000] Loss: 8.633488e-05 | Best: 8.633488e-05 | LR: 1.000000e-04 | Val|SDF|: 6.264663e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=227, best=8.633488e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=227, best=8.624816e-05)
+Epoch [227/2000] Loss: 8.624816e-05 | Best: 8.624816e-05 | LR: 1.000000e-04 | Val|SDF|: 6.340023e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=228, best=8.624816e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=228, best=8.595178e-05)
+Epoch [228/2000] Loss: 8.595178e-05 | Best: 8.595178e-05 | LR: 1.000000e-04 | Val|SDF|: 6.187941e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=229, best=8.595178e-05)
+Epoch [229/2000] Loss: 8.635394e-05 | Best: 8.595178e-05 | LR: 1.000000e-04 | Val|SDF|: 6.541337e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=230, best=8.595178e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=230, best=8.574206e-05)
+Epoch [230/2000] Loss: 8.574206e-05 | Best: 8.574206e-05 | LR: 1.000000e-04 | Val|SDF|: 6.381848e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=231, best=8.574206e-05)
+Epoch [231/2000] Loss: 8.592830e-05 | Best: 8.574206e-05 | LR: 1.000000e-04 | Val|SDF|: 7.920783e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=232, best=8.574206e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=232, best=8.385965e-05)
+Epoch [232/2000] Loss: 8.385965e-05 | Best: 8.385965e-05 | LR: 1.000000e-04 | Val|SDF|: 6.544069e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=233, best=8.385965e-05)
+Epoch [233/2000] Loss: 8.525879e-05 | Best: 8.385965e-05 | LR: 1.000000e-04 | Val|SDF|: 6.348213e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=234, best=8.385965e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=234, best=8.341264e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0170_e0234.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0170_e0234.png | PLY: renders/tanh-tanh/iso_best0170_e0234.ply
+Epoch [234/2000] Loss: 8.341264e-05 | Best: 8.341264e-05 | LR: 1.000000e-04 | Val|SDF|: 6.525517e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=235, best=8.341264e-05)
+Epoch [235/2000] Loss: 8.407307e-05 | Best: 8.341264e-05 | LR: 1.000000e-04 | Val|SDF|: 7.047862e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=236, best=8.341264e-05)
+Epoch [236/2000] Loss: 8.487857e-05 | Best: 8.341264e-05 | LR: 1.000000e-04 | Val|SDF|: 6.254377e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=237, best=8.341264e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=237, best=8.208941e-05)
+Epoch [237/2000] Loss: 8.208941e-05 | Best: 8.208941e-05 | LR: 1.000000e-04 | Val|SDF|: 6.762308e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=238, best=8.208941e-05)
+Epoch [238/2000] Loss: 8.326932e-05 | Best: 8.208941e-05 | LR: 1.000000e-04 | Val|SDF|: 7.412814e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=239, best=8.208941e-05)
+Epoch [239/2000] Loss: 8.385650e-05 | Best: 8.208941e-05 | LR: 1.000000e-04 | Val|SDF|: 6.227743e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=240, best=8.208941e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=240, best=8.165859e-05)
+Epoch [240/2000] Loss: 8.165859e-05 | Best: 8.165859e-05 | LR: 1.000000e-04 | Val|SDF|: 7.270932e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=241, best=8.165859e-05)
+Epoch [241/2000] Loss: 8.282128e-05 | Best: 8.165859e-05 | LR: 1.000000e-04 | Val|SDF|: 6.318032e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=242, best=8.165859e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=242, best=8.124028e-05)
+Epoch [242/2000] Loss: 8.124028e-05 | Best: 8.124028e-05 | LR: 1.000000e-04 | Val|SDF|: 7.010243e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=243, best=8.124028e-05)
+Epoch [243/2000] Loss: 8.250893e-05 | Best: 8.124028e-05 | LR: 1.000000e-04 | Val|SDF|: 6.188449e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=244, best=8.124028e-05)
+Epoch [244/2000] Loss: 8.188836e-05 | Best: 8.124028e-05 | LR: 1.000000e-04 | Val|SDF|: 6.203028e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=245, best=8.124028e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=245, best=8.120439e-05)
+Epoch [245/2000] Loss: 8.120439e-05 | Best: 8.120439e-05 | LR: 1.000000e-04 | Val|SDF|: 6.452373e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=246, best=8.120439e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=246, best=8.074488e-05)
+Epoch [246/2000] Loss: 8.074488e-05 | Best: 8.074488e-05 | LR: 1.000000e-04 | Val|SDF|: 6.367473e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=247, best=8.074488e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=247, best=8.027252e-05)
+Epoch [247/2000] Loss: 8.027252e-05 | Best: 8.027252e-05 | LR: 1.000000e-04 | Val|SDF|: 6.161289e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=248, best=8.027252e-05)
+Epoch [248/2000] Loss: 8.048348e-05 | Best: 8.027252e-05 | LR: 1.000000e-04 | Val|SDF|: 6.123157e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=249, best=8.027252e-05)
+Epoch [249/2000] Loss: 8.051166e-05 | Best: 8.027252e-05 | LR: 1.000000e-04 | Val|SDF|: 6.467979e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=250, best=8.027252e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=250, best=8.022188e-05)
+Epoch [250/2000] Loss: 8.022188e-05 | Best: 8.022188e-05 | LR: 1.000000e-04 | Val|SDF|: 6.112257e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=251, best=8.022188e-05)
+Epoch [251/2000] Loss: 8.081920e-05 | Best: 8.022188e-05 | LR: 1.000000e-04 | Val|SDF|: 6.149526e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=252, best=8.022188e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=252, best=7.932571e-05)
+Epoch [252/2000] Loss: 7.932571e-05 | Best: 7.932571e-05 | LR: 1.000000e-04 | Val|SDF|: 5.936724e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=253, best=7.932571e-05)
+Epoch [253/2000] Loss: 8.047034e-05 | Best: 7.932571e-05 | LR: 1.000000e-04 | Val|SDF|: 6.047460e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=254, best=7.932571e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=254, best=7.774327e-05)
+Epoch [254/2000] Loss: 7.774327e-05 | Best: 7.774327e-05 | LR: 1.000000e-04 | Val|SDF|: 6.743760e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=255, best=7.774327e-05)
+Epoch [255/2000] Loss: 8.001378e-05 | Best: 7.774327e-05 | LR: 1.000000e-04 | Val|SDF|: 6.658221e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=256, best=7.774327e-05)
+Epoch [256/2000] Loss: 7.932759e-05 | Best: 7.774327e-05 | LR: 1.000000e-04 | Val|SDF|: 6.189517e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=257, best=7.774327e-05)
+Epoch [257/2000] Loss: 7.798090e-05 | Best: 7.774327e-05 | LR: 1.000000e-04 | Val|SDF|: 6.040033e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=258, best=7.774327e-05)
+Epoch [258/2000] Loss: 7.929892e-05 | Best: 7.774327e-05 | LR: 1.000000e-04 | Val|SDF|: 6.185792e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=259, best=7.774327e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=259, best=7.756545e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0180_e0259.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0180_e0259.png | PLY: renders/tanh-tanh/iso_best0180_e0259.ply
+Epoch [259/2000] Loss: 7.756545e-05 | Best: 7.756545e-05 | LR: 1.000000e-04 | Val|SDF|: 7.215808e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=260, best=7.756545e-05)
+Epoch [260/2000] Loss: 7.816327e-05 | Best: 7.756545e-05 | LR: 1.000000e-04 | Val|SDF|: 6.407820e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=261, best=7.756545e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=261, best=7.684042e-05)
+Epoch [261/2000] Loss: 7.684042e-05 | Best: 7.684042e-05 | LR: 1.000000e-04 | Val|SDF|: 6.546730e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=262, best=7.684042e-05)
+Epoch [262/2000] Loss: 7.689274e-05 | Best: 7.684042e-05 | LR: 1.000000e-04 | Val|SDF|: 6.156513e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=263, best=7.684042e-05)
+Epoch [263/2000] Loss: 7.747162e-05 | Best: 7.684042e-05 | LR: 1.000000e-04 | Val|SDF|: 6.177711e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=264, best=7.684042e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=264, best=7.635252e-05)
+Epoch [264/2000] Loss: 7.635252e-05 | Best: 7.635252e-05 | LR: 1.000000e-04 | Val|SDF|: 6.034571e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=265, best=7.635252e-05)
+Epoch [265/2000] Loss: 7.698548e-05 | Best: 7.635252e-05 | LR: 1.000000e-04 | Val|SDF|: 5.976371e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=266, best=7.635252e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=266, best=7.599556e-05)
+Epoch [266/2000] Loss: 7.599556e-05 | Best: 7.599556e-05 | LR: 1.000000e-04 | Val|SDF|: 5.994627e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=267, best=7.599556e-05)
+Epoch [267/2000] Loss: 7.628422e-05 | Best: 7.599556e-05 | LR: 1.000000e-04 | Val|SDF|: 6.069462e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=268, best=7.599556e-05)
+Epoch [268/2000] Loss: 7.629770e-05 | Best: 7.599556e-05 | LR: 1.000000e-04 | Val|SDF|: 6.515330e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=269, best=7.599556e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=269, best=7.459913e-05)
+Epoch [269/2000] Loss: 7.459913e-05 | Best: 7.459913e-05 | LR: 1.000000e-04 | Val|SDF|: 5.886561e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=270, best=7.459913e-05)
+Epoch [270/2000] Loss: 7.525599e-05 | Best: 7.459913e-05 | LR: 1.000000e-04 | Val|SDF|: 6.234418e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=271, best=7.459913e-05)
+Epoch [271/2000] Loss: 7.520848e-05 | Best: 7.459913e-05 | LR: 1.000000e-04 | Val|SDF|: 5.964999e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=272, best=7.459913e-05)
+Epoch [272/2000] Loss: 7.514326e-05 | Best: 7.459913e-05 | LR: 1.000000e-04 | Val|SDF|: 5.794189e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=273, best=7.459913e-05)
+Epoch [273/2000] Loss: 7.529036e-05 | Best: 7.459913e-05 | LR: 1.000000e-04 | Val|SDF|: 5.951208e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=274, best=7.459913e-05)
+Epoch [274/2000] Loss: 7.484112e-05 | Best: 7.459913e-05 | LR: 1.000000e-04 | Val|SDF|: 6.258632e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=275, best=7.459913e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=275, best=7.337579e-05)
+Epoch [275/2000] Loss: 7.337579e-05 | Best: 7.337579e-05 | LR: 1.000000e-04 | Val|SDF|: 6.070253e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=276, best=7.337579e-05)
+Epoch [276/2000] Loss: 7.408189e-05 | Best: 7.337579e-05 | LR: 1.000000e-04 | Val|SDF|: 6.462484e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=277, best=7.337579e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=277, best=7.335587e-05)
+Epoch [277/2000] Loss: 7.335587e-05 | Best: 7.335587e-05 | LR: 1.000000e-04 | Val|SDF|: 6.461668e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=278, best=7.335587e-05)
+Epoch [278/2000] Loss: 7.382163e-05 | Best: 7.335587e-05 | LR: 1.000000e-04 | Val|SDF|: 5.798321e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=279, best=7.335587e-05)
+Epoch [279/2000] Loss: 7.406846e-05 | Best: 7.335587e-05 | LR: 1.000000e-04 | Val|SDF|: 6.762697e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=280, best=7.335587e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=280, best=7.225154e-05)
+Epoch [280/2000] Loss: 7.225154e-05 | Best: 7.225154e-05 | LR: 1.000000e-04 | Val|SDF|: 5.864848e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=281, best=7.225154e-05)
+Epoch [281/2000] Loss: 7.232391e-05 | Best: 7.225154e-05 | LR: 1.000000e-04 | Val|SDF|: 6.157030e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=282, best=7.225154e-05)
+Epoch [282/2000] Loss: 7.323937e-05 | Best: 7.225154e-05 | LR: 1.000000e-04 | Val|SDF|: 5.740525e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=283, best=7.225154e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=283, best=7.214339e-05)
+Epoch [283/2000] Loss: 7.214339e-05 | Best: 7.214339e-05 | LR: 1.000000e-04 | Val|SDF|: 5.739427e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=284, best=7.214339e-05)
+Epoch [284/2000] Loss: 7.239367e-05 | Best: 7.214339e-05 | LR: 1.000000e-04 | Val|SDF|: 5.819577e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=285, best=7.214339e-05)
+Epoch [285/2000] Loss: 7.264043e-05 | Best: 7.214339e-05 | LR: 1.000000e-04 | Val|SDF|: 5.841007e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=286, best=7.214339e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=286, best=7.092926e-05)
+Epoch [286/2000] Loss: 7.092926e-05 | Best: 7.092926e-05 | LR: 1.000000e-04 | Val|SDF|: 5.902596e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=287, best=7.092926e-05)
+Epoch [287/2000] Loss: 7.177973e-05 | Best: 7.092926e-05 | LR: 1.000000e-04 | Val|SDF|: 5.723743e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=288, best=7.092926e-05)
+Epoch [288/2000] Loss: 7.140490e-05 | Best: 7.092926e-05 | LR: 1.000000e-04 | Val|SDF|: 6.047477e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=289, best=7.092926e-05)
+Epoch [289/2000] Loss: 7.137072e-05 | Best: 7.092926e-05 | LR: 1.000000e-04 | Val|SDF|: 6.029779e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=290, best=7.092926e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=290, best=6.996399e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0190_e0290.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0190_e0290.png | PLY: renders/tanh-tanh/iso_best0190_e0290.ply
+Epoch [290/2000] Loss: 6.996399e-05 | Best: 6.996399e-05 | LR: 1.000000e-04 | Val|SDF|: 5.736995e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=291, best=6.996399e-05)
+Epoch [291/2000] Loss: 7.092258e-05 | Best: 6.996399e-05 | LR: 1.000000e-04 | Val|SDF|: 6.342410e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=292, best=6.996399e-05)
+Epoch [292/2000] Loss: 7.089934e-05 | Best: 6.996399e-05 | LR: 1.000000e-04 | Val|SDF|: 6.309667e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=293, best=6.996399e-05)
+Epoch [293/2000] Loss: 7.030984e-05 | Best: 6.996399e-05 | LR: 1.000000e-04 | Val|SDF|: 5.782297e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=294, best=6.996399e-05)
+Epoch [294/2000] Loss: 7.001873e-05 | Best: 6.996399e-05 | LR: 1.000000e-04 | Val|SDF|: 6.282107e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=295, best=6.996399e-05)
+Epoch [295/2000] Loss: 7.010779e-05 | Best: 6.996399e-05 | LR: 1.000000e-04 | Val|SDF|: 5.760277e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=296, best=6.996399e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=296, best=6.981678e-05)
+Epoch [296/2000] Loss: 6.981678e-05 | Best: 6.981678e-05 | LR: 1.000000e-04 | Val|SDF|: 6.493322e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=297, best=6.981678e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=297, best=6.951879e-05)
+Epoch [297/2000] Loss: 6.951879e-05 | Best: 6.951879e-05 | LR: 1.000000e-04 | Val|SDF|: 5.838773e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=298, best=6.951879e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=298, best=6.951050e-05)
+Epoch [298/2000] Loss: 6.951050e-05 | Best: 6.951050e-05 | LR: 1.000000e-04 | Val|SDF|: 5.652450e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=299, best=6.951050e-05)
+Epoch [299/2000] Loss: 7.000302e-05 | Best: 6.951050e-05 | LR: 1.000000e-04 | Val|SDF|: 5.644301e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=300, best=6.951050e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=300, best=6.898954e-05)
+Epoch [300/2000] Loss: 6.898954e-05 | Best: 6.898954e-05 | LR: 1.000000e-04 | Val|SDF|: 5.859435e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=301, best=6.898954e-05)
+Epoch [301/2000] Loss: 6.924128e-05 | Best: 6.898954e-05 | LR: 1.000000e-04 | Val|SDF|: 5.703812e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=302, best=6.898954e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=302, best=6.777114e-05)
+Epoch [302/2000] Loss: 6.777114e-05 | Best: 6.777114e-05 | LR: 1.000000e-04 | Val|SDF|: 5.774354e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=303, best=6.777114e-05)
+Epoch [303/2000] Loss: 6.921204e-05 | Best: 6.777114e-05 | LR: 1.000000e-04 | Val|SDF|: 6.649873e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=304, best=6.777114e-05)
+Epoch [304/2000] Loss: 6.810627e-05 | Best: 6.777114e-05 | LR: 1.000000e-04 | Val|SDF|: 5.944036e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=305, best=6.777114e-05)
+Epoch [305/2000] Loss: 6.787592e-05 | Best: 6.777114e-05 | LR: 1.000000e-04 | Val|SDF|: 6.033311e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=306, best=6.777114e-05)
+Epoch [306/2000] Loss: 6.801722e-05 | Best: 6.777114e-05 | LR: 1.000000e-04 | Val|SDF|: 6.020772e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=307, best=6.777114e-05)
+Epoch [307/2000] Loss: 6.789371e-05 | Best: 6.777114e-05 | LR: 1.000000e-04 | Val|SDF|: 6.268937e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=308, best=6.777114e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=308, best=6.709320e-05)
+Epoch [308/2000] Loss: 6.709320e-05 | Best: 6.709320e-05 | LR: 1.000000e-04 | Val|SDF|: 6.240855e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=309, best=6.709320e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=309, best=6.687377e-05)
+Epoch [309/2000] Loss: 6.687377e-05 | Best: 6.687377e-05 | LR: 1.000000e-04 | Val|SDF|: 5.562200e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=310, best=6.687377e-05)
+Epoch [310/2000] Loss: 6.695995e-05 | Best: 6.687377e-05 | LR: 1.000000e-04 | Val|SDF|: 5.825671e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=311, best=6.687377e-05)
+Epoch [311/2000] Loss: 6.725342e-05 | Best: 6.687377e-05 | LR: 1.000000e-04 | Val|SDF|: 5.576240e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=312, best=6.687377e-05)
+Epoch [312/2000] Loss: 6.718528e-05 | Best: 6.687377e-05 | LR: 1.000000e-04 | Val|SDF|: 5.961158e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=313, best=6.687377e-05)
+Epoch [313/2000] Loss: 6.700349e-05 | Best: 6.687377e-05 | LR: 1.000000e-04 | Val|SDF|: 6.120665e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=314, best=6.687377e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=314, best=6.619285e-05)
+Epoch [314/2000] Loss: 6.619285e-05 | Best: 6.619285e-05 | LR: 1.000000e-04 | Val|SDF|: 5.517185e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=315, best=6.619285e-05)
+Epoch [315/2000] Loss: 6.635475e-05 | Best: 6.619285e-05 | LR: 1.000000e-04 | Val|SDF|: 5.537533e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=316, best=6.619285e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=316, best=6.543596e-05)
+Epoch [316/2000] Loss: 6.543596e-05 | Best: 6.543596e-05 | LR: 1.000000e-04 | Val|SDF|: 5.922117e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=317, best=6.543596e-05)
+Epoch [317/2000] Loss: 6.593841e-05 | Best: 6.543596e-05 | LR: 1.000000e-04 | Val|SDF|: 5.963276e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=318, best=6.543596e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=318, best=6.535109e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0200_e0318.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0200_e0318.png | PLY: renders/tanh-tanh/iso_best0200_e0318.ply
+Epoch [318/2000] Loss: 6.535109e-05 | Best: 6.535109e-05 | LR: 1.000000e-04 | Val|SDF|: 5.858120e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=319, best=6.535109e-05)
+Epoch [319/2000] Loss: 6.631893e-05 | Best: 6.535109e-05 | LR: 1.000000e-04 | Val|SDF|: 5.371392e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=320, best=6.535109e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=320, best=6.455025e-05)
+Epoch [320/2000] Loss: 6.455025e-05 | Best: 6.455025e-05 | LR: 1.000000e-04 | Val|SDF|: 5.417136e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=321, best=6.455025e-05)
+Epoch [321/2000] Loss: 6.462677e-05 | Best: 6.455025e-05 | LR: 1.000000e-04 | Val|SDF|: 5.631268e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=322, best=6.455025e-05)
+Epoch [322/2000] Loss: 6.532106e-05 | Best: 6.455025e-05 | LR: 1.000000e-04 | Val|SDF|: 5.489507e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=323, best=6.455025e-05)
+Epoch [323/2000] Loss: 6.463161e-05 | Best: 6.455025e-05 | LR: 1.000000e-04 | Val|SDF|: 5.394022e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=324, best=6.455025e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=324, best=6.416246e-05)
+Epoch [324/2000] Loss: 6.416246e-05 | Best: 6.416246e-05 | LR: 1.000000e-04 | Val|SDF|: 5.793912e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=325, best=6.416246e-05)
+Epoch [325/2000] Loss: 6.450251e-05 | Best: 6.416246e-05 | LR: 1.000000e-04 | Val|SDF|: 5.567700e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=326, best=6.416246e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=326, best=6.395375e-05)
+Epoch [326/2000] Loss: 6.395375e-05 | Best: 6.395375e-05 | LR: 1.000000e-04 | Val|SDF|: 6.056952e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=327, best=6.395375e-05)
+Epoch [327/2000] Loss: 6.489964e-05 | Best: 6.395375e-05 | LR: 1.000000e-04 | Val|SDF|: 5.472279e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=328, best=6.395375e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=328, best=6.346938e-05)
+Epoch [328/2000] Loss: 6.346938e-05 | Best: 6.346938e-05 | LR: 1.000000e-04 | Val|SDF|: 5.836738e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=329, best=6.346938e-05)
+Epoch [329/2000] Loss: 6.376270e-05 | Best: 6.346938e-05 | LR: 1.000000e-04 | Val|SDF|: 5.582214e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=330, best=6.346938e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=330, best=6.247957e-05)
+Epoch [330/2000] Loss: 6.247957e-05 | Best: 6.247957e-05 | LR: 1.000000e-04 | Val|SDF|: 5.349303e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=331, best=6.247957e-05)
+Epoch [331/2000] Loss: 6.267067e-05 | Best: 6.247957e-05 | LR: 1.000000e-04 | Val|SDF|: 6.073265e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=332, best=6.247957e-05)
+Epoch [332/2000] Loss: 6.382700e-05 | Best: 6.247957e-05 | LR: 1.000000e-04 | Val|SDF|: 5.790758e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=333, best=6.247957e-05)
+Epoch [333/2000] Loss: 6.334642e-05 | Best: 6.247957e-05 | LR: 1.000000e-04 | Val|SDF|: 5.567028e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=334, best=6.247957e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=334, best=6.224464e-05)
+Epoch [334/2000] Loss: 6.224464e-05 | Best: 6.224464e-05 | LR: 1.000000e-04 | Val|SDF|: 5.415684e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=335, best=6.224464e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=335, best=6.205454e-05)
+Epoch [335/2000] Loss: 6.205454e-05 | Best: 6.205454e-05 | LR: 1.000000e-04 | Val|SDF|: 5.427185e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=336, best=6.205454e-05)
+Epoch [336/2000] Loss: 6.241551e-05 | Best: 6.205454e-05 | LR: 1.000000e-04 | Val|SDF|: 6.380436e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=337, best=6.205454e-05)
+Epoch [337/2000] Loss: 6.274337e-05 | Best: 6.205454e-05 | LR: 1.000000e-04 | Val|SDF|: 5.209116e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=338, best=6.205454e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=338, best=6.160729e-05)
+Epoch [338/2000] Loss: 6.160729e-05 | Best: 6.160729e-05 | LR: 1.000000e-04 | Val|SDF|: 5.380219e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=339, best=6.160729e-05)
+Epoch [339/2000] Loss: 6.271767e-05 | Best: 6.160729e-05 | LR: 1.000000e-04 | Val|SDF|: 5.280232e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=340, best=6.160729e-05)
+Epoch [340/2000] Loss: 6.213894e-05 | Best: 6.160729e-05 | LR: 1.000000e-04 | Val|SDF|: 5.833769e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=341, best=6.160729e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=341, best=6.126983e-05)
+Epoch [341/2000] Loss: 6.126983e-05 | Best: 6.126983e-05 | LR: 1.000000e-04 | Val|SDF|: 5.486433e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=342, best=6.126983e-05)
+Epoch [342/2000] Loss: 6.142640e-05 | Best: 6.126983e-05 | LR: 1.000000e-04 | Val|SDF|: 5.536759e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=343, best=6.126983e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=343, best=6.117305e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0210_e0343.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0210_e0343.png | PLY: renders/tanh-tanh/iso_best0210_e0343.ply
+Epoch [343/2000] Loss: 6.117305e-05 | Best: 6.117305e-05 | LR: 1.000000e-04 | Val|SDF|: 5.392958e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=344, best=6.117305e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=344, best=6.109663e-05)
+Epoch [344/2000] Loss: 6.109663e-05 | Best: 6.109663e-05 | LR: 1.000000e-04 | Val|SDF|: 5.330375e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=345, best=6.109663e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=345, best=6.090120e-05)
+Epoch [345/2000] Loss: 6.090120e-05 | Best: 6.090120e-05 | LR: 1.000000e-04 | Val|SDF|: 5.357365e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=346, best=6.090120e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=346, best=5.971706e-05)
+Epoch [346/2000] Loss: 5.971706e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.684232e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=347, best=5.971706e-05)
+Epoch [347/2000] Loss: 6.045191e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.964004e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=348, best=5.971706e-05)
+Epoch [348/2000] Loss: 6.076575e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.303055e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=349, best=5.971706e-05)
+Epoch [349/2000] Loss: 6.012271e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.689025e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=350, best=5.971706e-05)
+Epoch [350/2000] Loss: 5.975801e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.876205e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=351, best=5.971706e-05)
+Epoch [351/2000] Loss: 6.040135e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.437940e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=352, best=5.971706e-05)
+Epoch [352/2000] Loss: 5.972803e-05 | Best: 5.971706e-05 | LR: 1.000000e-04 | Val|SDF|: 5.254909e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=353, best=5.971706e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=353, best=5.960076e-05)
+Epoch [353/2000] Loss: 5.960076e-05 | Best: 5.960076e-05 | LR: 1.000000e-04 | Val|SDF|: 5.274449e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=354, best=5.960076e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=354, best=5.926332e-05)
+Epoch [354/2000] Loss: 5.926332e-05 | Best: 5.926332e-05 | LR: 1.000000e-04 | Val|SDF|: 5.358374e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=355, best=5.926332e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=355, best=5.892292e-05)
+Epoch [355/2000] Loss: 5.892292e-05 | Best: 5.892292e-05 | LR: 1.000000e-04 | Val|SDF|: 5.163180e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=356, best=5.892292e-05)
+Epoch [356/2000] Loss: 5.915652e-05 | Best: 5.892292e-05 | LR: 1.000000e-04 | Val|SDF|: 5.219491e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=357, best=5.892292e-05)
+Epoch [357/2000] Loss: 5.945374e-05 | Best: 5.892292e-05 | LR: 1.000000e-04 | Val|SDF|: 5.281145e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=358, best=5.892292e-05)
+Epoch [358/2000] Loss: 5.896765e-05 | Best: 5.892292e-05 | LR: 1.000000e-04 | Val|SDF|: 5.125237e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=359, best=5.892292e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=359, best=5.823653e-05)
+Epoch [359/2000] Loss: 5.823653e-05 | Best: 5.823653e-05 | LR: 1.000000e-04 | Val|SDF|: 5.128456e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=360, best=5.823653e-05)
+Epoch [360/2000] Loss: 5.860507e-05 | Best: 5.823653e-05 | LR: 1.000000e-04 | Val|SDF|: 5.721610e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=361, best=5.823653e-05)
+Epoch [361/2000] Loss: 5.834853e-05 | Best: 5.823653e-05 | LR: 1.000000e-04 | Val|SDF|: 5.201338e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=362, best=5.823653e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=362, best=5.768823e-05)
+Epoch [362/2000] Loss: 5.768823e-05 | Best: 5.768823e-05 | LR: 1.000000e-04 | Val|SDF|: 5.068318e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=363, best=5.768823e-05)
+Epoch [363/2000] Loss: 5.805150e-05 | Best: 5.768823e-05 | LR: 1.000000e-04 | Val|SDF|: 5.072041e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=364, best=5.768823e-05)
+Epoch [364/2000] Loss: 5.781542e-05 | Best: 5.768823e-05 | LR: 1.000000e-04 | Val|SDF|: 5.957100e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=365, best=5.768823e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=365, best=5.689032e-05)
+Epoch [365/2000] Loss: 5.689032e-05 | Best: 5.689032e-05 | LR: 1.000000e-04 | Val|SDF|: 5.867623e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=366, best=5.689032e-05)
+Epoch [366/2000] Loss: 5.749494e-05 | Best: 5.689032e-05 | LR: 1.000000e-04 | Val|SDF|: 5.595647e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=367, best=5.689032e-05)
+Epoch [367/2000] Loss: 5.728453e-05 | Best: 5.689032e-05 | LR: 1.000000e-04 | Val|SDF|: 5.750010e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=368, best=5.689032e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=368, best=5.646511e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0220_e0368.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0220_e0368.png | PLY: renders/tanh-tanh/iso_best0220_e0368.ply
+Epoch [368/2000] Loss: 5.646511e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 5.393202e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=369, best=5.646511e-05)
+Epoch [369/2000] Loss: 5.707095e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 5.723800e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=370, best=5.646511e-05)
+Epoch [370/2000] Loss: 5.664233e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 6.029068e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=371, best=5.646511e-05)
+Epoch [371/2000] Loss: 5.677946e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 5.181476e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=372, best=5.646511e-05)
+Epoch [372/2000] Loss: 5.664120e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 5.543241e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=373, best=5.646511e-05)
+Epoch [373/2000] Loss: 5.671533e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 5.820356e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=374, best=5.646511e-05)
+Epoch [374/2000] Loss: 5.648073e-05 | Best: 5.646511e-05 | LR: 1.000000e-04 | Val|SDF|: 5.048086e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=375, best=5.646511e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=375, best=5.584956e-05)
+Epoch [375/2000] Loss: 5.584956e-05 | Best: 5.584956e-05 | LR: 1.000000e-04 | Val|SDF|: 6.050567e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=376, best=5.584956e-05)
+Epoch [376/2000] Loss: 5.643390e-05 | Best: 5.584956e-05 | LR: 1.000000e-04 | Val|SDF|: 5.263440e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=377, best=5.584956e-05)
+Epoch [377/2000] Loss: 5.620072e-05 | Best: 5.584956e-05 | LR: 1.000000e-04 | Val|SDF|: 5.369155e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=378, best=5.584956e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=378, best=5.487244e-05)
+Epoch [378/2000] Loss: 5.487244e-05 | Best: 5.487244e-05 | LR: 1.000000e-04 | Val|SDF|: 6.892913e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=379, best=5.487244e-05)
+Epoch [379/2000] Loss: 5.557891e-05 | Best: 5.487244e-05 | LR: 1.000000e-04 | Val|SDF|: 5.506322e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=380, best=5.487244e-05)
+Epoch [380/2000] Loss: 5.533556e-05 | Best: 5.487244e-05 | LR: 1.000000e-04 | Val|SDF|: 5.184964e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=381, best=5.487244e-05)
+Epoch [381/2000] Loss: 5.493499e-05 | Best: 5.487244e-05 | LR: 1.000000e-04 | Val|SDF|: 5.009152e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=382, best=5.487244e-05)
+Epoch [382/2000] Loss: 5.491050e-05 | Best: 5.487244e-05 | LR: 1.000000e-04 | Val|SDF|: 6.077794e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=383, best=5.487244e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=383, best=5.477111e-05)
+Epoch [383/2000] Loss: 5.477111e-05 | Best: 5.477111e-05 | LR: 1.000000e-04 | Val|SDF|: 5.224753e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=384, best=5.477111e-05)
+Epoch [384/2000] Loss: 5.521068e-05 | Best: 5.477111e-05 | LR: 1.000000e-04 | Val|SDF|: 5.265860e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=385, best=5.477111e-05)
+Epoch [385/2000] Loss: 5.550672e-05 | Best: 5.477111e-05 | LR: 1.000000e-04 | Val|SDF|: 4.995713e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=386, best=5.477111e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=386, best=5.367124e-05)
+Epoch [386/2000] Loss: 5.367124e-05 | Best: 5.367124e-05 | LR: 1.000000e-04 | Val|SDF|: 5.231363e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=387, best=5.367124e-05)
+Epoch [387/2000] Loss: 5.553316e-05 | Best: 5.367124e-05 | LR: 1.000000e-04 | Val|SDF|: 4.918107e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=388, best=5.367124e-05)
+Epoch [388/2000] Loss: 5.421465e-05 | Best: 5.367124e-05 | LR: 1.000000e-04 | Val|SDF|: 5.138877e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=389, best=5.367124e-05)
+Epoch [389/2000] Loss: 5.419534e-05 | Best: 5.367124e-05 | LR: 1.000000e-04 | Val|SDF|: 5.219010e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=390, best=5.367124e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=390, best=5.346079e-05)
+Epoch [390/2000] Loss: 5.346079e-05 | Best: 5.346079e-05 | LR: 1.000000e-04 | Val|SDF|: 5.067998e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=391, best=5.346079e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=391, best=5.326258e-05)
+Epoch [391/2000] Loss: 5.326258e-05 | Best: 5.326258e-05 | LR: 1.000000e-04 | Val|SDF|: 4.960331e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=392, best=5.326258e-05)
+Epoch [392/2000] Loss: 5.413511e-05 | Best: 5.326258e-05 | LR: 1.000000e-04 | Val|SDF|: 4.860567e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=393, best=5.326258e-05)
+Epoch [393/2000] Loss: 5.355268e-05 | Best: 5.326258e-05 | LR: 1.000000e-04 | Val|SDF|: 4.907157e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=394, best=5.326258e-05)
+Epoch [394/2000] Loss: 5.385005e-05 | Best: 5.326258e-05 | LR: 1.000000e-04 | Val|SDF|: 5.027232e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=395, best=5.326258e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=395, best=5.288675e-05)
+Epoch [395/2000] Loss: 5.288675e-05 | Best: 5.288675e-05 | LR: 1.000000e-04 | Val|SDF|: 4.972826e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=396, best=5.288675e-05)
+Epoch [396/2000] Loss: 5.355541e-05 | Best: 5.288675e-05 | LR: 1.000000e-04 | Val|SDF|: 4.944209e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=397, best=5.288675e-05)
+Epoch [397/2000] Loss: 5.308814e-05 | Best: 5.288675e-05 | LR: 1.000000e-04 | Val|SDF|: 4.917387e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=398, best=5.288675e-05)
+Epoch [398/2000] Loss: 5.350872e-05 | Best: 5.288675e-05 | LR: 1.000000e-04 | Val|SDF|: 4.877302e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=399, best=5.288675e-05)
+Epoch [399/2000] Loss: 5.322207e-05 | Best: 5.288675e-05 | LR: 1.000000e-04 | Val|SDF|: 5.490041e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=400, best=5.288675e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=400, best=5.286374e-05)
+Epoch [400/2000] Loss: 5.286374e-05 | Best: 5.286374e-05 | LR: 1.000000e-04 | Val|SDF|: 4.830975e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=401, best=5.286374e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=401, best=5.278847e-05)
+Epoch [401/2000] Loss: 5.278847e-05 | Best: 5.278847e-05 | LR: 1.000000e-04 | Val|SDF|: 5.084049e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=402, best=5.278847e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=402, best=5.239592e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0230_e0402.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0230_e0402.png | PLY: renders/tanh-tanh/iso_best0230_e0402.ply
+Epoch [402/2000] Loss: 5.239592e-05 | Best: 5.239592e-05 | LR: 1.000000e-04 | Val|SDF|: 4.734472e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=403, best=5.239592e-05)
+Epoch [403/2000] Loss: 5.282042e-05 | Best: 5.239592e-05 | LR: 1.000000e-04 | Val|SDF|: 5.033154e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=404, best=5.239592e-05)
+Epoch [404/2000] Loss: 5.256203e-05 | Best: 5.239592e-05 | LR: 1.000000e-04 | Val|SDF|: 5.018885e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=405, best=5.239592e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=405, best=5.216179e-05)
+Epoch [405/2000] Loss: 5.216179e-05 | Best: 5.216179e-05 | LR: 1.000000e-04 | Val|SDF|: 4.986281e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=406, best=5.216179e-05)
+Epoch [406/2000] Loss: 5.240252e-05 | Best: 5.216179e-05 | LR: 1.000000e-04 | Val|SDF|: 5.810268e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=407, best=5.216179e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=407, best=5.101694e-05)
+Epoch [407/2000] Loss: 5.101694e-05 | Best: 5.101694e-05 | LR: 1.000000e-04 | Val|SDF|: 4.823035e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=408, best=5.101694e-05)
+Epoch [408/2000] Loss: 5.261143e-05 | Best: 5.101694e-05 | LR: 1.000000e-04 | Val|SDF|: 5.128207e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=409, best=5.101694e-05)
+Epoch [409/2000] Loss: 5.173634e-05 | Best: 5.101694e-05 | LR: 1.000000e-04 | Val|SDF|: 5.451696e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=410, best=5.101694e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=410, best=5.083127e-05)
+Epoch [410/2000] Loss: 5.083127e-05 | Best: 5.083127e-05 | LR: 1.000000e-04 | Val|SDF|: 4.945494e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=411, best=5.083127e-05)
+Epoch [411/2000] Loss: 5.196276e-05 | Best: 5.083127e-05 | LR: 1.000000e-04 | Val|SDF|: 5.039401e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=412, best=5.083127e-05)
+Epoch [412/2000] Loss: 5.144549e-05 | Best: 5.083127e-05 | LR: 1.000000e-04 | Val|SDF|: 5.407974e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=413, best=5.083127e-05)
+Epoch [413/2000] Loss: 5.196218e-05 | Best: 5.083127e-05 | LR: 1.000000e-04 | Val|SDF|: 4.925730e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=414, best=5.083127e-05)
+Epoch [414/2000] Loss: 5.094022e-05 | Best: 5.083127e-05 | LR: 1.000000e-04 | Val|SDF|: 4.639639e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=415, best=5.083127e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=415, best=5.036376e-05)
+Epoch [415/2000] Loss: 5.036376e-05 | Best: 5.036376e-05 | LR: 1.000000e-04 | Val|SDF|: 5.639445e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=416, best=5.036376e-05)
+Epoch [416/2000] Loss: 5.078373e-05 | Best: 5.036376e-05 | LR: 1.000000e-04 | Val|SDF|: 4.895745e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=417, best=5.036376e-05)
+Epoch [417/2000] Loss: 5.123912e-05 | Best: 5.036376e-05 | LR: 1.000000e-04 | Val|SDF|: 4.976112e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=418, best=5.036376e-05)
+Epoch [418/2000] Loss: 5.080995e-05 | Best: 5.036376e-05 | LR: 1.000000e-04 | Val|SDF|: 4.832934e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=419, best=5.036376e-05)
+Epoch [419/2000] Loss: 5.108259e-05 | Best: 5.036376e-05 | LR: 1.000000e-04 | Val|SDF|: 5.004326e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=420, best=5.036376e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=420, best=4.989670e-05)
+Epoch [420/2000] Loss: 4.989670e-05 | Best: 4.989670e-05 | LR: 1.000000e-04 | Val|SDF|: 5.267161e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=421, best=4.989670e-05)
+Epoch [421/2000] Loss: 5.005408e-05 | Best: 4.989670e-05 | LR: 1.000000e-04 | Val|SDF|: 5.088289e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=422, best=4.989670e-05)
+Epoch [422/2000] Loss: 5.018389e-05 | Best: 4.989670e-05 | LR: 1.000000e-04 | Val|SDF|: 4.668739e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=423, best=4.989670e-05)
+Epoch [423/2000] Loss: 4.999743e-05 | Best: 4.989670e-05 | LR: 1.000000e-04 | Val|SDF|: 4.727693e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=424, best=4.989670e-05)
+Epoch [424/2000] Loss: 5.002745e-05 | Best: 4.989670e-05 | LR: 1.000000e-04 | Val|SDF|: 5.115752e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=425, best=4.989670e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=425, best=4.925423e-05)
+Epoch [425/2000] Loss: 4.925423e-05 | Best: 4.925423e-05 | LR: 1.000000e-04 | Val|SDF|: 5.360868e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=426, best=4.925423e-05)
+Epoch [426/2000] Loss: 5.052506e-05 | Best: 4.925423e-05 | LR: 1.000000e-04 | Val|SDF|: 4.757650e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=427, best=4.925423e-05)
+Epoch [427/2000] Loss: 4.961229e-05 | Best: 4.925423e-05 | LR: 1.000000e-04 | Val|SDF|: 4.707427e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=428, best=4.925423e-05)
+Epoch [428/2000] Loss: 4.952936e-05 | Best: 4.925423e-05 | LR: 1.000000e-04 | Val|SDF|: 4.670333e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=429, best=4.925423e-05)
+Epoch [429/2000] Loss: 4.951521e-05 | Best: 4.925423e-05 | LR: 1.000000e-04 | Val|SDF|: 4.731218e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=430, best=4.925423e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=430, best=4.908152e-05)
+Epoch [430/2000] Loss: 4.908152e-05 | Best: 4.908152e-05 | LR: 1.000000e-04 | Val|SDF|: 4.719857e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=431, best=4.908152e-05)
+Epoch [431/2000] Loss: 5.004618e-05 | Best: 4.908152e-05 | LR: 1.000000e-04 | Val|SDF|: 5.174611e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=432, best=4.908152e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=432, best=4.855537e-05)
+Epoch [432/2000] Loss: 4.855537e-05 | Best: 4.855537e-05 | LR: 1.000000e-04 | Val|SDF|: 4.821318e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=433, best=4.855537e-05)
+Epoch [433/2000] Loss: 4.904189e-05 | Best: 4.855537e-05 | LR: 1.000000e-04 | Val|SDF|: 5.026986e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=434, best=4.855537e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=434, best=4.836115e-05)
+Epoch [434/2000] Loss: 4.836115e-05 | Best: 4.836115e-05 | LR: 1.000000e-04 | Val|SDF|: 6.435693e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=435, best=4.836115e-05)
+Epoch [435/2000] Loss: 4.907777e-05 | Best: 4.836115e-05 | LR: 9.000000e-05 | Val|SDF|: 4.695450e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=436, best=4.836115e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=436, best=4.816843e-05)
+[Viz-2D] Saved: renders/tanh-tanh/slice_best0240_e0436.png
+[Viz-3D] Saved PNG: renders/tanh-tanh/iso_best0240_e0436.png | PLY: renders/tanh-tanh/iso_best0240_e0436.ply
+Epoch [436/2000] Loss: 4.816843e-05 | Best: 4.816843e-05 | LR: 9.000000e-05 | Val|SDF|: 4.689547e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=437, best=4.816843e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=437, best=4.764110e-05)
+Epoch [437/2000] Loss: 4.764110e-05 | Best: 4.764110e-05 | LR: 9.000000e-05 | Val|SDF|: 5.488036e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=438, best=4.764110e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=438, best=4.746952e-05)
+Epoch [438/2000] Loss: 4.746952e-05 | Best: 4.746952e-05 | LR: 9.000000e-05 | Val|SDF|: 4.617823e-03  <BEST>
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=439, best=4.746952e-05)
+Epoch [439/2000] Loss: 4.818737e-05 | Best: 4.746952e-05 | LR: 9.000000e-05 | Val|SDF|: 4.766787e-03 
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_last.pt (epoch=440, best=4.746952e-05)
+[Checkpoint] saved: checkpoints/tanh-tanh/sdf_best.pt (epoch=440, best=4.664845e-05)
+Epoch [440/2000] Loss: 4.664845e-05 | Best: 4.664845e-05 | LR: 9.000000e-05 | Val|SDF|: 4.683119e-03  <BEST>

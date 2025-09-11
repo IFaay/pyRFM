@@ -1,0 +1,121 @@
+2025-09-08 19:38:49 [INFO] Logging to: logs/relu-tanh/train_20250908_193849.log
+[Checkpoint] loaded: checkpoints/relu-tanh/sdf_last.pt (epoch=3656, best=0.0037534332133578197)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3657, best=3.753433e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3657, best=1.790616e-03)
+Epoch [3657/7656] Loss: 1.790616e-03 | Best: 1.790616e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.413, max=141.075  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3658, best=1.790616e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3658, best=1.788046e-03)
+Epoch [3658/7656] Loss: 1.788046e-03 | Best: 1.788046e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.406, max=141.663  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3659, best=1.788046e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3659, best=1.784447e-03)
+Epoch [3659/7656] Loss: 1.784447e-03 | Best: 1.784447e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.402, max=141.588  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3660, best=1.784447e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3660, best=1.783540e-03)
+Epoch [3660/7656] Loss: 1.783540e-03 | Best: 1.783540e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.400, max=141.246  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3661, best=1.783540e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3661, best=1.781698e-03)
+Epoch [3661/7656] Loss: 1.781698e-03 | Best: 1.781698e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.398, max=141.115  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3662, best=1.781698e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3662, best=1.779889e-03)
+Epoch [3662/7656] Loss: 1.779889e-03 | Best: 1.779889e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.391, max=141.441  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3663, best=1.779889e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3663, best=1.777842e-03)
+Epoch [3663/7656] Loss: 1.777842e-03 | Best: 1.777842e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.386, max=112.485  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3664, best=1.777842e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3664, best=1.775633e-03)
+Epoch [3664/7656] Loss: 1.775633e-03 | Best: 1.775633e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.380, max=112.519  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3665, best=1.775633e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3665, best=1.775280e-03)
+Epoch [3665/7656] Loss: 1.775280e-03 | Best: 1.775280e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.376, max=112.590  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3666, best=1.775280e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3666, best=1.773581e-03)
+[Viz-2D] Saved: renders/relu-tanh/slice_best0010_e3666.png
+[Viz-3D] Saved PNG: renders/relu-tanh/iso_best0010_e3666.png | PLY: renders/relu-tanh/iso_best0010_e3666.ply
+Epoch [3666/7656] Loss: 1.773581e-03 | Best: 1.773581e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.372, max=112.640  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3667, best=1.773581e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3667, best=1.771697e-03)
+Epoch [3667/7656] Loss: 1.771697e-03 | Best: 1.771697e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.370, max=112.516  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3668, best=1.771697e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3668, best=1.771135e-03)
+Epoch [3668/7656] Loss: 1.771135e-03 | Best: 1.771135e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.365, max=112.465  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3669, best=1.771135e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3669, best=1.771094e-03)
+Epoch [3669/7656] Loss: 1.771094e-03 | Best: 1.771094e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.360, max=112.313  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3670, best=1.771094e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3670, best=1.767854e-03)
+Epoch [3670/7656] Loss: 1.767854e-03 | Best: 1.767854e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.359, max=112.637  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3671, best=1.767854e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3671, best=1.766632e-03)
+Epoch [3671/7656] Loss: 1.766632e-03 | Best: 1.766632e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.354, max=112.482  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3672, best=1.766632e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3672, best=1.766629e-03)
+Epoch [3672/7656] Loss: 1.766629e-03 | Best: 1.766629e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.353, max=112.432  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3673, best=1.766629e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3673, best=1.764133e-03)
+Epoch [3673/7656] Loss: 1.764133e-03 | Best: 1.764133e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.348, max=112.267  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3674, best=1.764133e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3674, best=1.763657e-03)
+Epoch [3674/7656] Loss: 1.763657e-03 | Best: 1.763657e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.348, max=112.411  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3675, best=1.763657e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3675, best=1.762624e-03)
+Epoch [3675/7656] Loss: 1.762624e-03 | Best: 1.762624e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.346, max=112.386  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3676, best=1.762624e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3676, best=1.761197e-03)
+[Viz-2D] Saved: renders/relu-tanh/slice_best0020_e3676.png
+[Viz-3D] Saved PNG: renders/relu-tanh/iso_best0020_e3676.png | PLY: renders/relu-tanh/iso_best0020_e3676.ply
+Epoch [3676/7656] Loss: 1.761197e-03 | Best: 1.761197e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.341, max=112.422  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3677, best=1.761197e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3677, best=1.761029e-03)
+Epoch [3677/7656] Loss: 1.761029e-03 | Best: 1.761029e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.339, max=112.407  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3678, best=1.761029e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3678, best=1.758236e-03)
+Epoch [3678/7656] Loss: 1.758236e-03 | Best: 1.758236e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.335, max=109.195  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3679, best=1.758236e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3679, best=1.757607e-03)
+Epoch [3679/7656] Loss: 1.757607e-03 | Best: 1.757607e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.330, max=109.244  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3680, best=1.757607e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3680, best=1.757098e-03)
+Epoch [3680/7656] Loss: 1.757098e-03 | Best: 1.757098e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.332, max=108.920  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3681, best=1.757098e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3681, best=1.756654e-03)
+Epoch [3681/7656] Loss: 1.756654e-03 | Best: 1.756654e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.327, max=109.075  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3682, best=1.756654e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3682, best=1.755766e-03)
+Epoch [3682/7656] Loss: 1.755766e-03 | Best: 1.755766e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.322, max=109.213  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3683, best=1.755766e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3683, best=1.755148e-03)
+Epoch [3683/7656] Loss: 1.755148e-03 | Best: 1.755148e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.320, max=109.091  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3684, best=1.755148e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3684, best=1.754325e-03)
+Epoch [3684/7656] Loss: 1.754325e-03 | Best: 1.754325e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.319, max=109.041  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3685, best=1.754325e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3685, best=1.753308e-03)
+Epoch [3685/7656] Loss: 1.753308e-03 | Best: 1.753308e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.318, max=109.005  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3686, best=1.753308e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3686, best=1.750911e-03)
+[Viz-2D] Saved: renders/relu-tanh/slice_best0030_e3686.png
+[Viz-3D] Saved PNG: renders/relu-tanh/iso_best0030_e3686.png | PLY: renders/relu-tanh/iso_best0030_e3686.ply
+Epoch [3686/7656] Loss: 1.750911e-03 | Best: 1.750911e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.316, max=109.072  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3687, best=1.750911e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3687, best=1.750125e-03)
+Epoch [3687/7656] Loss: 1.750125e-03 | Best: 1.750125e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.311, max=108.986  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3688, best=1.750125e-03)
+Epoch [3688/7656] Loss: 1.750714e-03 | Best: 1.750125e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.309, max=108.950 
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3689, best=1.750125e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3689, best=1.749659e-03)
+Epoch [3689/7656] Loss: 1.749659e-03 | Best: 1.749659e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.308, max=103.158  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3690, best=1.749659e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3690, best=1.749323e-03)
+Epoch [3690/7656] Loss: 1.749323e-03 | Best: 1.749323e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.306, max=103.194  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3691, best=1.749323e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3691, best=1.748024e-03)
+Epoch [3691/7656] Loss: 1.748024e-03 | Best: 1.748024e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.300, max=102.678  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3692, best=1.748024e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3692, best=1.746993e-03)
+Epoch [3692/7656] Loss: 1.746993e-03 | Best: 1.746993e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.301, max=103.117  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3693, best=1.746993e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3693, best=1.746803e-03)
+Epoch [3693/7656] Loss: 1.746803e-03 | Best: 1.746803e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.297, max=102.874  <BEST>
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_last.pt (epoch=3694, best=1.746803e-03)
+[Checkpoint] saved: checkpoints/relu-tanh/sdf_best.pt (epoch=3694, best=1.746305e-03)
+Epoch [3694/7656] Loss: 1.746305e-03 | Best: 1.746305e-03 | LR: 1.330279e-06 | ValAngle(deg): mean=9.294, max=96.117  <BEST>

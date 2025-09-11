@@ -1,9 +1,4 @@
-/examples/Nonlinear/
-/examples/Nonlinear/burgers.py
-/examples/Nonlinear/LLG.py
 .idea/
 pyrfm.egg-info
-test/
-examples/Nonlinear/LLG.py
 pyrfm/__pycache__/
 *.pyc
