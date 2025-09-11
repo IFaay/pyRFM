@@ -8,6 +8,7 @@ Created on 2025/9/2
 import torch
 import pyrfm
 import json
+import math
 
 json_str = """
 {
@@ -58,16 +59,22 @@ json_str = """
     u″(x) + k² u(x) = − Q δ(x − x₀),     0 < x < L,
 其中 δ 为狄拉克 δ，Q ∈ ℂ 为点源强度（频域等效值）。与 JSON 中的
 “amplitude = 1.0、phase = 0” 对应，可写
-    Q = A·e^{iφ}·𝒩,
-A = 1.0，φ = 0。𝒩 为归一化系数（由具体离散/端口定义决定）；在多数 FEM/FD 实现中，
-可直接把右端当作 −A δ(x − x₀)，并用“导数跳跃条件”标定实际强度（见下）。
+    Q = A·e^{iφ}·,
+A = 1.0，φ = 0
 
-四、点源的等效跳跃条件（用于解析拼接或数值弱式）
-令 ε → 0⁺，对 [x₀ − ε, x₀ + ε] 积分可得
-    ∫ u″ dx = u′(x₀⁺) − u′(x₀⁻) = − Q.
-因此：
-    u 在 x₀ 连续：          u(x₀⁺) = u(x₀⁻),
-    导数存在跳跃：          u′(x₀⁺) − u′(x₀⁻) = − Q.
+四 点源跳跃条件（Jump Condition at Point Source）
+由于点源的存在，u(x) 在 x = x₀ 处满足跳跃条件：
+    u′(x₀⁺) − u′(x₀⁻) = − Q,
+    u(x₀⁺) = u(x₀⁻),
+其中 x₀⁺、x₀⁻ 分别表示 x₀ 处的右极限与左极限。
+
+
+# 四、点源的高斯函数极限
+# 为数值计算方便，点源可近似为高斯函数极限形式：
+#     δ(x − x₀) = lim (σ → 0) 1/(σ√(2π)) exp(−(x − x₀)²/(2σ²)) 。
+# 在实际计算中，σ 取一个小的正数（如网格尺寸的十分之一）即可.
+# 并且保证采样点均值为 1 / I, 其中 I 为区间长度.
+# 即 ∫ δ(x − x₀) dx = 1.
 
 五、边界条件（与 JSON 一致）
 - 左端 Dirichlet： u(0) = 0 V      （短路、强制电压为零）
@@ -75,6 +82,31 @@ A = 1.0，φ = 0。𝒩 为归一化系数（由具体离散/端口定义决定�
 
 
 """
+
+
+def func_Dirac(x, x0, sigma, L):
+    """
+    高斯函数极限形式的狄拉克 δ 函数近似
+    δ(x − x₀) = lim (σ → 0) 1/(σ√(2π)) exp(−(x − x₀)²/(2σ²))
+    :param x: 输入张量
+    :param x0: 点源位置
+    :param sigma: 标准差，控制宽度（数值上取一个小的正数）
+    :param I: 区间长度，用于归一化
+    :return: 近似的 δ(x - x0)
+    """
+    coeff = 1.0 / (sigma * torch.sqrt(torch.tensor(2.0 * torch.pi)))  # 归一化系数
+    r = (x - x0).norm(dim=1, p=2, keepdim=True)
+    gauss = torch.exp(-0.5 * (r / sigma) ** 2) * coeff  # 高斯函数
+    gauss /= gauss.mean()
+    return gauss / L  # 保证积分为 1
+
+
+def func_green_dirichlet(x, x0, k, L):
+    x0 = torch.ones_like(x) * x0
+    f_left = torch.sin(k * x) * torch.sin(k * (L - x0))
+    f_right = torch.sin(k * x0) * torch.sin(k * (L - x))
+    return torch.where(x < x0, f_left, f_right) / (k * math.sin(k * L))
+
 
 if __name__ == "__main__":
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
@@ -193,6 +225,92 @@ if __name__ == "__main__":
 
     data = json.loads(json_str)
     print(data)
-    x_min = points[:, 0].min()
-    x_max = points[:, 0].max()
+    x_min = points[:, 0].min().item()
+    x_max = points[:, 0].max().item()
     print(f"x_min: {x_min}, x_max: {x_max}")
+
+    # x0 = 0.5
+    #
+    # domain1 = pyrfm.Line1D(x_min, x0)
+    # domain2 = pyrfm.Line1D(x0, x_max)
+    # model1 = pyrfm.RFMBase(dim=1, n_hidden=200, domain=domain1, n_subdomains=1)
+    # model2 = pyrfm.RFMBase(dim=1, n_hidden=200, domain=domain2, n_subdomains=1)
+    # x_in_1 = domain1.in_sample(num_samples=5000, with_boundary=False)
+    # x_in_2 = domain2.in_sample(num_samples=5000, with_boundary=False)
+    # x_on_1 = torch.tensor([[x_min]])
+    # x_on_2 = torch.tensor([[x_max]])
+    # x_c = torch.tensor([[x0]])
+    #
+    # A_in_1 = model1.features(x_in_1).cat(dim=1)
+    # A_in_2 = model2.features(x_in_2).cat(dim=1)
+    # A_in_xx_1 = model1.features_second_derivative(x_in_1, axis1=0, axis2=0).cat(dim=1)
+    # A_in_xx_2 = model2.features_second_derivative(x_in_2, axis1=0, axis2=0).cat(dim=1)
+    # A_on_1 = model1.features(x_on_1).cat(dim=1)
+    # A_on_2 = model2.features(x_on_2).cat(dim=1)
+    # A_c_1 = model1.features(x_c).cat(dim=1)
+    # A_c_2 = model2.features(x_c).cat(dim=1)
+    # A_c_x_1 = model1.features_derivative(x_c, axis=0).cat(dim=1)
+    # A_c_x_2 = model2.features_derivative(x_c, axis=0).cat(dim=1)
+    #
+    # k = 31.086405362
+    # A = pyrfm.concat_blocks([[A_in_xx_1 + k ** 2 * A_in_1, torch.zeros_like(A_in_1)],
+    #                          [torch.zeros_like(A_in_2), A_in_xx_2 + k ** 2 * A_in_2],
+    #                          [A_on_1, torch.zeros_like(A_on_1)],
+    #                          [torch.zeros_like(A_on_2), A_on_2],
+    #                          [A_c_1, -A_c_2],
+    #                          [A_c_x_1, -A_c_x_2]])
+    # b = torch.cat([torch.zeros((x_in_1.shape[0], 1), device=A.device),
+    #                torch.zeros((x_in_2.shape[0], 1), device=A.device),
+    #                torch.zeros((x_on_1.shape[0], 1), device=A.device),
+    #                torch.zeros((x_on_2.shape[0], 1), device=A.device),
+    #                torch.zeros((x_c.shape[0], 1), device=A.device),
+    #                torch.tensor([[1.0]], device=A.device)], dim=0)
+    #
+    # A_normed = A.norm(dim=1, p=2, keepdim=True)
+    # A = A / A_normed
+    # b = b / A_normed
+    # W = torch.linalg.lstsq(A, b)[0]
+    # model1.W = W[:model1.n_hidden, :]
+    # model2.W = W[model1.n_hidden:, :]
+    #
+    # x_in = torch.cat([x_in_1, x_in_2], dim=0)
+    # f_in = torch.cat([model1(x_in_1), model2(x_in_2)], dim=0)
+    #
+    # import matplotlib.pyplot as plt
+    #
+    # plt.plot(x_in.cpu(), f_in.detach().cpu(), label='RFM')
+    # plt.plot(x_in.cpu(), func_green_dirichlet(x_in, 0.5, k, x_max - x_min).cpu(), label='Exact')
+    # plt.legend()
+    # plt.show()
+
+    domain = pyrfm.Line1D(x_min, x_max)
+    x0 = 0.5
+    x_in = domain.in_sample(num_samples=10000, with_boundary=False)
+    x_in = torch.cat([x_in, torch.tensor([[x0]], device=x_in.device)], dim=0)
+    x_in, _ = torch.sort(x_in, dim=0)
+    x_on = domain.on_sample(num_samples=20)
+
+    f_in = -func_Dirac(x_in, x0, 1e-6, x_max - x_min)
+    k = 100
+
+    model = pyrfm.RFMBase(dim=1, n_hidden=40, domain=domain, n_subdomains=k // 10)
+
+    A_in = model.features(x_in).cat(dim=1)
+    A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
+    A_on = model.features(x_on).cat(dim=1)
+
+    A = pyrfm.concat_blocks([[A_in_xx + k ** 2 * A_in], [A_on]])
+    b = torch.cat([f_in, torch.zeros((x_on.shape[0], 1), device=A.device)], dim=0)
+
+    model.compute(A, damp=1e-8).solve(b)
+
+    import matplotlib.pyplot as plt
+
+    u_exact = func_green_dirichlet(x_in, x0, k, x_max - x_min)
+
+    plt.plot(x_in.cpu(), u_exact.cpu())
+    plt.plot(x_in.cpu(), model(x_in).detach().cpu())
+    plt.show()
+
+    error = torch.linalg.norm(model(x_in) - u_exact, dim=0, ord=2) / torch.linalg.norm(u_exact, dim=0, ord=2)
+    print(f"Relative L2 Error: {error.item():.4e}")

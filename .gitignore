@@ -2,3 +2,6 @@
 pyrfm.egg-info
 pyrfm/__pycache__/
 *.pyc
+build/
+dist/
+*.egg-info/
