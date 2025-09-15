@@ -1591,19 +1591,21 @@ class Circle2D(GeometryBase):
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        num_samples = int(num_samples ** (1 / 2))
+        num_samples = int(num_samples ** 0.5)
         if with_boundary:
-            r = torch.linspace(0.0, self.radius, num_samples)[1:]
+            r = torch.linspace(0.0, self.radius, num_samples)[1:]  # 不包含0
         else:
-            r = torch.linspace(0.0, self.radius, num_samples + 1)[1:-1]
+            r = torch.linspace(0.0, self.radius, num_samples + 1)[1:-1]  # 不包含0和半径
 
         theta = torch.linspace(0.0, 2 * torch.pi, num_samples + 1)[:-1]
         R, T = torch.meshgrid(r, theta, indexing='ij')
         x = self.center[0, 0] + R * torch.cos(T)
         y = self.center[0, 1] + R * torch.sin(T)
+
+        # 先加原点，再加采样点
         x = torch.cat([self.center[0, 0].view(1, 1), x.reshape(-1, 1)], dim=0)
         y = torch.cat([self.center[0, 1].view(1, 1), y.reshape(-1, 1)], dim=0)
-        return torch.cat([x.reshape(-1, 1), y.reshape(-1, 1)], dim=1)
+        return torch.cat([x, y], dim=1)
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         theta = torch.linspace(0.0, 2 * torch.pi, num_samples + 1)[:-1].reshape(-1, 1)

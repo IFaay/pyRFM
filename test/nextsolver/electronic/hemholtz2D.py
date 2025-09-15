@@ -9,26 +9,28 @@ import torch
 import pyrfm
 import json
 import math
+import cmath
 
 json_str = """
 {
   "material": {
-    "relative_permittivity": 2.2,
+    "relative_permittivity": 1.748511,
     "relative_permeability": 1.0,
-    "conductivity": 0.0
+    "conductivity": 4.77e-5
   },
   "source": {
     "type": "discrete_port",
-    "position": 0.10,
+    "position": [0.0, 0.0],
     "amplitude": 1.0,
     "phase": 0.0,
     "unit": "V"
   },
   "boundary_conditions": {
-    "left":  { "type": "dirichlet", "value": 0.0, "unit": "V"   },
-    "right": { "type": "neumann",   "value": 0.0, "unit": "V/m" }
+    "type": "dirichlet",
+    "value": 0.0,
+    "unit": "V"
   },
-  "frequency": 1.0e9
+  "frequency": 4.33e8
 }
 """
 
@@ -84,6 +86,31 @@ A = 1.0，φ = 0
 """
 
 
+def compute_k_from_json(data):
+    """根据 JSON 计算传播常数 k；sigma==0 返回 float64，sigma>0 返回 complex128（主值）"""
+    eps0 = 8.854187817e-12  # F/m
+    mu0 = 4.0 * math.pi * 1e-7  # H/m
+
+    er = float(data["material"]["relative_permittivity"])
+    ur = float(data["material"]["relative_permeability"])
+    sigma = float(data["material"]["conductivity"])  # S/m
+    f = float(data["frequency"])  # Hz
+    omega = 2.0 * math.pi * f
+
+    eps = er * eps0
+    mu = ur * mu0
+
+    if sigma == 0.0:
+        # 无耗：k 实数
+        k_val = omega * math.sqrt(mu * eps)
+        return torch.tensor(k_val, dtype=torch.float64)
+    else:
+        # 有耗：k 复数（主值）
+        k2 = (omega ** 2) * mu * eps - 1j * omega * mu * sigma
+        k_val = cmath.sqrt(k2)
+        return torch.tensor(k_val, dtype=torch.complex128)
+
+
 def func_Dirac(x, x0, sigma, L):
     """
     高斯函数极限形式的狄拉克 δ 函数近似
@@ -109,14 +136,21 @@ def func_green_dirichlet(x, x0, k, L):
 
 
 if __name__ == "__main__":
+    data = json.loads(json_str)
+    k = compute_k_from_json(data)  # torch.float64 或 torch.complex128
+    print("Computed k:", k)
+    sigma = float(data["material"]["conductivity"])
+
     domain = pyrfm.Circle2D(center=(0, 0), radius=1)
+    # domain = pyrfm.Square2D(center=(0.0, 0.0), radius=(1.0, 1.0))
     x_in = domain.in_sample(num_samples=10000, with_boundary=False)
-    x0 = torch.tensor([[0.2, 0.0]])
+    # x_in = pyrfm.Square2D(center=(0, 0), radius=(1, 1)).in_sample(10000, with_boundary=True)
+    # x_in = x_in[(domain.sdf(x_in) < 0.0).squeeze()]
+    x0 = torch.tensor([[0.0, 0.0]])
     x_in = torch.cat([x_in, x0], dim=0)  # 确保采样点中包含点源位置
     x_on = domain.on_sample(num_samples=400)
 
-    f_in = -func_Dirac(x_in, x0, 1e-5, 2 * torch.pi)
-    k = 80
+    f_in = func_Dirac(x_in, x0, 1e-14, 2 * torch.pi)
 
     model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=1)
 
@@ -128,7 +162,7 @@ if __name__ == "__main__":
     A = pyrfm.concat_blocks([[A_in_xx + A_in_yy + k ** 2 * A_in], [A_on]])
     b = torch.cat([f_in, torch.zeros((x_on.shape[0], 1), device=A.device)], dim=0)
 
-    model.compute(A, damp=1e-8).solve(b)
+    model.compute(A, damp=1e-12).solve(b)
 
     viz = pyrfm.RFMVisualizer2D(model=model)
 

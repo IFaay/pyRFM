@@ -1109,7 +1109,9 @@ class RFMBase(ABC):
         A /= self.A_norm
         self.A_backup = A.clone().cpu()
         if abs(damp) > 0.0:
-            A = torch.cat([A, damp * torch.eye(A.shape[1], dtype=self.dtype, device=self.device)], dim=0)
+            A = torch.cat(
+                [A, damp * torch.eye(A.shape[1], dtype=self.dtype, device=self.device)],
+                dim=0)
         print("Decomposing the problem size of A: ", A.shape, "with solver QR")
 
         try:
