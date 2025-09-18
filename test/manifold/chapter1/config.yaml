@@ -1,5 +1,5 @@
 # --------- 基础输入 ----------
-ply_path: "bunny.ply"     # 你的数据路径
+ply_path: "bottle.ply"     # 你的数据路径
 
 # --------- 训练超参 ----------
 batch_size: 64
@@ -38,7 +38,7 @@ viz:
   enable_3d: true
 
   # 2D 截面参数（plot_model_slice）
-  slice_axis: "y"                # "x" | "y" | "z"
+  slice_axis: "z"                # "x" | "y" | "z"
   slice_value: 0.0               # 固定截面位置（单位：归一化坐标）
   slice_res: 256                 # 采样分辨率
   slice_level: 0.0               # 颜色映射居中（白色）对应值
@@ -49,7 +49,7 @@ viz:
   iso_level: 0.0
   iso_grid: [ 128, 128, 128 ]
   iso_resolution: [ 800, 800 ]
-  iso_view: "front"              # 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
+  iso_view: "top"              # 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 
 # --------- 产出/存储 ----------
 resume: false                   # 断点恢复
