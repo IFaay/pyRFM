@@ -368,23 +368,19 @@ class BoundingBox:
 
 # ---------------------- SDF 模型 ----------------------
 class SDFModel(nn.Module):
-    def __init__(self, inner_dim=512, input_dim=3, output_dim=1, activation_cfg=("ReLU", "TanH")):
+    def __init__(self, inner_dim=512, input_dim=3, output_dim=1, activation: str = "TanH"):
         super().__init__()
         act_map = {"ReLU": nn.ReLU(), "TanH": nn.Tanh()}
-        self.input_layer = nn.Sequential(
+        if activation not in act_map:
+            raise ValueError(f"Unsupported activation: {activation}. Choose from {list(act_map.keys())}")
+        self.net = nn.Sequential(
             nn.utils.parametrizations.weight_norm(nn.Linear(input_dim, inner_dim)),
-            act_map[activation_cfg[0]],
+            act_map[activation],
+            nn.Linear(inner_dim, output_dim, bias=False),
         )
-        self.hidden_layer = nn.Sequential(
-            nn.utils.parametrizations.weight_norm(nn.Linear(inner_dim, inner_dim)),
-            act_map[activation_cfg[1]],
-        )
-        self.final_layer = nn.Linear(inner_dim, output_dim, bias=False)
 
     def forward(self, x):
-        x = self.input_layer(x)
-        x = self.hidden_layer(x)
-        return self.final_layer(x)
+        return self.net(x)
 
 
 # ---------------------- Checkpoint I/O ----------------------
@@ -469,7 +465,7 @@ class Config:
     pth_path: str = "../../data/cheese_in.pth"
     batch_size: int = 256;
     num_epochs: int = 2000
-    activation_cfg: Tuple[str, str] = ("ReLU", "TanH")
+    activation: str = "TanH"
     model: ModelCfg = field(default_factory=ModelCfg)
     optim: OptimCfg = field(default_factory=OptimCfg)
     scheduler: SchedulerCfg = field(default_factory=SchedulerCfg)
@@ -486,12 +482,14 @@ class Config:
     save_every_epoch: int = 0
 
 
-def _as_tuple2(x) -> Tuple[str, str]:
-    if isinstance(x, (list, tuple)) and len(x) == 2: return (str(x[0]), str(x[1]))
-    if isinstance(x, str) and "," in x:
-        a, b = x.split(",", 1);
-        return (a.strip(), b.strip())
-    raise ValueError("activation_cfg 需要两个激活，例如 ['ReLU','TanH']")
+def _as_activation(x) -> str:
+    if isinstance(x, (list, tuple)):
+        if len(x) == 0:
+            raise ValueError("activation must not be empty")
+        return str(x[0])
+    if isinstance(x, str):
+        return x
+    raise ValueError("activation should be a string or a list/tuple with at least one entry")
 
 
 def load_config() -> Config:
@@ -509,7 +507,7 @@ def load_config() -> Config:
         pth_path=str(raw.get("pth_path", "../../data/cheese_in.pth")),
         batch_size=int(raw.get("batch_size", 256)),
         num_epochs=int(raw.get("num_epochs", 2000)),
-        activation_cfg=_as_tuple2(raw.get("activation_cfg", ["ReLU", "TanH"])),
+        activation=_as_activation(raw.get("activation", raw.get("activation_cfg", "TanH"))),
         model=ModelCfg(
             **{k: raw.get("model", {}).get(k, getattr(ModelCfg, k)) for k in ["inner_dim", "input_dim", "output_dim"]}),
         optim=OptimCfg(**{k: raw.get("optim", {}).get(k, getattr(OptimCfg, k)) for k in ["lr", "weight_decay", "eps"]}),
@@ -767,19 +765,20 @@ def main():
     num_epochs = cfg.num_epochs
 
     # 激活/模型
-    activation_cfg = cfg.activation_cfg
+    activation = cfg.activation
 
-    def _act_tag(cfg_tuple: tuple[str, str]) -> str:
-        safe = [s.lower().replace("+", "").replace("/", "-") for s in cfg_tuple]
-        return f"{safe[0]}-{safe[1]}"
+    def _act_tag(act: str) -> str:
+        return act.lower().replace("+", "").replace("/", "-")
 
-    tag = _act_tag(activation_cfg)
+    tag = _act_tag(activation)
     # Dataset-specific tag so different pth inputs get separate folders
     data_tag = Path(cfg.pth_path).stem
 
     model = SDFModel(
-        inner_dim=cfg.model.inner_dim, input_dim=cfg.model.input_dim,
-        output_dim=cfg.model.output_dim, activation_cfg=activation_cfg
+        inner_dim=cfg.model.inner_dim,
+        input_dim=cfg.model.input_dim,
+        output_dim=cfg.model.output_dim,
+        activation=activation,
     ).to(device=device, dtype=dtype)
 
     # 优化 & 调度
