@@ -1,10 +1,22 @@
 #!/bin/bash
 # 运行位置：~/Desktop/ML_PDE/RFM/pyRFM/test
 
+#bohr job submit \
+#  -m "registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:surface2" \
+#  -t "c6_m60_1 * NVIDIA 4090" \
+#  -p . \
+#  -n test-image-mount \
+#  -c "echo OK-from-container && python -V" \
+#  --project_id 945674 \
+#  --max_reschedule_times 3 \
+#  --max_run_time 10
+
+
+
 set -euo pipefail
 
 PROJECT_ID=945674
-IMAGE="registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:surface"
+IMAGE="registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:surface2"
 MACHINE="c6_m60_1 * NVIDIA 4090"   # 完整机型名要加引号
 INPUT_DIR="surface"
 WORKDIR="surface/sec3/sec3_2"
@@ -49,7 +61,7 @@ for pth in "${PTHS[@]}"; do
     -t "${MACHINE}" \
     -p "${INPUT_DIR}" \
     -n "rfm-${short}" \
-    -c "pip install pyrfm==0.2.5 torch numpy scipy matplotlib typing_extensions pyyaml scikit-image && cd ${WORKDIR} && python train_sdf.py --pth_path ../../data/${name}.pth" \
+    -c "cd ${WORKDIR} && python train_sdf.py --pth_path ../../data/${name}.pth" \
     --project_id ${PROJECT_ID} \
     -g ${JOB_GROUP_ID} \
     -r "${RESULT_BASE}/${short}"
