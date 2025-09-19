@@ -18,3 +18,13 @@ class Torus(pyrfm.ImplicitSurfaceBase):
 
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
+    domain = Torus()
+    x = domain.in_sample(num_samples=100000)
+
+    _, normal, mean_curvature = domain.sdf(x, with_normal=True, with_curvature=True)
+
+    # save the points, normals, and mean curvature in a file
+    torch.save((x, normal, mean_curvature), '../../data/torus_in.pth')
+
+    # load the points, normals, and mean curvature from the file
+    # x, normal, mean_curvature = torch.load('../../data/torus_in.pth', map_location=torch.tensor(0.).device)

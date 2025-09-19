@@ -25,11 +25,12 @@ if __name__ == '__main__':
 
     domain = Ellipsoid()
     x = domain.in_sample(100000)
+    _, normal, mean_curvature = domain.sdf(x, with_normal=True, with_curvature=True)
 
-    # save the points
-    torch.save(x, '../../data/ellipsoid_in.pth')
+    # save the points, normals, and mean curvature in a file
+    torch.save((x, normal, mean_curvature), '../../data/ellipsoid_in.pth')
 
-    # load the points
-    x = torch.load('../../data/ellipsoid_in.pth')
+    print(x.shape, normal.shape, mean_curvature.shape)
 
-    print(x.shape[0])
+    # # load the points, normals, and mean curvature from the file
+    x, normal, mean_curvature = torch.load('../../data/ellipsoid_in.pth', map_location=torch.tensor(0.).device)
