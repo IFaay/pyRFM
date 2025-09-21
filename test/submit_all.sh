@@ -2,9 +2,9 @@
 # 运行位置：~/Desktop/ML_PDE/RFM/pyRFM/test
 
 #bohr job submit \
-#  -m "registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:surface2" \
+#  -m "registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:dev" \
 #  -t "c6_m60_1 * NVIDIA 4090" \
-#  -p . \
+#  -p "surface" \
 #  -n test-image-mount \
 #  -c "echo OK-from-container && python -V" \
 #  --project_id 945674 \
@@ -16,11 +16,11 @@
 set -euo pipefail
 
 PROJECT_ID=945674
-IMAGE="registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:surface2"
+IMAGE="registry.dp.tech/dptech/dp/native/prod-17893/pyrfm:dev"
 MACHINE="c6_m60_1 * NVIDIA 4090"   # 完整机型名要加引号
 INPUT_DIR="surface"
-WORKDIR="surface/sec3/sec3_2"
-RESULT_BASE="/personal/results/pyRFM/sec3_2"
+WORKDIR="sec3/sec3_2"
+RESULT_BASE="/personal/results"
 
 # 1) 创建任务组
 GROUP_NAME="rfm-sec3_2-$(date +%Y%m%d-%H%M%S)"
@@ -64,7 +64,7 @@ for pth in "${PTHS[@]}"; do
     -c "cd ${WORKDIR} && python train_sdf.py --pth_path ../../data/${name}.pth" \
     --project_id ${PROJECT_ID} \
     -g ${JOB_GROUP_ID} \
-    -r "${RESULT_BASE}/${short}"
+    -r ${RESULT_BASE}
 done
 
 echo "🎉 All jobs submitted into group: ${GROUP_NAME} (ID: ${JOB_GROUP_ID})"

@@ -5,7 +5,7 @@ pth_path: "../../data/ellipsoid_in.pth"
 # --------- 训练超参 ----------
 batch_size: 64
 num_epochs: 2000
-activation_cfg: [ "TanH", "TanH" ]
+activation_cfg: [ "ReLU", "TanH" ]
 
 model:
   inner_dim: 512

@@ -1259,6 +1259,10 @@ class RFMBase(ABC):
                                     feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
                                     outputs.append(torch.matmul(feat, self.W))
                                     break
+                                if d1 == d2 and order[0, d1] == 2:
+                                    feat = self.features_second_derivative(x_batch, d1, d1).cat(dim=1)
+                                    outputs.append(torch.matmul(feat, self.W))
+                                    break
                     return torch.cat(outputs, dim=0)
                 else:
                     raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
