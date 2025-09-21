@@ -43,7 +43,7 @@ def generate_laplace_beltrami_rhs_for_surface(u_expr: sp.Expr,
     rhs_code = re.sub(r'\by\b', 'p[:, 1]', rhs_code)
     rhs_code = re.sub(r'\bz\b', 'p[:, 2]', rhs_code)
 
-    # 拼接 PyTorch 函数
+    # 拼接 Laplace–Beltrami PyTorch 函数
     func_str = f"""
 def func_rhs(p: torch.Tensor) -> torch.Tensor:
     \"\"\"
@@ -52,7 +52,22 @@ def func_rhs(p: torch.Tensor) -> torch.Tensor:
     return ({rhs_code}).unsqueeze(-1)
 """
 
-    return func_str
+    # 生成 mean curvature 的 PyTorch 表达式字符串
+    mean_curv_code = pycode(mean_curvature)
+    mean_curv_code = mean_curv_code.replace('math.', 'torch.')
+    mean_curv_code = re.sub(r'\bx\b', 'p[:, 0]', mean_curv_code)
+    mean_curv_code = re.sub(r'\by\b', 'p[:, 1]', mean_curv_code)
+    mean_curv_code = re.sub(r'\bz\b', 'p[:, 2]', mean_curv_code)
+
+    func_mc_str = f"""
+def func_mean_curvature(p: torch.Tensor) -> torch.Tensor:
+    \"\"\"
+    Mean curvature H(x,y,z) of given implicit surface
+    \"\"\"
+    return ({mean_curv_code}).unsqueeze(-1)
+"""
+
+    return func_str + "\n" + func_mc_str
 
 
 def main():

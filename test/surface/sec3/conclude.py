@@ -221,9 +221,10 @@ def save_isosurface_png_and_ply(
         grid: Tuple[int, int, int] = (128, 128, 128),
         resolution: Tuple[int, int] = (800, 800),
         view: str = "front",
+        ref=None
 ):
-    # viz = pyrfm.RFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view)
-    viz = MeanCurvatureRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view)
+    viz = pyrfm.RFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
+    # viz = MeanCurvatureRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
     viz.plot(cmap="viridis", level=level, grid=grid)
 
     save_png_path = Path(save_png_path);
@@ -334,12 +335,13 @@ if __name__ == "__main__":
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     device = torch.tensor(0.0).device
     dtype = torch.tensor(0.0).dtype
+
     # section3.1 results
 
-    # Draw the mean curvature from the trained shapes
+    # # Draw the mean curvature from the trained shapes
     # # ellipsoid
-    # pth_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/data/ellipsoid_in.pth"
-    # pt_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/sec3/sec3_2/checkpoints/ellipsoid_in/tanh-tanh/sdf_best.pt"
+    # pth_path = "../data/ellipsoid_in.pth"
+    # pt_path = "./sec3_2/checkpoints/ellipsoid_in/tanh-tanh/sdf_best.pt"
     # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
     # pts_t = x.to(device=device, dtype=dtype)
     # nrms_t = normal.to(device=device, dtype=dtype)
@@ -391,8 +393,8 @@ if __name__ == "__main__":
     #                      axis="y", device=device)
     #
     # ## torus
-    # pth_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/data/torus_in.pth"
-    # pt_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/sec3/sec3_2/checkpoints/torus_in/tanh-tanh/sdf_best.pt"
+    # pth_path = "../data/torus_in.pth"
+    # pt_path = "./sec3_2/checkpoints/torus_in/tanh-tanh/sdf_best.pt"
     # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
     # pts_t = x.to(device=device, dtype=dtype)
     # nrms_t = normal.to(device=device, dtype=dtype)
@@ -444,8 +446,8 @@ if __name__ == "__main__":
     #                      axis="y", device=device)
     #
     # ## genus2
-    # pth_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/data/genus2_in.pth"
-    # pt_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/sec3/sec3_2/checkpoints/genus2_in/tanh-tanh/sdf_best.pt"
+    # pth_path = "../data/genus2_in.pth"
+    # pt_path = "./sec3_2/checkpoints/genus2_in/tanh-tanh/sdf_best.pt"
     # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
     # pts_t = x.to(device=device, dtype=dtype)
     # nrms_t = normal.to(device=device, dtype=dtype)
@@ -497,8 +499,8 @@ if __name__ == "__main__":
     #                      axis="y", device=device)
     #
     # ## cheese
-    # pth_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/data/cheese_in.pth"
-    # pt_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/sec3/sec3_2/checkpoints/cheese_in/tanh-tanh/sdf_best.pt"
+    # pth_path = "../data/cheese_in.pth"
+    # pt_path = "./sec3_2/checkpoints/cheese_in/tanh-tanh/sdf_best.pt"
     # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
     # pts_t = x.to(device=device, dtype=dtype)
     # nrms_t = normal.to(device=device, dtype=dtype)
@@ -550,8 +552,8 @@ if __name__ == "__main__":
     #                      axis="y", device=device)
     #
     # # bottle
-    # pth_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/data/bottle_in.pth"
-    # pt_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/sec3/sec3_2/checkpoints/bottle_in/tanh-tanh/sdf_best.pt"
+    # pth_path = "../data/bottle_in.pth"
+    # pt_path = "./sec3_2/checkpoints/bottle_in/tanh-tanh/sdf_best.pt"
     # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
     # pts_t = x.to(device=device, dtype=dtype)
     # nrms_t = normal.to(device=device, dtype=dtype)
@@ -603,8 +605,8 @@ if __name__ == "__main__":
     #                      axis="z", device=device)
     #
     # # bunny
-    # pth_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/data/bunny_in.pth"
-    # pt_path = "/Users/syf/Desktop/ML_PDE/RFM/pyRFM/test/surface/sec3/sec3_2/checkpoints/bunny_in/tanh-tanh/sdf_best.pt"
+    # pth_path = "../data/bunny_in.pth"
+    # pt_path = "./sec3_2/checkpoints/bunny_in/tanh-tanh/sdf_best.pt"
     # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
     # pts_t = x.to(device=device, dtype=dtype)
     # nrms_t = normal.to(device=device, dtype=dtype)
@@ -654,3 +656,265 @@ if __name__ == "__main__":
     #                             resolution=(800, 800), view="front")
     # save_model_slice_png("figures/bunny_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
     #                      axis="y", device=device)
+
+    # # extract the last three lines from all log files under ./sec3_2/logs
+    # from pathlib import Path
+    # import os
+    #
+    #
+    # def extract_last_lines(base_dir="./sec3_2"):
+    #     base_path = Path(base_dir)
+    #     log_files = base_path.rglob("logs/**/*.log")  # 递归查找 logs 下的 .log 文件
+    #
+    #     results = []
+    #
+    #     for log_file in log_files:
+    #         try:
+    #             with open(log_file, "r", encoding="utf-8") as f:
+    #                 lines = f.readlines()
+    #                 last_three = lines[-3:] if len(lines) >= 3 else lines
+    #
+    #             # 从路径中提取标签
+    #             parts = log_file.parts
+    #             # 例子: sec3_2/logs/cheese_in/relu-tanh/train_xxx.log
+    #             bottle_like = ""
+    #             tanh_like = ""
+    #
+    #             for p in parts:
+    #                 if p.endswith("_in"):  # cheese_in, bottle_in 等
+    #                     bottle_like = p.replace("_in", "")
+    #                 if "-" in p:  # relu-tanh, tanh-tanh 等
+    #                     tanh_like = p
+    #
+    #             results.append({
+    #                 "file": log_file,
+    #                 "label1": bottle_like,
+    #                 "label2": tanh_like,
+    #                 "last_lines": [line.strip() for line in last_three]
+    #             })
+    #
+    #         except Exception as e:
+    #             print(f"读取 {log_file} 出错: {e}")
+    #
+    #     # 打印结果
+    #     for res in results:
+    #         print(f"\n文件: {res['file']}")
+    #         print(f"标签: {res['label1']} | {res['label2']}")
+    #         print("最后三行:")
+    #         for line in res["last_lines"]:
+    #             print("    ", line)
+    #
+    #
+    # extract_last_lines("./sec3_2")
+
+    # section 3.3 results: compare tanh-tanh and tanh
+
+    # cheese-like
+
+    pth_path = "../data/cheese_in.pth"
+    pt_path = "./sec3_2/checkpoints/cheese_in/tanh-tanh/sdf_best.pt"
+    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    pts_t = x.to(device=device, dtype=dtype)
+    nrms_t = normal.to(device=device, dtype=dtype)
+    mins = pts_t.min(dim=0).values;
+    maxs = pts_t.max(dim=0).values
+    center = (mins + maxs) * 0.5;
+    half = (maxs - mins) * 0.5
+    scale = torch.max(half)
+
+    pts_n = (pts_t - center) / scale
+    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+
+    mins_n = pts_n.min(dim=0).values;
+    maxs_n = pts_n.max(dim=0).values
+    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+                       mins_n[1].item(), maxs_n[1].item(),
+                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+
+    ckpt = torch.load(pt_path, map_location=device)
+    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+    model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+    model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+    model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+    model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+    model.W = plain_state_dict["final_layer.weight"].t()
+
+
+    class NearShapeForViz(pyrfm.GeometryBase):
+        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+
+        def get_bounding_box(self): return bbox.get_bounding_box()
+
+        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+
+        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+
+        def sdf(self, p: torch.Tensor) -> torch.Tensor:
+            return model(p).squeeze()
+
+
+    near_shape = NearShapeForViz()
+    model.domain = near_shape
+
+    save_isosurface_png_and_ply("figures/cheese_tanh2_iso_sdf.png", "/dev/null",
+                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+                                resolution=(800, 800), view="iso")
+    save_model_slice_png("figures/cheese_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
+                         axis="y", device=device)
+
+    pth_path = "../data/cheese_in.pth"
+    pt_path = "./sec3_3/checkpoints/cheese_in/tanh/sdf_best.pt"
+    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    pts_t = x.to(device=device, dtype=dtype)
+    nrms_t = normal.to(device=device, dtype=dtype)
+    mins = pts_t.min(dim=0).values;
+    maxs = pts_t.max(dim=0).values
+    center = (mins + maxs) * 0.5;
+    half = (maxs - mins) * 0.5
+    scale = torch.max(half)
+    pts_n = (pts_t - center) / scale
+    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+
+    mins_n = pts_n.min(dim=0).values;
+    maxs_n = pts_n.max(dim=0).values
+    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+                       mins_n[1].item(), maxs_n[1].item(),
+                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+
+    ckpt = torch.load(pt_path, map_location=device)
+    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    print(plain_state_dict.keys())
+    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH)
+    model.submodels[0].weights = plain_state_dict["net.0.weight"].t()
+    model.submodels[0].biases = plain_state_dict["net.0.bias"]
+    model.W = plain_state_dict["net.2.weight"].t()
+
+
+    class NearShapeForViz(pyrfm.GeometryBase):
+        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+
+        def get_bounding_box(self): return bbox.get_bounding_box()
+
+        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+
+        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+
+        def sdf(self, p: torch.Tensor) -> torch.Tensor:
+            return model(p).squeeze()
+
+
+    near_shape = NearShapeForViz()
+    model.domain = near_shape
+
+    save_isosurface_png_and_ply("figures/cheese_tanh1_iso_sdf.png", "/dev/null",
+                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+                                resolution=(800, 800), view="iso")
+    save_model_slice_png("figures/cheese_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
+                         axis="y", device=device)
+
+    # bunny
+    pth_path = "../data/bunny_in.pth"
+    pt_path = "./sec3_2/checkpoints/bunny_in/tanh-tanh/sdf_best.pt"
+    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    pts_t = x.to(device=device, dtype=dtype)
+    nrms_t = normal.to(device=device, dtype=dtype)
+    mins = pts_t.min(dim=0).values;
+    maxs = pts_t.max(dim=0).values
+    center = (mins + maxs) * 0.5;
+    half = (maxs - mins) * 0.5
+    scale = torch.max(half)
+    pts_n = (pts_t - center) / scale
+    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+
+    mins_n = pts_n.min(dim=0).values;
+    maxs_n = pts_n.max(dim=0).values
+    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+                       mins_n[1].item(), maxs_n[1].item(),
+                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+
+    ckpt = torch.load(pt_path, map_location=device)
+    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+    model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+    model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+    model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+    model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+    model.W = plain_state_dict["final_layer.weight"].t()
+
+
+    class NearShapeForViz(pyrfm.GeometryBase):
+        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+
+        def get_bounding_box(self): return bbox.get_bounding_box()
+
+        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+
+        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+
+        def sdf(self, p: torch.Tensor) -> torch.Tensor:
+            return model(p).squeeze()
+
+
+    near_shape = NearShapeForViz()
+    model.domain = near_shape
+
+    save_isosurface_png_and_ply("figures/bunny_tanh2_front_sdf.png", "/dev/null",
+                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+                                resolution=(800, 800), view="front")
+    save_model_slice_png("figures/bunny_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
+                         axis="y", device=device)
+
+    pth_path = "../data/bunny_in.pth"
+    pt_path = "./sec3_3/checkpoints/bunny_in/tanh/sdf_best.pt"
+    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    pts_t = x.to(device=device, dtype=dtype)
+    nrms_t = normal.to(device=device, dtype=dtype)
+    mins = pts_t.min(dim=0).values;
+    maxs = pts_t.max(dim=0).values
+    center = (mins + maxs) * 0.5;
+    half = (maxs - mins) * 0.5
+    scale = torch.max(half)
+    pts_n = (pts_t - center) / scale
+    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+
+    mins_n = pts_n.min(dim=0).values;
+    maxs_n = pts_n.max(dim=0).values
+    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+                       mins_n[1].item(), maxs_n[1].item(),
+                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+
+    ckpt = torch.load(pt_path, map_location=device)
+    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    print(plain_state_dict.keys())
+    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH)
+    model.submodels[0].weights = plain_state_dict["net.0.weight"].t()
+    model.submodels[0].biases = plain_state_dict["net.0.bias"]
+    model.W = plain_state_dict["net.2.weight"].t()
+
+
+    class NearShapeForViz(pyrfm.GeometryBase):
+        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+
+        def get_bounding_box(self): return bbox.get_bounding_box()
+
+        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+
+        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+
+        def sdf(self, p: torch.Tensor) -> torch.Tensor:
+            return model(p).squeeze()
+
+
+    near_shape = NearShapeForViz()
+    model.domain = near_shape
+
+    save_isosurface_png_and_ply("figures/bunny_tanh1_front_sdf.png", "/dev/null",
+                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+                                resolution=(800, 800), view="front")
+    save_model_slice_png("figures/bunny_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
+                         axis="y", device=device)
