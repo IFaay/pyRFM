@@ -590,6 +590,7 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         # ---- 绘制 ----
         self.ax.clear()
         from matplotlib.collections import PolyCollection
+        from matplotlib.ticker import ScalarFormatter
         polys = [tri for tri in tri2d]
         coll = PolyCollection(polys, facecolors=tri_color, edgecolors='none', closed=True, antialiased=False,
                               linewidths=0)
@@ -606,7 +607,13 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         # 颜色条（字段值）
         sm = plt.cm.ScalarMappable(cmap=cmap_obj, norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
-        plt.colorbar(sm, ax=self.ax)
+        cb = plt.colorbar(sm, ax=self.ax)
+
+        # —— 关键部分：科学计数法 ——
+        formatter = ScalarFormatter(useMathText=True)  # 用 1×10^{k} 的数学字体
+        formatter.set_powerlimits((0, 0))  # 强制所有刻度都用科学计数
+        cb.formatter = formatter
+        cb.update_ticks()  # 应用到 colorbar
 
         plt.tight_layout()
         self.draw_view_axes()
