@@ -123,6 +123,43 @@ class BoundingBox:
         return self
 
 
+class NormalNormRFMVisualizer3DMC(RFMVisualizer3DMC):
+    def _compute_field_values_points(self, pts_world):
+        """
+        复用你在 ray-marching 版本中的字段取值逻辑，但针对任意点集合。
+        返回 numpy (N,) 的标量数组（取 component_idx 分量；若 ref 存在，做绝对差）。
+        """
+        pts_t = torch.tensor(pts_world, device=self.device, dtype=self.dtype)
+        if isinstance(self.model, pyrfm.RFMBase):
+            if self.ref is not None:
+                # field_vals = self.model(pts_t)
+                nx = self.model.dForward(pts_t, (1, 0, 0))
+                ny = self.model.dForward(pts_t, (0, 1, 0))
+                nz = self.model.dForward(pts_t, (0, 0, 1))
+                field_vals = torch.sqrt(nx ** 2 + ny ** 2 + nz ** 2)
+                ref_vals = self.ref(pts_t)
+                field_vals = (field_vals - ref_vals).abs().detach().cpu().numpy()[:, self.component_idx]
+            else:
+                nx = self.model.dForward(pts_t, (1, 0, 0))
+                ny = self.model.dForward(pts_t, (0, 1, 0))
+                nz = self.model.dForward(pts_t, (0, 0, 1))
+                field_vals = torch.sqrt(nx ** 2 + ny ** 2 + nz ** 2)
+                field_vals = field_vals.detach().cpu().numpy()[:, self.component_idx]
+
+        elif isinstance(self.model, pyrfm.STRFMBase):
+            xt = self.model.validate_and_prepare_xt(x=pts_t,
+                                                    t=torch.tensor([[self.t]], device=self.device, dtype=self.dtype))
+            if self.ref is not None:
+                field_vals = self.model.forward(xt=xt)
+                ref_vals = self.ref(xt=xt)
+                field_vals = (field_vals - ref_vals).abs().detach().cpu().numpy()[:, self.component_idx]
+            else:
+                field_vals = self.model.forward(xt=xt).detach().cpu().numpy()[:, self.component_idx]
+        else:
+            raise NotImplementedError("Model type not supported for visualization.")
+        return field_vals
+
+
 class MeanCurvatureRFMVisualizer3DMC(RFMVisualizer3DMC):
     def _compute_field_values_points(self, pts_world):
         """
@@ -223,7 +260,8 @@ def save_isosurface_png_and_ply(
         view: str = "front",
         ref=None
 ):
-    viz = pyrfm.RFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
+    # viz = pyrfm.RFMVisualizer3DMCMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
+    viz = NormalNormRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
     # viz = MeanCurvatureRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
     viz.plot(cmap="viridis", level=level, grid=grid)
 
@@ -758,7 +796,7 @@ if __name__ == "__main__":
     near_shape = NearShapeForViz()
     model.domain = near_shape
 
-    save_isosurface_png_and_ply("figures/cheese_tanh2_iso_sdf.png", "/dev/null",
+    save_isosurface_png_and_ply("figures/cheese_tanh2_iso_normal.png", "/dev/null",
                                 model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
                                 resolution=(800, 800), view="iso")
     save_model_slice_png("figures/cheese_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
@@ -809,7 +847,7 @@ if __name__ == "__main__":
     near_shape = NearShapeForViz()
     model.domain = near_shape
 
-    save_isosurface_png_and_ply("figures/cheese_tanh1_iso_sdf.png", "/dev/null",
+    save_isosurface_png_and_ply("figures/cheese_tanh1_iso_normal.png", "/dev/null",
                                 model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
                                 resolution=(800, 800), view="iso")
     save_model_slice_png("figures/cheese_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
@@ -862,7 +900,7 @@ if __name__ == "__main__":
     near_shape = NearShapeForViz()
     model.domain = near_shape
 
-    save_isosurface_png_and_ply("figures/bunny_tanh2_front_sdf.png", "/dev/null",
+    save_isosurface_png_and_ply("figures/bunny_tanh2_front_normal.png", "/dev/null",
                                 model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
                                 resolution=(800, 800), view="front")
     save_model_slice_png("figures/bunny_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
@@ -913,7 +951,7 @@ if __name__ == "__main__":
     near_shape = NearShapeForViz()
     model.domain = near_shape
 
-    save_isosurface_png_and_ply("figures/bunny_tanh1_front_sdf.png", "/dev/null",
+    save_isosurface_png_and_ply("figures/bunny_tanh1_front_normal.png", "/dev/null",
                                 model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
                                 resolution=(800, 800), view="front")
     save_model_slice_png("figures/bunny_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
