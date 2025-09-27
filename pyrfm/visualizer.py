@@ -301,7 +301,7 @@ class RFMVisualizer3D(RFMVisualizer):
         self.ax.imshow(colors.transpose(1, 0, 2), origin='lower', interpolation='bilinear')
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
-        plt.colorbar(sm, ax=self.ax)
+        plt.colorbar(sm, ax=self.ax, shrink=0.6, pad=-0.05)
         self.ax.set_axis_off()
         plt.tight_layout()
 
@@ -607,7 +607,7 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         # 颜色条（字段值）
         sm = plt.cm.ScalarMappable(cmap=cmap_obj, norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
-        cb = plt.colorbar(sm, ax=self.ax)
+        cb = plt.colorbar(sm, ax=self.ax, shrink=0.6, pad=-0.05)
 
         # —— 关键部分：科学计数法 ——
         formatter = ScalarFormatter(useMathText=True)  # 用 1×10^{k} 的数学字体
