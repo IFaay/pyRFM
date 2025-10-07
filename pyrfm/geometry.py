@@ -594,51 +594,121 @@ class ImplicitFunctionBase(GeometryBase):
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
         pass
 
+    # ---------- 工具：定位可用于 dForward 的模型 ----------
+    def _get_model_for_dforward(self):
+        # 你也可以在子类里重写这个方法，返回真正带 dForward 的对象
+        cand = getattr(self, "model", None)
+        return cand if (cand is not None and hasattr(cand, "dForward")) else None
+
+    def _has_dforward(self) -> bool:
+        return self._get_model_for_dforward() is not None
+
+    @torch.no_grad()
+    def _eval_grad_dforward(self, p: torch.Tensor) -> torch.Tensor:
+        model = self._get_model_for_dforward()
+        nx = model.dForward(p, (1, 0, 0)).squeeze(-1)
+        ny = model.dForward(p, (0, 1, 0)).squeeze(-1)
+        nz = model.dForward(p, (0, 0, 1)).squeeze(-1)
+        return torch.stack([nx, ny, nz], dim=-1)  # (N,3)
+
+    def _eval_grad(self, p: torch.Tensor) -> torch.Tensor:
+        if self._has_dforward():
+            return self._eval_grad_dforward(p)
+        # 回退到 autograd
+        p_req = p.detach().clone().requires_grad_(True)
+        f = self.shape_func(p_req)
+        if f.ndim == 2 and f.size(-1) == 1:
+            f = f.squeeze(-1)
+        g = torch.autograd.grad(f, p_req, grad_outputs=torch.ones_like(f),
+                                create_graph=False, retain_graph=False)[0]
+        return g
+
+    @torch.no_grad()
+    def _eval_hessian_dforward(self, p: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        返回 (H, lap)：
+          H: (N,3,3)  Hessian
+          lap: (N,)   Δf = trace(H)
+        需要 dForward 支持二阶多重指标。
+        """
+        model = self._get_model_for_dforward()
+        f_xx = model.dForward(p, (2, 0, 0)).squeeze(-1)
+        f_yy = model.dForward(p, (0, 2, 0)).squeeze(-1)
+        f_zz = model.dForward(p, (0, 0, 2)).squeeze(-1)
+        f_xy = model.dForward(p, (1, 1, 0)).squeeze(-1)
+        f_xz = model.dForward(p, (1, 0, 1)).squeeze(-1)
+        f_yz = model.dForward(p, (0, 1, 1)).squeeze(-1)
+        # 组装对称 Hessian
+        H = torch.zeros(p.shape[0], 3, 3, device=p.device, dtype=p.dtype)
+        H[:, 0, 0] = f_xx;
+        H[:, 1, 1] = f_yy;
+        H[:, 2, 2] = f_zz
+        H[:, 0, 1] = H[:, 1, 0] = f_xy
+        H[:, 0, 2] = H[:, 2, 0] = f_xz
+        H[:, 1, 2] = H[:, 2, 1] = f_yz
+        lap = f_xx + f_yy + f_zz
+        return H, lap
+
     def sdf(self, p: torch.Tensor, with_normal=False, with_curvature=False) -> Union[
         torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
-        Memory-efficient computation of the normalized signed distance function (SDF),
-        with optional normal and mean curvature computation.
-
-        Args:
-            p (torch.Tensor): Input point cloud of shape (N, 3)
-            with_normal (bool): If True, also return normal vectors.
-            with_curvature (bool): If True, also return mean curvature.
-
-        Returns:
-            Union of tensors depending on flags:
-                - sdf
-                - (sdf, normal)
-                - (sdf, normal, mean_curvature)
+        计算 规范化 SDF (= f/||∇f||)，可选返回单位法向与(按约定)平均曲率 H = 1/2 ∇·n。
+        - 优先 dForward；若不可用则回退 autograd。
+        - 不假设 ||∇f|| ≈ 1。
         """
-        p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
+        eps = torch.finfo(p.dtype).eps
+        # 评估 f
         f = self.shape_func(p)
+        if f.ndim == 2 and f.size(-1) == 1:
+            f = f.squeeze(-1)
 
-        # Compute gradient (∇f)
-        grad = torch.autograd.grad(outputs=f, inputs=p, grad_outputs=torch.ones_like(f), create_graph=with_curvature,
-                                   # Need graph for second-order derivative
-                                   retain_graph=with_curvature, only_inputs=True)[0]
-
-        grad_norm = torch.norm(grad, dim=-1, keepdim=True)
-        sdf = f / grad_norm
-        normal = grad / grad_norm
-
+        sdf = f.unsqueeze(-1)
         if not (with_normal or with_curvature):
             return sdf.detach()
-        elif with_normal and (not with_curvature):
-            return sdf.detach(), normal.detach()
-        else:
-            divergence = 0.0
-            for i in range(p.shape[-1]):  # Loop over x, y, z
-                dni = torch.autograd.grad(outputs=normal[:, i], inputs=p, grad_outputs=torch.ones_like(normal[:, i]),
-                                          create_graph=False, retain_graph=True, only_inputs=True)[0][:, [i]]
-                divergence += dni
 
-            mean_curvature = 0.5 * divergence  # H = ½ ∇·n
-            return sdf.detach(), normal.detach(), mean_curvature.detach()
+        # 评估 ∇f
+        g = self._eval_grad(p)
+        gnorm = g.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        n = g / gnorm
+        if with_normal and (not with_curvature):
+            return sdf.detach(), n.detach()
+
+        # ---- with_curvature: 计算 div(n) ----
+        if self._has_dforward():
+            # 用闭式公式: div(n) = (||g||^2 * tr(H) - g^T H g) / ||g||^3
+            H, lap = self._eval_hessian_dforward(p)
+            # g^T H g
+            g_col = g.unsqueeze(-1)  # (N,3,1)
+            Hg = torch.matmul(H, g_col)  # (N,3,1)
+            gT_H_g = torch.matmul(g_col.transpose(1, 2), Hg).squeeze(-1).squeeze(-1)  # (N,)
+            g2 = (gnorm.squeeze(-1) ** 2)  # (N,)
+            div_n = (g2 * lap - gT_H_g) / (gnorm.squeeze(-1) ** 3 + eps)  # (N,)
+            mean_curv = 0.5 * div_n
+            return sdf.detach(), n.detach(), mean_curv.detach().unsqueeze(-1)
+        else:
+            # 回退：autograd 直接对 n 的各分量求散度
+            p_req = p.detach().clone().requires_grad_(True)
+            # 重新评估以建立计算图
+            f2 = self.shape_func(p_req)
+            if f2.ndim == 2 and f2.size(-1) == 1:
+                f2 = f2.squeeze(-1)
+            g2 = torch.autograd.grad(f2, p_req, grad_outputs=torch.ones_like(f2),
+                                     create_graph=True, retain_graph=True)[0]
+            g2n = g2.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+            n2 = g2 / g2n
+            div = 0.0
+            for i in range(3):
+                di = torch.autograd.grad(n2[:, i], p_req,
+                                         grad_outputs=torch.ones_like(n2[:, i]),
+                                         create_graph=False, retain_graph=True)[0][:, i]
+                div = div + di
+            mean_curv = 0.5 * div
+            # 注意：sdf/n 我们用上一段的（不带图），只把 mean_curv 取当前图的值
+            return sdf.detach(), n.detach(), mean_curv.detach().unsqueeze()
 
 
 class ImplicitSurfaceBase(ImplicitFunctionBase):
+
     def __init__(self):
         super().__init__(dim=3, intrinsic_dim=2)
 
@@ -646,72 +716,295 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
         pass
 
+    # === 新：基于 Marching Cubes 的 in_sample ===
+    @torch.no_grad()
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         """
-        Sample near-surface points by rejection and iterative projection.
-
-        Args:
-            num_samples (int): Number of samples to generate.
-            with_boundary (bool): Ignored for implicit surfaces.
-
-        Returns:
-            torch.Tensor: Sampled points projected onto the surface.
+        Marching Cubes 取初值 + 法向牛顿式投影到 φ=0.
+        - 优先 skimage.measure.marching_cubes。无则退化为体素零集近似。
+        - 不假设 ||∇f||≈1；投影步长为 f/||∇f||。
+        - 对大网格/大批量自动分块，避免 OOM。
         """
+        if num_samples <= 0:
+            return torch.empty(0, self.dim, dtype=self.dtype, device=self.device)
+
+        # 1) 估计网格分辨率（与包围盒体积、目标点数相关）
+        (x_min, x_max, y_min, y_max, z_min, z_max) = self.get_bounding_box()
+        # 扩大一点 bbox，避免边界截断
+        margin = 0.1 * max((x_max - x_min), (y_max - y_min), (z_max - z_min))
+        x_min -= margin;
+        x_max += margin
+        y_min -= margin;
+        y_max += margin
+        z_min -= margin;
+        z_max += margin
+        box = torch.tensor([x_min, x_max, y_min, y_max, z_min, z_max],
+                           dtype=self.dtype, device=self.device)
+        # 目标：三角面片数量 ~ O(num_samples)。经验上把每维分辨率取 ~ c * num_samples^(1/3)
+        c = 2.0  # 稍微密一点，便于后续抽样
+        n_per_axis = int(max(128, min(320, round(c * (num_samples ** (1 / 3))))))
+        nx = ny = nz = n_per_axis
+
+        # 2) 评估 SDF 到规则网格（分块）
+        def _linspace(a, b, n):
+            # 与 dtype/device 保持一致
+            return torch.linspace(a, b, steps=n, device=self.device, dtype=self.dtype)
+
+        xs = _linspace(x_min, x_max, nx)
+        ys = _linspace(y_min, y_max, ny)
+        zs = _linspace(z_min, z_max, nz)
+
+        # 分块评估避免一次性 nx*ny*nz
+        def _eval_grid():
+            sdf_grid = torch.empty((nx, ny, nz), dtype=self.dtype, device=self.device)
+            # 以 z 为外层块，减小峰值内存
+            bz = max(8, min(nz, 64))
+            for z0 in range(0, nz, bz):
+                z1 = min(nz, z0 + bz)
+                Z = zs[z0:z1]
+                # 网格 -> 扁平化点
+                X, Y, Zm = torch.meshgrid(xs, ys, Z, indexing="ij")
+                pts = torch.stack([X, Y, Zm], dim=-1).reshape(-1, 3)
+                # 批量 eval
+                f = self.shape_func(pts)
+                if f.ndim == 2 and f.size(-1) == 1:
+                    f = f.squeeze(-1)
+                f = f.reshape(nx, ny, z1 - z0)
+                sdf_grid[:, :, z0:z1] = f
+                del X, Y, Zm, pts, f
+            return sdf_grid
+
+        sdf_grid = _eval_grid()
+
+        try:
+            from skimage import measure as _sk_measure
+            _HAS_SKIMAGE = True
+        except Exception:
+            _HAS_SKIMAGE = False
+
+        # 3) Marching Cubes / 退化路径：取到三角网格或体素近似点集
+        # if _HAS_SKIMAGE:
+        #     # skimage 需要 CPU+float32/64 numpy
+        #     sdf_np = sdf_grid.detach().to("cpu").numpy()
+        #     # spacing 与 origin：把网格索引坐标映射到真实坐标
+        #     dx = float((x_max - x_min) / max(nx - 1, 1))
+        #     dy = float((y_max - y_min) / max(ny - 1, 1))
+        #     dz = float((z_max - z_min) / max(nz - 1, 1))
+        #     verts, faces, _, _ = _sk_measure.marching_cubes(
+        #         volume=sdf_np, level=0.0, spacing=(dx, dy, dz)
+        #     )
+        #     # 平移到真实原点
+        #     verts[:, 0] += float(x_min)
+        #     verts[:, 1] += float(y_min)
+        #     verts[:, 2] += float(z_min)
+        #
+        #     if len(faces) == 0 or len(verts) == 0:
+        #         # 回退：用原有拒绝采样+投影
+        #         return self._fallback_rejection_projection(num_samples)
+        #
+        #     # 保证是 C 连续并消除负步长
+        #     import numpy as np
+        #     verts = np.ascontiguousarray(verts)  # float64/32 都行
+        #     faces = np.ascontiguousarray(faces, dtype=np.int64)
+        #
+        #     # 先在 CPU from_numpy，再搬到目标 device
+        #     verts_t = torch.from_numpy(verts).to(device=self.device, dtype=self.dtype)
+        #     faces_t = torch.from_numpy(faces).to(device=self.device)
+        #     # 在三角面上按面积概率，采样三角形质心/重心点
+        #     init_pts = self._sample_on_tri_mesh(verts_t, faces_t, k=max(num_samples * 2, 1024))
+        # else:
+        #     # 无 skimage：取零截面体素的“面中心/边中心近似”，凑一个初值云
+        init_pts = self._fallback_voxel_zerocross(xs, ys, zs, sdf_grid, k=max(num_samples * 2, 512))
+
+        # 4) 法向牛顿式投影到 φ=0
+        proj = self._project_to_surface(init_pts, max_iter=60)
+
+        # 5) 清洗：去 NaN、去离群（按 |φ| 阈）、去重复（四舍五入到网格步长）
+        f_proj = self.shape_func(proj).squeeze(-1) if proj.ndim == 2 else self.shape_func(proj)
+        tol = torch.finfo(self.dtype).eps * 100
+        mask = torch.isfinite(f_proj) & (f_proj.abs() < tol)
+        proj = proj[mask]
+
+        if proj.numel() == 0:
+            return self._fallback_rejection_projection(num_samples)
+
+        # # 去重：按分辨率四舍五入
+        # res = max((x_max - x_min) / nx, (y_max - y_min) / ny, (z_max - z_min) / nz)
+        # q = torch.round(proj / res)
+        # # unique 需要把 3 列拼成一列键
+        # keys = q[:, 0] * 73856093 + q[:, 1] * 19349663 + q[:, 2] * 83492791  # hash-ish
+        # _, uniq_idx = torch.unique(keys.to(torch.int64), return_index=True)
+        # proj = proj[uniq_idx]
+
+        # 裁切数量
+        if proj.shape[0] >= num_samples:
+            # 打乱顺序，取前 num_samples 个
+            idx = torch.randperm(proj.shape[0], device=proj.device, generator=self.gen)
+            proj = proj[idx]
+            return proj[:num_samples].contiguous()
+        else:
+            # 若不足，补一部分“拒绝+投影”以达到数量
+            need = num_samples - proj.shape[0]
+            extra = self._fallback_rejection_projection(need)
+            return torch.cat([proj, extra], dim=0)[:num_samples].contiguous()
+
+    # === 工具：法向牛顿式投影 ===
+    @torch.no_grad()
+    def _project_to_surface(self, points: torch.Tensor, max_iter: int = 10) -> torch.Tensor:
+        pts = points.clone()
+        # grad_eps = torch.tensor(1e-12, dtype=self.dtype, device=self.device)
+        # 分块，避免爆显存
+        B = max(2048, min(32768, points.shape[0]))
+        for _ in range(max_iter):
+            for i in range(0, pts.shape[0], B):
+                sl = slice(i, i + B)
+                p = pts[sl]
+                f = self.shape_func(p.clone())
+                if f.ndim == 2 and f.size(-1) == 1:
+                    f = f.squeeze(-1)
+                g = self._eval_grad(p.clone())
+                gnorm = g.norm(dim=1, keepdim=True)
+                n_hat = g / gnorm
+                pts[sl] = p - f.unsqueeze(-1) * n_hat  # p_{k+1} = p_k - f/||∇f|| n̂
+                if f.abs().max() < torch.finfo(self.dtype).eps:
+                    break
+        return pts
+
+    # === 工具：在三角网格上按面积采样重心点 ===
+    @torch.no_grad()
+    def _sample_on_tri_mesh(self, V: torch.Tensor, F: torch.Tensor, k: int) -> torch.Tensor:
+        v0 = V[F[:, 0]]
+        v1 = V[F[:, 1]]
+        v2 = V[F[:, 2]]
+        # 三角形面积
+        areas = torch.linalg.norm(torch.cross(v1 - v0, v2 - v0, dim=1), dim=1) * 0.5
+        probs = (areas / (areas.sum() + 1e-16)).clamp_min(torch.finfo(self.dtype).tiny)
+        # 多项式抽样
+        idx = torch.multinomial(probs, num_samples=k, replacement=True)
+        v0s, v1s, v2s = v0[idx], v1[idx], v2[idx]
+        # 重心采样（u,v ~ U(0,1), u+v<=1）
+        u = torch.rand(k, 1, device=self.device, dtype=self.dtype, generator=self.gen)
+        v = torch.rand(k, 1, device=self.device, dtype=self.dtype, generator=self.gen)
+        mask = (u + v > 1.0)
+        u[mask] = 1.0 - u[mask]
+        v[mask] = 1.0 - v[mask]
+        w = 1.0 - u - v
+        pts = u * v0s + v * v1s + w * v2s
+        return pts
+
+    # === 工具：无 skimage 时的体素零截面近似 ===
+    @torch.no_grad()
+    def _fallback_voxel_zerocross(self, xs, ys, zs, sdf_grid, k: int) -> torch.Tensor:
+        # 简单地找出相邻体素符号变化的边/面中心作为初值
+        # 这里用面中心（六个方向），够鲁棒且实现简洁
+        nx, ny, nz = sdf_grid.shape
+        pts = []
+
+        def _center(i, j, k0):
+            return torch.stack([xs[i], ys[j], zs[k0]])
+
+        # x-相邻
+        sign_x = torch.signbit(sdf_grid[1:, :, :]) != torch.signbit(sdf_grid[:-1, :, :])
+        ix, iy, iz = torch.where(sign_x)
+        if ix.numel():
+            cx = (xs[ix] + xs[ix + 1]) / 2
+            yy = ys[iy]
+            zz = zs[iz]
+            pts.append(torch.stack([cx, yy, zz], dim=1))
+        # y-相邻
+        sign_y = torch.signbit(sdf_grid[:, 1:, :]) != torch.signbit(sdf_grid[:, :-1, :])
+        ix, iy, iz = torch.where(sign_y)
+        if iy.numel():
+            xx = xs[ix]
+            cy = (ys[iy] + ys[iy + 1]) / 2
+            zz = zs[iz]
+            pts.append(torch.stack([xx, cy, zz], dim=1))
+        # z-相邻
+        sign_z = torch.signbit(sdf_grid[:, :, 1:]) != torch.signbit(sdf_grid[:, :, :-1])
+        ix, iy, iz = torch.where(sign_z)
+        if iz.numel():
+            xx = xs[ix]
+            yy = ys[iy]
+            cz = (zs[iz] + zs[iz + 1]) / 2
+            pts.append(torch.stack([xx, yy, cz], dim=1))
+
+        if len(pts) == 0:
+            # 没截到：退回拒绝采样+投影
+            return self._fallback_rejection_projection(k)
+
+        P = torch.cat(pts, dim=0).to(self.device, self.dtype)
+        # # 如果过多，随机下采样到 3k（给投影留余量）
+        if P.shape[0] > 3 * k:
+            sel = torch.randperm(P.shape[0], device=self.device)[:3 * k]
+            P = P[sel]
+        return P
+
+    # === 工具：老版“拒绝采样 + 投影”兜底 ===
+    @torch.no_grad()
+    def _fallback_rejection_projection(self, num_samples: int) -> torch.Tensor:
+        """
+        拒绝采样 + 迭代投影到 φ=0。
+        导数优先用 dForward，不可用则回退 autograd。
+        不假设 ||∇f||≈1：步长为 (f/||∇f||) 沿单位法向。
+        """
+        print("Back to rejection_projection")
         x_min, x_max, y_min, y_max, z_min, z_max = self.get_bounding_box()
         volume = (x_max - x_min) * (y_max - y_min) * (z_max - z_min)
-        resolution = (volume / num_samples) ** (1 / self.dim)
-        eps = 2 * resolution
+        resolution = (volume / max(num_samples, 1)) ** (1 / self.dim)
+        eps_band = 1 * resolution
 
         collected = []
         max_iter = 10
         oversample = int(num_samples * 1.5)
+        grad_eps = 1e-12
 
         while sum(c.shape[0] for c in collected) < num_samples:
-            rand = torch.rand(oversample, self.dim, device=self.device, generator=self.gen)
+            rand = torch.rand(oversample, self.dim, device=self.device, generator=self.gen, dtype=self.dtype)
             p = torch.empty(oversample, self.dim, dtype=self.dtype, device=self.device)
-            p[:, 0] = (x_min - eps) + rand[:, 0] * ((x_max + eps) - (x_min - eps))
-            p[:, 1] = (y_min - eps) + rand[:, 1] * ((y_max + eps) - (y_min - eps))
-            p[:, 2] = (z_min - eps) + rand[:, 2] * ((z_max + eps) - (z_min - eps))
-            p.requires_grad_(True)
+            p[:, 0] = (x_min - 4 * eps_band) + rand[:, 0] * ((x_max + 4 * eps_band) - (x_min - 4 * eps_band))
+            p[:, 1] = (y_min - 4 * eps_band) + rand[:, 1] * ((y_max + 4 * eps_band) - (y_min - 4 * eps_band))
+            p[:, 2] = (z_min - 4 * eps_band) + rand[:, 2] * ((z_max + 4 * eps_band) - (z_min - 4 * eps_band))
+
+            # φ、∇φ
             f = self.shape_func(p)
-            grad = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
-            grad_norm = grad.norm(dim=1, keepdim=True)
-            normal = grad / grad_norm
-            sdf = f / grad_norm
-            near_mask = (sdf.abs() < eps).squeeze()
+            if f.ndim == 2 and f.size(-1) == 1:
+                f = f.squeeze(-1)
+            g = self._eval_grad(p)  # dForward or autograd
+            gnorm = g.norm(dim=1, keepdim=True).clamp_min(grad_eps)
+            n_hat = g / gnorm
+            sdf = f.unsqueeze(-1)
+
+            near_mask = (sdf.abs() < eps_band).squeeze(-1)
             near_points = p[near_mask]
-            near_normals = normal[near_mask]
-            near_sdf = sdf[near_mask]
+            near_normals = n_hat[near_mask]
+            near_sdf = sdf[near_mask].squeeze(-1)
 
             for _ in range(max_iter):
                 if near_points.shape[0] == 0:
                     break
-                near_points = near_points - near_sdf * near_normals
-                near_points.requires_grad_(True)
+                # p_{k+1} = p_k - (f/||∇f||) * n̂
+                near_points = near_points - near_sdf.unsqueeze(-1) * near_normals
+
+                # 重新评估
                 f_proj = self.shape_func(near_points)
-                grad_proj = torch.autograd.grad(f_proj, near_points, torch.ones_like(f_proj), create_graph=False)[0]
-                grad_norm_proj = grad_proj.norm(dim=1, keepdim=True)
-                near_normals = grad_proj / grad_norm_proj
-                near_sdf = f_proj / grad_norm_proj
+                if f_proj.ndim == 2 and f_proj.size(-1) == 1:
+                    f_proj = f_proj.squeeze(-1)
+                g_proj = self._eval_grad(near_points)
+                gnorm_proj = g_proj.norm(dim=1, keepdim=True).clamp_min(grad_eps)
+                near_normals = g_proj / gnorm_proj
+                near_sdf = (f_proj.unsqueeze(-1)).squeeze(-1)
+
+                # 收敛阈值考虑尺度
                 if near_sdf.abs().max().item() < torch.finfo(self.dtype).eps * resolution:
                     break
 
-            collected.append(near_points.detach())
+            mask = ~torch.isnan(near_sdf).squeeze() & (
+                    near_sdf.abs() < torch.finfo(self.dtype).eps * resolution).squeeze()
+            collected.append(near_points[mask].detach())
 
         return torch.cat(collected, dim=0)[:num_samples]
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        """
-        Implicit surfaces do not explicitly provide boundary samples.
-        This method returns an empty tensor compatible with Boolean ops.
-
-        Args:
-            num_samples (int): Number of samples (ignored).
-            with_normal (bool): Whether to include normals.
-
-        Returns:
-            torch.Tensor or Tuple[torch.Tensor, torch.Tensor]: Empty tensor(s).
-        """
         empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
         if with_normal:
             return empty, empty
@@ -2031,3 +2324,692 @@ class HyperCube(GeometryBase):
 
     def glsl_sdf(self) -> str:
         raise NotImplementedError("HyperCube.glsl_sdf not yet implemented")
+
+
+class GmshAdaptor(GeometryBase):
+    """
+    轻量版 Gmsh 适配器（仅保留 in_sample / on_sample / get_bounding_box / sdf）
+    - 坐标一般 3D；拓扑可为 2D 或 3D
+    - 2D：将多段边界连接为闭环/多环整体；sdf 为到边界折线的有符号距离（内负外正）
+    - 3D：若网格为封闭体，sdf 为对外表面三角网的有符号距离（体内负体外正）；开放曲面返回无符号距离
+    """
+
+    # ========= 构造 =========
+    def __init__(self, msh_path: str):
+        import meshio
+
+        self.mesh = meshio.read(msh_path)
+        self.coord_dim = int(self.mesh.points.shape[1])
+        self.topo_dim = self._infer_topo_dim_from_cells(self.mesh)
+
+        # 继承基类（保持 dim / intrinsic_dim 与 topo_dim 一致）
+        super().__init__(dim=self.topo_dim, intrinsic_dim=self.topo_dim)
+
+        # 顶点坐标（numpy, float64）
+        self.points: np.ndarray = self.mesh.points.astype(np.float64)
+
+        # 规范 cells 映射（去重、排序）
+        self._cells: Dict[str, np.ndarray] = self._cells_dict(self.mesh)
+
+        # —— 边界原语缓存（仅内部使用）——
+        self._boundary_edges: Optional[np.ndarray] = None  # (E,2) 仅 topo_dim==2
+        self._boundary_tris: Optional[np.ndarray] = None  # (F,3) 仅 topo_dim==3
+        self._is_closed_3d: bool = False
+
+        # —— 边界/内点索引（用于 in_sample/on_sample）——
+        self.boundary_vertex_mask: np.ndarray = self._find_boundary_vertices_from_cells(self.mesh, self.topo_dim)
+        self.boundary_vertex_idx: np.ndarray = np.nonzero(self.boundary_vertex_mask)[0]
+        all_idx = np.arange(self.points.shape[0])
+        self.interior_vertex_idx: np.ndarray = all_idx[~self.boundary_vertex_mask]
+
+        # —— 2D / 3D 边界原语构建 ——
+        if self.topo_dim == 2:
+            self._boundary_edges = self._build_boundary_edges_2d(self._cells)
+        elif self.topo_dim == 3:
+            self._boundary_tris, self._is_closed_3d = self._build_boundary_tris_3d(self._cells, self.points)
+
+        # —— 有序边界顶点序列（多连通分量串接）——
+        self._ordered_boundary_idx: np.ndarray = self._order_boundary_vertices(self._boundary_edges) \
+            if self._boundary_edges is not None else self.boundary_vertex_idx
+
+        # —— 法向（可选）——
+        self.boundary_normals: Optional[np.ndarray] = None
+        if self.topo_dim == 3 and self.coord_dim == 3 and self._boundary_tris is not None:
+            self.boundary_normals = self._compute_vertex_normals_3d(self.points, self._boundary_tris)
+        elif self.topo_dim == 2:
+            pts2 = self.points[:, :2]
+            if self._boundary_edges is not None:
+                self.boundary_normals = self._compute_vertex_normals_2d(pts2, self._boundary_edges)
+                # 按闭环（外边界/孔洞）统一方向
+                self._flip_normals_2d_by_loops(pts2, self.boundary_normals, self._boundary_edges)
+
+        # —— torch 视图（与 GeometryBase 对齐 dtype/device）——
+        self.points_torch = self._ensure_tensor(self.points)  # (N, D)
+        self._boundary_points_torch = self.points_torch[self._to_tensor_idx(self._ordered_boundary_idx)]
+        self._interior_points_torch = self.points_torch[self._to_tensor_idx(self.interior_vertex_idx)]
+        self.boundary_normals_torch = None
+        if self.boundary_normals is not None:
+            try:
+                if self._boundary_edges is not None and self._ordered_boundary_idx.size > 0:
+                    bn = self.boundary_normals[self._ordered_boundary_idx]
+                else:
+                    bn = self.boundary_normals[self.boundary_vertex_idx]
+                self.boundary_normals_torch = self._ensure_tensor(bn)
+            except Exception:
+                pass
+
+        # —— 若拓扑 2D 而坐标为 3D：公开点/法向统一投影到前两维 ——
+        if self.topo_dim == 2 and self.coord_dim == 3:
+            self._boundary_points_torch = self._boundary_points_torch[:, :2]
+            self._interior_points_torch = self._interior_points_torch[:, :2]
+            if self.boundary_normals_torch is not None and self.boundary_normals_torch.shape[1] == 3:
+                self.boundary_normals_torch = self.boundary_normals_torch[:, :2]
+
+    # ========= 对外 API =========
+    def in_sample(self, num_samples: int = None, with_boundary: bool = False) -> torch.Tensor:
+        """返回内点；with_boundary=True 时附加边界点（忽略 num_samples）。"""
+        if with_boundary:
+            if self._interior_points_torch.numel() == 0:
+                return self._boundary_points_torch
+            return torch.vstack([self._interior_points_torch, self._boundary_points_torch])
+        return self._interior_points_torch
+
+    def on_sample(self, num_samples: int = None, with_normal: bool = False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, ...]]:
+        """返回边界点；with_normal=True 且可得法向时同时返回法向。忽略 num_samples。"""
+        if not with_normal or self.boundary_normals_torch is None:
+            return self._boundary_points_torch
+        return self._boundary_points_torch, self.boundary_normals_torch
+
+    def get_bounding_box(self) -> List[float]:
+        """
+        返回 [xmin, xmax, ymin, ymax, zmin, zmax]
+        - topo_dim == 2：固定返回 2D 盒（zmin=zmax=0）
+        - 其他：按坐标维度推断，若仅 2D 坐标，同样 z=0
+        """
+        if self.topo_dim == 2:
+            pts2 = self.points[:, :2]
+            xmin, ymin = pts2.min(axis=0)
+            xmax, ymax = pts2.max(axis=0)
+            return [float(xmin), float(xmax), float(ymin), float(ymax), 0.0, 0.0]
+
+        pts = self.points
+        if pts.shape[1] == 2:
+            xmin, ymin = pts.min(axis=0)
+            xmax, ymax = pts.max(axis=0)
+            return [float(xmin), float(xmax), float(ymin), float(ymax), 0.0, 0.0]
+        else:
+            xmin, ymin, zmin = pts.min(axis=0)
+            xmax, ymax, zmax = pts.max(axis=0)
+            return [float(xmin), float(xmax), float(ymin), float(ymax), float(zmin), float(zmax)]
+
+    def sdf(self, p: Union[np.ndarray, torch.Tensor], batch_size: int = 32768) -> torch.Tensor:
+        """
+        有符号距离：
+        - topo_dim==2：到边界折线的距离，域内为负
+        - topo_dim==3：若为闭合体，到外表面三角网的距离，体内为负；否则返回**无符号距离**
+        输入 p 可为 numpy 或 torch，形状 (N,2) 或 (N,3)
+        """
+        P = self._ensure_tensor(p)  # (N,D) on self.device/self.dtype
+        if P.ndim != 2:
+            raise ValueError("p must be (N, D)")
+
+        # 统一升至 3D 计算
+        if P.shape[1] == 2:
+            P3 = torch.cat([P, torch.zeros((P.shape[0], 1), dtype=P.dtype, device=P.device)], dim=1)
+        elif P.shape[1] == 3:
+            P3 = P
+        else:
+            raise ValueError("The last dimension of p must be 2 or 3.")
+
+        du = []
+        inside = []
+        while True:
+            try:
+                for i in range(0, P3.shape[0], batch_size):
+                    p_batch = P3[i:i + batch_size]
+                    du.append(self._unsigned_dist_to_boundary(p_batch))
+                    inside.append(self._inside_mask(p_batch))
+                du = torch.cat(du, dim=0)
+                inside = torch.cat(inside, dim=0)
+
+                # du = self._unsigned_dist_to_boundary(P3)  # (N,)
+                # inside = self._inside_mask(P3)  # (N,)
+                # 仅当能定义内外时给符号
+                if self.topo_dim == 3 and not self._is_closed_3d:
+                    return du  # 开放曲面：无符号
+                return torch.where(inside, -du, du)
+            except RuntimeError as e:
+                if any(keyword in str(e).lower() for keyword in
+                       ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
+                    batch_size //= 2
+                    outputs = []  # Clear outputs to retry
+                    torch.cuda.empty_cache()  # Clear GPU memory
+                else:
+                    raise e
+
+    # ========= 内部工具 =========
+    # —— 基础：类型/设备/索引 ——
+    def _ensure_tensor(self, x: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
+        if isinstance(x, torch.Tensor):
+            return x.to(device=self.device, dtype=self.dtype)
+        return torch.as_tensor(x, device=self.device, dtype=self.dtype)
+
+    def _to_tensor_idx(self, idx: np.ndarray) -> torch.Tensor:
+        return torch.as_tensor(idx, dtype=torch.long, device=self.device)
+
+    # —— cells 规范化 ——
+    @staticmethod
+    def _cells_dict(mesh) -> Dict[str, np.ndarray]:
+        d: Dict[str, List[np.ndarray]] = {}
+        for block in mesh.cells:
+            d.setdefault(block.type, []).append(block.data)
+        out: Dict[str, np.ndarray] = {}
+        for t, lst in d.items():
+            arr = np.vstack(lst) if len(lst) > 1 else lst[0]
+            if t in ("line", "triangle", "quad", "polygon"):
+                arr = np.unique(np.sort(arr, axis=1), axis=0)  # 无向去重
+            out[t] = arr
+        return out
+
+    @staticmethod
+    def _infer_topo_dim_from_cells(mesh) -> int:
+        has3 = has2 = has1 = has0 = False
+        for block in mesh.cells:
+            ct = block.type.lower()
+            if ct.startswith(("tetra", "hexahedron", "wedge", "pyramid", "polyhedron")):
+                has3 = True
+            elif ct.startswith(("triangle", "quad", "polygon")):
+                has2 = True
+            elif ct.startswith(("line", "edge")) or ct in ("line",):
+                has1 = True
+            elif ct in ("vertex", "point"):
+                has0 = True
+        if has3:
+            return 3
+        elif has2:
+            return 2
+        elif has1:
+            return 1
+        elif has0:
+            return 0
+        return 0
+
+    # —— 边界顶点检测 ——
+    def _find_boundary_vertices_from_cells(self, mesh, topo_dim: int) -> np.ndarray:
+        n_pts = mesh.points.shape[0]
+        mask = np.zeros(n_pts, dtype=bool)
+        cd = self._cells_dict(mesh)
+
+        if topo_dim == 3:
+            tri, _ = self._build_boundary_tris_3d(cd, mesh.points)
+            if tri is not None:
+                mask[np.unique(tri)] = True
+            return mask
+
+        if topo_dim == 2:
+            edges = self._build_boundary_edges_2d(cd)
+            if edges is not None and edges.size > 0:
+                mask[np.unique(edges)] = True
+            return mask
+
+        if topo_dim == 1:
+            line = cd.get('line')
+            if line is not None:
+                deg = np.zeros(n_pts, dtype=int)
+                for a, b in line:
+                    deg[a] += 1;
+                    deg[b] += 1
+                mask[deg == 1] = True
+            return mask
+
+        return mask
+
+    # —— 2D 边界构建 ——
+    @staticmethod
+    def _build_boundary_edges_2d(cells: Dict[str, np.ndarray]) -> Optional[np.ndarray]:
+        """优先使用 line；否则从 triangle 提取边界边（仅出现一次的边）。"""
+        if 'line' in cells and cells['line'].size > 0:
+            return cells['line']
+        tri = cells.get('triangle')
+        if tri is None or tri.size == 0:
+            return None
+        edges = np.vstack([tri[:, [0, 1]], tri[:, [1, 2]], tri[:, [2, 0]]])
+        uniq, cnt = np.unique(np.sort(edges, axis=1), axis=0, return_counts=True)
+        return uniq[cnt == 1]
+
+    # —— 3D 外表面构建 ——
+    @staticmethod
+    def _build_boundary_tris_3d(cells: Dict[str, np.ndarray], points: np.ndarray) -> Tuple[Optional[np.ndarray], bool]:
+        tri = cells.get('triangle')
+        if tri is None or tri.size == 0:
+            tets = cells.get('tetra')
+            if tets is None or tets.size == 0:
+                return None, False
+            faces = np.vstack([
+                tets[:, [0, 1, 2]],
+                tets[:, [0, 1, 3]],
+                tets[:, [0, 2, 3]],
+                tets[:, [1, 2, 3]],
+            ])
+            uniq, cnt = np.unique(np.sort(faces, axis=1), axis=0, return_counts=True)
+            tri = uniq[cnt == 1]
+        # 粗略闭合性检测：所有边恰为两三角共享
+        edges = np.vstack([tri[:, [0, 1]], tri[:, [1, 2]], tri[:, [2, 0]]])
+        _, e_cnt = np.unique(np.sort(edges, axis=1), axis=0, return_counts=True)
+        is_closed = bool(np.all(e_cnt == 2))
+        return tri, is_closed
+
+    # —— 将多段边界拆分为环/链并排序 ——
+    @staticmethod
+    def _order_boundary_loops(boundary_edges: Optional[np.ndarray]) -> List[np.ndarray]:
+        """
+        将 (E,2) 的无向边界边，按连通分量拆成若干条有序顶点序列：
+        - 闭环：首尾相接，序列不重复起点；
+        - 开链：首尾为度=1顶点。
+        返回：每个分量一个 1D int ndarray。
+        """
+        if boundary_edges is None or boundary_edges.size == 0:
+            return []
+
+        from collections import defaultdict, deque
+        adj = defaultdict(list)
+        for a, b in boundary_edges:
+            a = int(a);
+            b = int(b)
+            adj[a].append(b);
+            adj[b].append(a)
+
+        visited_v = set()
+        loops: List[np.ndarray] = []
+
+        # 遍历每个连通分量
+        all_vs = set(adj.keys())
+        processed = set()
+
+        def component_vertices(v0: int) -> List[int]:
+            comp = []
+            q = deque([v0]);
+            processed.add(v0)
+            while q:
+                v = q.popleft()
+                comp.append(v)
+                for w in adj[v]:
+                    if w not in processed:
+                        processed.add(w);
+                        q.append(w)
+            return comp
+
+        def walk(start: int) -> np.ndarray:
+            seq = [start]
+            prev = None
+            cur = start
+            seen = {start}
+            while True:
+                nbrs = adj[cur]
+                nxts = [x for x in nbrs if x != prev]
+                if not nxts:
+                    break
+                nxt = nxts[0]
+                if nxt in seen:
+                    # 回到起点 -> 闭环
+                    if nxt == seq[0]:
+                        break
+                    else:
+                        break
+                seq.append(nxt);
+                seen.add(nxt)
+                prev, cur = cur, nxt
+            return np.asarray(seq, dtype=int)
+
+        while all_vs - set().union(*[set(s) for s in loops]) - set().union(processed):
+            # 找到未处理的顶点
+            remaining = list(all_vs - set().union(processed))
+            if not remaining:
+                break
+            comp = component_vertices(remaining[0])
+            deg1 = [v for v in comp if len(adj[v]) == 1]
+            used_in_comp = set()
+            if len(deg1) >= 1:
+                for ep in deg1:
+                    if ep in used_in_comp:
+                        continue
+                    seq = walk(ep)
+                    loops.append(seq)
+                    used_in_comp.update(seq.tolist())
+            else:
+                # 纯闭环
+                seq = walk(comp[0])
+                loops.append(seq)
+
+        return loops
+
+    @staticmethod
+    def _order_boundary_vertices(boundary_edges: Optional[np.ndarray]) -> np.ndarray:
+        """
+        兼容旧接口：将所有环/链串接为一个长序列（不重复起点）。
+        """
+        loops = GmshAdaptor._order_boundary_loops(boundary_edges)
+        if not loops:
+            return np.array([], dtype=int)
+        return np.concatenate(loops, axis=0)
+
+    # —— 法向（3D/2D） ——
+    @staticmethod
+    def _compute_vertex_normals_3d(points: np.ndarray, faces: np.ndarray) -> Optional[np.ndarray]:
+        if points.shape[1] != 3 or faces is None or faces.size == 0:
+            return None
+        normals = np.zeros((points.shape[0], 3), dtype=np.float64)
+        v1 = points[faces[:, 1]] - points[faces[:, 0]]
+        v2 = points[faces[:, 2]] - points[faces[:, 0]]
+        fn = np.cross(v1, v2)  # 面法向 * 面积因子
+        for i in range(3):
+            np.add.at(normals, faces[:, i], fn)
+        lens = np.linalg.norm(normals, axis=1, keepdims=True)
+        lens[lens == 0.0] = 1.0
+        return normals / lens
+
+    @staticmethod
+    def _compute_vertex_normals_2d(points2: np.ndarray, boundary_edges: np.ndarray) -> Optional[np.ndarray]:
+        """
+        对每个环/链，按有序边切向的垂线做长度加权平均，得到顶点法向。
+        闭环与开链都支持；方向一致性在 _flip_normals_2d_by_loops 中处理。
+        """
+        if points2 is None or points2.shape[1] != 2 or boundary_edges is None or boundary_edges.size == 0:
+            return None
+
+        loops = GmshAdaptor._order_boundary_loops(boundary_edges)
+        if not loops:
+            return None
+
+        normals = np.zeros((points2.shape[0], 2), dtype=np.float64)
+        edge_set = set(tuple(sorted(e)) for e in boundary_edges)
+
+        def add_edge_normal(i, j, v_idx):
+            t = points2[j] - points2[i]
+            L = np.linalg.norm(t)
+            if L < 1e-12:
+                return
+            n = np.array([t[1], -t[0]], dtype=np.float64)  # 右手法向
+            n /= (np.linalg.norm(n) + 1e-30)
+            normals[v_idx] += n * L
+
+        for seq in loops:
+            seq = [int(x) for x in seq.tolist()]
+            m = len(seq)
+            if m < 2:
+                continue
+            # 判闭环：首尾是否有边
+            closed = tuple(sorted((seq[0], seq[-1]))) in edge_set
+
+            for k in range(m - 1):
+                i, j = seq[k], seq[k + 1]
+                # 将法向加到两个端点（长度加权）
+                add_edge_normal(i, j, i)
+                add_edge_normal(i, j, j)
+            if closed:
+                i, j = seq[-1], seq[0]
+                add_edge_normal(i, j, i)
+                add_edge_normal(i, j, j)
+
+        lens = np.linalg.norm(normals, axis=1)
+        nz = lens > 1e-12
+        normals[nz] /= lens[nz][:, None]
+        return normals
+
+    @staticmethod
+    def _try_flip_2d_normals_outward(points2: np.ndarray, normals2: np.ndarray) -> None:
+        if normals2 is None:
+            return
+        try:
+            centroid = points2.mean(axis=0)
+            dots = np.einsum('ij,ij->i', normals2, points2 - centroid)
+            flip = dots < 0
+            normals2[flip] *= -1.0
+        except Exception:
+            pass
+
+    def _flip_normals_2d_by_loops(self, points2: np.ndarray, normals2: np.ndarray, boundary_edges: np.ndarray) -> None:
+        """
+        将 2D 顶点法向按闭环方向统一：
+        - 以“绝对面积最大”的闭环为外边界，其法向保持外向；
+        - 其余闭环视作孔洞，法向整体翻转（指向孔内）。
+        开链不处理（保持原样）。
+        """
+        if normals2 is None:
+            return
+        loops = self._order_boundary_loops(boundary_edges)
+        if not loops:
+            return
+
+        edge_set = set(tuple(sorted(e)) for e in boundary_edges)
+
+        def loop_signed_area(seq: np.ndarray) -> float:
+            idx = seq.astype(int)
+            if tuple(sorted((int(seq[0]), int(seq[-1])))) not in edge_set:
+                return 0.0  # 非闭环
+            xy = points2[idx]
+            x, y = xy[:, 0], xy[:, 1]
+            x2 = np.r_[x, x[0]];
+            y2 = np.r_[y, y[0]]
+            return 0.5 * float(np.sum(x2[:-1] * y2[1:] - x2[1:] * y2[:-1]))
+
+        areas = [loop_signed_area(np.asarray(s, dtype=int)) for s in loops]
+        abs_areas = [abs(a) for a in areas]
+        if all(a == 0.0 for a in abs_areas):
+            # 没有闭环或无法判定；回退到质心启发式
+            self._try_flip_2d_normals_outward(points2, normals2)
+            return
+
+        outer_id = int(np.argmax(abs_areas))
+        outer_idx = np.asarray(loops[outer_id], dtype=int)
+        c_outer = points2[outer_idx].mean(axis=0)
+
+        # 外边界：让法向远离外边界质心
+        dots_outer = np.einsum("ij,ij->i", normals2[outer_idx], points2[outer_idx] - c_outer)
+        flip_outer = dots_outer < 0
+        normals2[outer_idx[flip_outer]] *= -1.0
+
+        # 孔洞：整体翻转（与外边界相反）
+        for k, seq in enumerate(loops):
+            if k == outer_id:
+                continue
+            idx = np.asarray(seq, dtype=int)
+            # 仅对闭环操作
+            if tuple(sorted((int(seq[0]), int(seq[-1])))) not in edge_set:
+                continue
+            normals2[idx] *= -1.0
+
+    # —— 距离计算 ——
+    def _unsigned_dist_to_boundary(self, P3: torch.Tensor) -> torch.Tensor:
+        """到边界的**无符号**距离。"""
+        if self.topo_dim == 2:
+            # 用边界线段集
+            edges = self._boundary_edges
+            if edges is None or edges.size == 0:
+                # 退化：到边界顶点集合
+                V = self._ensure_tensor(self.points[:, :2])
+                P2 = P3[:, :2]
+                d2 = ((P2[:, None, :] - V[None, :, :]) ** 2).sum(dim=2)
+                return torch.sqrt(d2.min(dim=1).values)
+            V2 = self._ensure_tensor(self.points[:, :2])  # (V,2)
+            A = V2[edges[:, 0]]
+            B = V2[edges[:, 1]]
+            # 升维到 z=0 用统一段距函数
+            zeroA = torch.zeros((A.shape[0], 1), dtype=A.dtype, device=A.device)
+            A3 = torch.cat([A, zeroA], dim=1)
+            B3 = torch.cat([B, zeroA], dim=1)
+            P3z = torch.cat([P3[:, :2], torch.zeros((P3.shape[0], 1), dtype=P3.dtype, device=P3.device)], dim=1)
+            return self._pointset_to_segments_distance(P3z, A3, B3)
+
+        # topo_dim == 3
+        if self._boundary_tris is not None:
+            tri = self._boundary_tris
+            A = self._ensure_tensor(self.points[tri[:, 0]])
+            B = self._ensure_tensor(self.points[tri[:, 1]])
+            C = self._ensure_tensor(self.points[tri[:, 2]])
+            if A.shape[1] == 2:
+                z = torch.zeros((A.shape[0], 1), dtype=A.dtype, device=A.device)
+                A = torch.cat([A, z], 1);
+                B = torch.cat([B, z], 1);
+                C = torch.cat([C, z], 1)
+            return self._pointset_to_triangles_distance(P3, A, B, C)
+
+        # 兜底：到所有顶点
+        V = self._ensure_tensor(self.points)
+        if V.shape[1] == 2:
+            V = torch.cat([V, torch.zeros((V.shape[0], 1), dtype=V.dtype, device=V.device)], dim=1)
+        d2 = ((P3[:, None, :] - V[None, :, :]) ** 2).sum(dim=2)
+        return torch.sqrt(d2.min(dim=1).values)
+
+    @staticmethod
+    def _pointset_to_segments_distance(P: torch.Tensor, A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+        AB = B - A  # (M,3)
+        AP = P[:, None, :] - A[None, :, :]  # (N,M,3)
+        AB_len2 = (AB * AB).sum(dim=1).clamp_min(1e-30)  # (M,)
+        t = (AP * AB[None, :, :]).sum(dim=2) / AB_len2[None, :]  # (N,M)
+        t = torch.clamp(t, 0.0, 1.0)
+        closest = A[None, :, :] + t[:, :, None] * AB[None, :, :]
+        d2 = ((P[:, None, :] - closest) ** 2).sum(dim=2)
+        return torch.sqrt(d2.min(dim=1).values)
+
+    @staticmethod
+    def _pointset_to_triangles_distance(P: torch.Tensor, A: torch.Tensor, B: torch.Tensor,
+                                        C: torch.Tensor) -> torch.Tensor:
+        # Ericson: 投影 + 内外判定 + 边距
+        PA = P[:, None, :] - A[None, :, :]
+        PB = P[:, None, :] - B[None, :, :]
+        PC = P[:, None, :] - C[None, :, :]
+        AB = B[None, :, :] - A[None, :, :]
+        AC = C[None, :, :] - A[None, :, :]
+        N = torch.cross(AB, AC, dim=2)
+        N_len2 = (N * N).sum(dim=2).clamp_min(1e-30)
+        dist_plane = ((PA * N).sum(dim=2)) / torch.sqrt(N_len2)  # (N,M) 符号距离大小
+        proj = P[:, None, :] - ((PA * N).sum(dim=2) / N_len2)[:, :, None] * N
+        C1 = torch.cross(AB, proj - A[None, :, :], dim=2)
+        C2 = torch.cross(C[None, :, :] - B[None, :, :], proj - B[None, :, :], dim=2)
+        C3 = torch.cross(A[None, :, :] - C[None, :, :], proj - C[None, :, :], dim=2)
+        inside = ((C1 * N).sum(dim=2) >= 0) & ((C2 * N).sum(dim=2) >= 0) & ((C3 * N).sum(dim=2) >= 0)
+        d_inside = torch.abs(dist_plane)
+        d_edge_ab = GmshAdaptor._pointset_to_segments_distance(P, A, B)
+        d_edge_bc = GmshAdaptor._pointset_to_segments_distance(P, B, C)
+        d_edge_ca = GmshAdaptor._pointset_to_segments_distance(P, C, A)
+        d_outside = torch.min(torch.min(d_edge_ab, d_edge_bc), d_edge_ca)
+        d_full = torch.where(inside, d_inside, d_outside[:, None])
+        return d_full.min(dim=1).values
+
+    @staticmethod
+    def _point_in_polygon_evenodd(P2: torch.Tensor,
+                                  edges: torch.Tensor,
+                                  V2: torch.Tensor,
+                                  eps: float = 1e-12) -> torch.Tensor:
+        """
+        P2: (N,2), edges: (M,2) int tensor forming (possibly multiple) closed loops,
+        V2: (V,2). 返回 bool 内点掩码（True 为内部），边上点也视为内部。
+        采用：先“点在边上”检测；后 even-odd 射线计数（半开区间处理 & 数值缓冲）。
+        """
+
+        # ----- 端点坐标（保留原始副本，避免 where 连带修改） -----
+        A0 = V2[edges[:, 0]]  # (M,2)
+        B0 = V2[edges[:, 1]]  # (M,2)
+
+        # 剔除零长边（可能来自错误拼接/顶点合并前的重复）
+        good = (torch.linalg.norm(B0 - A0, dim=1) > eps)
+        if not torch.all(good):
+            A0 = A0[good]
+            B0 = B0[good]
+            if A0.shape[0] == 0:
+                return torch.zeros(P2.shape[0], dtype=torch.bool, device=P2.device)
+
+        # ----- 边上点检测（先于射线法；边上视为内部） -----
+        # 距离点到线段：投影截断
+        E = B0 - A0  # (M,2)
+        EE = (E * E).sum(dim=1).clamp_min(eps)  # (M,)
+        AP = P2[:, None, :] - A0[None, :, :]  # (N,M,2)
+        t = (AP * E[None, :, :]).sum(dim=2) / EE[None, :]  # (N,M)
+        t = t.clamp(0.0, 1.0)
+        closest = A0[None, :, :] + t[:, :, None] * E[None, :, :]  # (N,M,2)
+        dist2 = ((P2[:, None, :] - closest) ** 2).sum(dim=2)  # (N,M)
+        on_edge = (dist2 <= (10.0 * eps) ** 2)  # 放大一点容差更稳
+        on_any_edge = on_edge.any(dim=1)  # (N,)
+
+        # ----- 射线法（even-odd），处理水平边与顶点双计数 -----
+        # 交换使 A.y <= B.y ：注意使用原始 A0/B0 的拷贝
+        swap = (A0[:, 1] > B0[:, 1]).unsqueeze(1)  # (M,1)
+        A = torch.where(swap, B0, A0)  # (M,2)
+        B = torch.where(swap, A0, B0)  # (M,2)
+
+        # 半开区间：y ∈ [Ay, By) 避免上端点重复计数；再给一点 eps 缓冲
+        py = P2[:, 1].unsqueeze(1)  # (N,1)
+        Ay = A[:, 1].unsqueeze(0)  # (1,M)
+        By = B[:, 1].unsqueeze(0)  # (1,M)
+        cond_y = (py >= Ay - eps) & (py < By - eps)  # (N,M)
+
+        # 计算交点 x 坐标 xi
+        denom = (B[:, 1] - A[:, 1]).clamp_min(eps)  # (M,)
+        denom = denom.unsqueeze(0)  # (1,M)
+        Ax = A[:, 0].unsqueeze(0)  # (1,M)
+        Bx = B[:, 0].unsqueeze(0)  # (1,M)
+        xi = Ax + (py - Ay) * (Bx - Ax) / denom  # (N,M)
+
+        # 交点在点的右侧（含少许容差）
+        px = P2[:, 0].unsqueeze(1)  # (N,1)
+        cross_right = xi > (px - eps)  # (N,M)
+
+        hits = (cond_y & cross_right).sum(dim=1)  # (N,)
+        inside_by_parity = (hits % 2 == 1)
+
+        # 边上点直接归为内部
+        return inside_by_parity | on_any_edge
+
+    @staticmethod
+    def _ray_intersect_count_px(P: torch.Tensor, A: torch.Tensor, B: torch.Tensor, C: torch.Tensor) -> torch.Tensor:
+        # 固定射线方向 (1,0,0)
+        dir = torch.tensor([1.0, 0.0, 0.0], dtype=P.dtype, device=P.device).view(1, 1, 3)
+        O = P.unsqueeze(1)  # (N,1,3)
+        A = A.unsqueeze(0);
+        B = B.unsqueeze(0);
+        C = C.unsqueeze(0)
+
+        eps = 1e-12
+        e1 = B - A
+        e2 = C - A
+        h = torch.cross(dir, e2, dim=2)
+        a = (e1 * h).sum(dim=2)  # (N,M)
+        mask = torch.abs(a) > eps
+
+        f = torch.zeros_like(a);
+        f[mask] = 1.0 / a[mask]
+        s = O - A
+        u = f * (s * h).sum(dim=2)
+        mask = mask & (u >= 0.0) & (u <= 1.0)
+
+        q = torch.cross(s, e1, dim=2)
+        v = f * (dir * q).sum(dim=2)
+        mask = mask & (v >= 0.0) & (u + v <= 1.0)
+
+        t = f * (e2 * q).sum(dim=2)
+        hit = mask & (t > eps)
+        return hit.sum(dim=1)  # (N,)
+
+    def _inside_mask(self, P3: torch.Tensor) -> torch.Tensor:
+        if self.topo_dim == 2 and self._boundary_edges is not None and self._boundary_edges.size > 0:
+            V2 = self._ensure_tensor(self.points[:, :2])
+            E = torch.as_tensor(self._boundary_edges, dtype=torch.long, device=P3.device)
+            return self._point_in_polygon_evenodd(P3[:, :2], E, V2)
+
+        if self.topo_dim == 3 and self._boundary_tris is not None and self._is_closed_3d:
+            tri = self._boundary_tris
+            A = self._ensure_tensor(self.points[tri[:, 0]])
+            B = self._ensure_tensor(self.points[tri[:, 1]])
+            C = self._ensure_tensor(self.points[tri[:, 2]])
+            if A.shape[1] == 2:
+                z = torch.zeros((A.shape[0], 1), dtype=A.dtype, device=A.device)
+                A = torch.cat([A, z], 1);
+                B = torch.cat([B, z], 1);
+                C = torch.cat([C, z], 1)
+            hits = self._ray_intersect_count_px(P3, A, B, C)
+            return (hits % 2 == 1)
+
+        # 其他情形（开放曲面/未知）：无法定义“内外”
+        return torch.zeros(P3.shape[0], dtype=torch.bool, device=P3.device)

@@ -264,7 +264,7 @@ class RFMVisualizer3D(RFMVisualizer):
         center = torch.tensor([(bbox[0] + bbox[1]) / 2, (bbox[2] + bbox[3]) / 2, (bbox[4] + bbox[5]) / 2, ])
         diag_len = max(max(bbox[1] - bbox[0], bbox[3] - bbox[2]), bbox[5] - bbox[4])
         # view_dir = self.get_view_matrix() @ torch.tensor([0.0, 0.0, 1.0])
-        eye = center + self.view_dir * (1.2 * diag_len + 0.1)
+        eye = center + self.view_dir * (1.2 * diag_len + 1)
         origins = eye[None, None, :].expand(*directions.shape[:2], 3)
 
         t_vals, hits = self.ray_march(origins, directions)
@@ -277,8 +277,8 @@ class RFMVisualizer3D(RFMVisualizer):
 
         # vmin = np.nanmin(field_vals)
         # vmax = np.nanmax(field_vals)
-        vmin = np.nanpercentile(field_vals, 2)
-        vmax = np.nanpercentile(field_vals, 98)
+        vmin = np.nanpercentile(field_vals, 1)
+        vmax = np.nanpercentile(field_vals, 99)
         normed = (field_vals - vmin) / (vmax - vmin)
         normed = np.clip(normed, 0.0, 1.0)
 
@@ -403,17 +403,18 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
             注意：geometry.sdf 内部会用 autograd.grad，所以必须 enable_grad + requires_grad(True)。
             """
             # 确保需要梯度
-            x = x.requires_grad_(True)
-            with torch.enable_grad():
-                out = self.sdf(x)
-            # 兼容返回 (dist, normal) 或 list/tuple 的情况
-            if isinstance(out, (tuple, list)):
-                out = out[0]
-            if not torch.is_tensor(out):
-                out = torch.tensor(out, device=x.device)
-            out = out.to(device=x.device, dtype=self.dtype)
-            out = out.reshape(-1)  # (N,1)/(N,) -> (N,)
-            return out.detach()  # 立刻与图断开，避免图增大
+            return self.sdf(x).reshape(-1)
+            # x = x.requires_grad_(True)
+            # with torch.enable_grad():
+            #     out = self.sdf(x)
+            # # 兼容返回 (dist, normal) 或 list/tuple 的情况
+            # if isinstance(out, (tuple, list)):
+            #     out = out[0]
+            # if not torch.is_tensor(out):
+            #     out = torch.tensor(out, device=x.device)
+            # out = out.to(device=x.device, dtype=self.dtype)
+            # out = out.reshape(-1)  # (N,1)/(N,) -> (N,)
+            # return out.detach()  # 立刻与图断开，避免图增大
 
         n_total = pts.shape[0]
         for start in range(0, n_total, chunk_pts):
@@ -422,12 +423,13 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
             assert vals.numel() == (end - start), f"SDF batch size mismatch: got {vals.shape}"
             volume[start:end] = vals
 
-        volume = volume.reshape(Nz, Ny, Nx).detach().cpu().numpy().astype(np.float32)
+        volume = volume.reshape(Nz, Ny, Nx).detach().cpu().numpy().astype(np.float64)
         dx = (xmax - xmin) / max(1, Nx - 1)
         dy = (ymax - ymin) / max(1, Ny - 1)
         dz = (zmax - zmin) / max(1, Nz - 1)
         return volume, (xs.detach().cpu().numpy(), ys.detach().cpu().numpy(), zs.detach().cpu().numpy()), (dz, dy, dx)
 
+    @torch.no_grad()
     def _compute_field_values_points(self, pts_world):
         """
         复用你在 ray-marching 版本中的字段取值逻辑，但针对任意点集合。
@@ -438,6 +440,8 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
             if self.ref is not None:
                 field_vals = self.model(pts_t)
                 ref_vals = self.ref(pts_t)
+                print(field_vals.shape, ref_vals.shape)
+                print((field_vals - ref_vals).abs().max())
                 field_vals = (field_vals - ref_vals).abs().detach().cpu().numpy()[:, self.component_idx]
             else:
                 field_vals = self.model(pts_t).detach().cpu().numpy()[:, self.component_idx]
@@ -533,8 +537,8 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
 
         # ---- 标量场 -> colormap 基色（顶点）----
         vfield = self._compute_field_values_points(verts_world)  # numpy (N,)
-        vmin = np.nanpercentile(vfield, 2)
-        vmax = np.nanpercentile(vfield, 98)
+        vmin = np.nanpercentile(vfield, 1)
+        vmax = np.nanpercentile(vfield, 99)
         denom = (vmax - vmin) if (vmax > vmin) else 1.0
         vnormed = np.clip((vfield - vmin) / denom, 0.0, 1.0)
 
@@ -590,7 +594,7 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         # ---- 绘制 ----
         self.ax.clear()
         from matplotlib.collections import PolyCollection
-        from matplotlib.ticker import ScalarFormatter
+        from matplotlib.ticker import ScalarFormatter, FuncFormatter, FormatStrFormatter
         polys = [tri for tri in tri2d]
         coll = PolyCollection(polys, facecolors=tri_color, edgecolors='none', closed=True, antialiased=False,
                               linewidths=0)
@@ -613,8 +617,8 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         formatter = ScalarFormatter(useMathText=True)  # 用 1×10^{k} 的数学字体
         formatter.set_powerlimits((0, 0))  # 强制所有刻度都用科学计数
         cb.formatter = formatter
-        cb.update_ticks()  # 应用到 colorbar
 
+        cb.update_ticks()  # 应用到 colorbar
         plt.tight_layout()
         self.draw_view_axes()
 
@@ -669,17 +673,17 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         # ---- 顶点法向（SDF 梯度）----
         vnorm_t = self.estimate_normal(torch.tensor(verts_world, device=self.device, dtype=self.dtype))
         vnorm_t = vnorm_t / torch.clamp(torch.norm(vnorm_t, dim=-1, keepdim=True), min=1e-10)
-        vnorm = vnorm_t.detach().cpu().numpy().astype(np.float32)  # (V,3)
+        vnorm = vnorm_t.detach().cpu().numpy().astype(np.float64)  # (V,3)
 
         # ---- 标量场 -> colormap 基色（顶点）----
         vfield = self._compute_field_values_points(verts_world)  # numpy (V,)
-        vmin = np.nanpercentile(vfield, 2)
-        vmax = np.nanpercentile(vfield, 98)
+        vmin = np.nanpercentile(vfield, 1)
+        vmax = np.nanpercentile(vfield, 99.1)
         denom = (vmax - vmin) if (vmax > vmin) else 1.0
         vnormed = np.clip((vfield - vmin) / denom, 0.0, 1.0)
 
         cmap_obj = plt.get_cmap(cmap)
-        base_rgb = cmap_obj(vnormed)[..., :3].astype(np.float32)  # (V,3) in [0,1]
+        base_rgb = cmap_obj(vnormed)[..., :3].astype(np.float64)  # (V,3) in [0,1]
 
         # ---- 颜色模式：field or lit（与 plot() 的光照尽量一致，但按顶点近似）----
         if color_mode not in ('field', 'lit'):
@@ -701,7 +705,7 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
             rgb_lit = (0.8 * base_rgb_t + 0.2) * diff[:, None] + \
                       base_rgb_t * 0.3 + \
                       spec[:, None] * 0.5
-            rgb_lit = torch.clamp(rgb_lit, 0.0, 1.0).detach().cpu().numpy().astype(np.float32)
+            rgb_lit = torch.clamp(rgb_lit, 0.0, 1.0).detach().cpu().numpy().astype(np.float64)
             rgb = rgb_lit
         else:
             rgb = base_rgb  # 直接用字段 colormap
@@ -739,9 +743,9 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
                 ('nx', '<f4'), ('ny', '<f4'), ('nz', '<f4'),
                 ('red', 'u1'), ('green', 'u1'), ('blue', 'u1')
             ])
-            vert_pack['x'] = verts_world[:, 0].astype(np.float32)
-            vert_pack['y'] = verts_world[:, 1].astype(np.float32)
-            vert_pack['z'] = verts_world[:, 2].astype(np.float32)
+            vert_pack['x'] = verts_world[:, 0].astype(np.float64)
+            vert_pack['y'] = verts_world[:, 1].astype(np.float64)
+            vert_pack['z'] = verts_world[:, 2].astype(np.float64)
             vert_pack['nx'] = vnorm[:, 0]
             vert_pack['ny'] = vnorm[:, 1]
             vert_pack['nz'] = vnorm[:, 2]
