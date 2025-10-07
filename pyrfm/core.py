@@ -1228,52 +1228,80 @@ class RFMBase(ABC):
         Compute the derivative of the forward pass in batches.
 
         :param x: Input tensor.
-        :param order: Order of the derivative.
+        :param order: Order of the derivative, e.g. (1,0,0), (2,0,0), (1,1,0).
         :param batch_size: Max number of points per batch to avoid OOM.
-        :return: Derivative tensor.
+        :return: Derivative tensor of shape (N, out_dim).
         """
-        order = torch.tensor(order, dtype=self.dtype, device=self.device).view(1, -1)
+        # --- 规范化 multi-index ---
+        if not isinstance(order, torch.Tensor):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+        else:
+            order = order.to(device=self.device, dtype=self.dtype)
+        order = order.view(1, -1)
+
         if order.shape[1] != self.dim:
-            raise ValueError("Order dimension mismatch.")
-        if order.sum() == 0:
+            raise ValueError(f"Order dimension mismatch: got {order.shape[1]}, expected {self.dim}")
+
+        ord_sum = int(order.sum().item())
+        if ord_sum == 0:
             return self.forward(x, batch_size=batch_size)
 
         outputs = []
         while True:
             try:
-                if order.sum() == 1:
+                if ord_sum == 1:
+                    # 只会有一个方向为 1
+                    d = int(torch.nonzero(order[0] == 1, as_tuple=False).squeeze(1).item())
                     for i in range(0, x.shape[0], batch_size):
                         x_batch = x[i:i + batch_size]
-                        for d in range(self.dim):
-                            if order[0, d] == 1:
-                                feat = self.features_derivative(x_batch, d).cat(dim=1)
-                                outputs.append(torch.matmul(feat, self.W))
-                                break
+                        feat = self.features_derivative(x_batch, d).cat(dim=1)
+                        outputs.append(torch.matmul(feat, self.W))
                     return torch.cat(outputs, dim=0)
-                elif order.sum() == 2:
-                    for i in range(0, x.shape[0], batch_size):
-                        x_batch = x[i:i + batch_size]
-                        for d1 in range(self.dim):
-                            for d2 in range(self.dim):
-                                if order[0, d1] == 1 and order[0, d2] == 1:
-                                    feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
-                                    outputs.append(torch.matmul(feat, self.W))
-                                    break
-                                if d1 == d2 and order[0, d1] == 2:
-                                    feat = self.features_second_derivative(x_batch, d1, d1).cat(dim=1)
-                                    outputs.append(torch.matmul(feat, self.W))
-                                    break
-                    return torch.cat(outputs, dim=0)
+
+                elif ord_sum == 2:
+                    # 可能是 (2,0,0) 或 (1,1,0) 这两类
+                    idx2 = torch.nonzero(order[0] == 2, as_tuple=False).squeeze(1).tolist()
+                    idx1 = torch.nonzero(order[0] == 1, as_tuple=False).squeeze(1).tolist()
+
+                    if len(idx2) == 1 and len(idx1) == 0:
+                        # 纯二阶 ∂^2/∂x_d^2
+                        d = idx2[0]
+                        for i in range(0, x.shape[0], batch_size):
+                            x_batch = x[i:i + batch_size]
+                            feat = self.features_second_derivative(x_batch, d, d).cat(dim=1)
+                            outputs.append(torch.matmul(feat, self.W))
+                        return torch.cat(outputs, dim=0)
+
+                    elif len(idx2) == 0 and len(idx1) == 2:
+                        # 混合二阶 ∂^2/(∂x_d1 ∂x_d2)；对称，不需要双算
+                        d1, d2 = idx1[0], idx1[1]
+                        for i in range(0, x.shape[0], batch_size):
+                            x_batch = x[i:i + batch_size]
+                            feat = self.features_second_derivative(x_batch, d1, d2).cat(dim=1)
+                            outputs.append(torch.matmul(feat, self.W))
+                        return torch.cat(outputs, dim=0)
+
+                    else:
+                        raise NotImplementedError(
+                            f"Unsupported second-order multi-index: {tuple(order.view(-1).tolist())}")
+
                 else:
                     raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+
             except RuntimeError as e:
-                if any(keyword in str(e).lower() for keyword in
+                # OOM 回退：批量减半重试
+                msg = str(e).lower()
+                if any(k in msg for k in
                        ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
                     batch_size //= 2
-                    outputs = []  # Clear outputs to retry
-                    torch.cuda.empty_cache()  # Clear GPU memory
+                    outputs.clear()
+                    try:
+                        torch.cuda.empty_cache()
+                    except Exception:
+                        pass
+                    continue
                 else:
-                    raise e
+                    raise
 
     def features(self, x: torch.Tensor, use_sparse: bool = False) -> Tensor:
         """
@@ -1801,57 +1829,98 @@ class STRFMBase(ABC):
 
         return torch.matmul(self.features(xt=xt).cat(dim=1), self.W)
 
-    def dForward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
-                 order: Union[torch.Tensor, List] = None, batch_size: int = 32768):
+    def dForward(
+            self,
+            x: torch.Tensor = None,
+            t: torch.Tensor = None,
+            xt: torch.Tensor = None,
+            order: Union[torch.Tensor, List] = None,
+            batch_size: int = 32768,
+    ):
         """
         Compute the derivative of the forward pass in batches.
 
         :param x: Spatial input tensor.
         :param t: Temporal input tensor.
         :param xt: Combined input tensor.
-        :param order: Derivative order.
+        :param order: Derivative order, e.g. (1,0,0,0), (0,0,0,2), (1,0,0,1).
+                      Length must be dim+1 (space dims + time).
         :param batch_size: Max batch size to avoid OOM.
-        :return: Derivative tensor.
+        :return: Derivative tensor of shape (N, 1) (following self.W.view(-1,1)).
         """
         xt = self.validate_and_prepare_xt(x, t, xt)
-        order = torch.tensor(order, dtype=self.dtype, device=self.device).view(1, -1)
-        if order.shape[1] != self.dim + 1:
-            raise ValueError("Order dimension mismatch.")
-        if order.sum() == 0:
+
+        # --- 规范化 multi-index ---
+        if not isinstance(order, torch.Tensor):
+            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+        else:
+            order = order.to(device=self.device, dtype=self.dtype)
+        order = order.view(1, -1)
+
+        n_axes = self.dim + 1
+        if order.shape[1] != n_axes:
+            raise ValueError(f"Order dimension mismatch: got {order.shape[1]}, expected {n_axes}")
+
+        ord_sum = int(order.sum().item())
+        if ord_sum == 0:
             return self.forward(xt)
 
         outputs = []
         while True:
             try:
-                if order.sum() == 1:
+                if ord_sum == 1:
+                    # 仅一个轴为 1（可能是空间或时间轴）
+                    d = int(torch.nonzero(order[0] == 1, as_tuple=False).squeeze(1).item())
                     for i in range(0, xt.shape[0], batch_size):
                         xt_batch = xt[i:i + batch_size]
-                        for d in range(order.shape[1]):
-                            if order[0, d] == 1:
-                                feat = self.features_derivative(xt=xt_batch, axis=d).cat(dim=1)
-                                outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
-                                break
+                        feat = self.features_derivative(xt=xt_batch, axis=d).cat(dim=1)
+                        outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
                     return torch.cat(outputs, dim=0)
-                elif order.sum() == 2:
-                    for i in range(0, xt.shape[0], batch_size):
-                        xt_batch = xt[i:i + batch_size]
-                        for d1 in range(order.shape[1]):
-                            for d2 in range(order.shape[1]):
-                                if order[0, d1] == 1 and order[0, d2] == 1:
-                                    feat = self.features_second_derivative(xt=xt_batch, axis1=d1, axis2=d2).cat(dim=1)
-                                    outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
-                                    break
-                    return torch.cat(outputs, dim=0)
+
+                elif ord_sum == 2:
+                    # 可能是纯二阶 (axis with 2) 或混合二阶 (two axes with 1)
+                    idx2 = torch.nonzero(order[0] == 2, as_tuple=False).squeeze(1).tolist()
+                    idx1 = torch.nonzero(order[0] == 1, as_tuple=False).squeeze(1).tolist()
+
+                    if len(idx2) == 1 and len(idx1) == 0:
+                        # 纯二阶 ∂^2 / ∂axis^2
+                        d = idx2[0]
+                        for i in range(0, xt.shape[0], batch_size):
+                            xt_batch = xt[i:i + batch_size]
+                            feat = self.features_second_derivative(xt=xt_batch, axis1=d, axis2=d).cat(dim=1)
+                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                        return torch.cat(outputs, dim=0)
+
+                    elif len(idx2) == 0 and len(idx1) == 2:
+                        # 混合二阶 ∂^2 / (∂axis1 ∂axis2)
+                        d1, d2 = idx1[0], idx1[1]
+                        for i in range(0, xt.shape[0], batch_size):
+                            xt_batch = xt[i:i + batch_size]
+                            feat = self.features_second_derivative(xt=xt_batch, axis1=d1, axis2=d2).cat(dim=1)
+                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                        return torch.cat(outputs, dim=0)
+
+                    else:
+                        raise NotImplementedError(
+                            f"Unsupported second-order multi-index: {tuple(order.view(-1).tolist())}")
+
                 else:
                     raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+
             except RuntimeError as e:
-                if any(keyword in str(e).lower() for keyword in
+                # OOM 回退：批量减半重试
+                msg = str(e).lower()
+                if any(k in msg for k in
                        ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
                     batch_size //= 2
-                    outputs = []  # Clear outputs to retry
-                    torch.cuda.empty_cache()
+                    outputs.clear()
+                    try:
+                        torch.cuda.empty_cache()
+                    except Exception:
+                        pass
+                    continue
                 else:
-                    raise e
+                    raise
 
     def features(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
                  use_sparse: bool = False) -> Tensor[torch.Tensor]:

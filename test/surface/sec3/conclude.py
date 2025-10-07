@@ -5,39 +5,35 @@ Created on 2025/9/19
 @author: Yifei Sun
 """
 from collections import defaultdict
-import re
-import warnings
-from math import inf
-import logging
-import sys
-from typing import Literal, SupportsFloat, Union, List, Tuple, Any
-from pathlib import Path
 from dataclasses import dataclass, field
-from datetime import datetime
-import shutil
+from typing import Union, Tuple
+from typing import List, Optional, Dict
+import matplotlib
 import numpy as np
 import torch
 import torch.nn as nn
-from pyrfm import RFMVisualizer3DMC
 from torch.utils.data import TensorDataset, DataLoader  # noqa: F401
-from scipy.spatial import cKDTree
-import matplotlib
+
+from pyrfm import RFMVisualizer3DMC
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from matplotlib.colors import TwoSlopeNorm
 
-import math  # noqa: F401
-import time  # ★ 新增
+from pathlib import Path
+import re
 
-from torch.optim.lr_scheduler import LRScheduler
-from typing_extensions import override
-from torch.optim import Optimizer
+try:
+    import pandas as pd
+
+    _HAS_PANDAS = True
+except Exception:
+    _HAS_PANDAS = False
+
+import math  # noqa: F401
 
 # 配置/解析
-import yaml
-import argparse
 
 # 可选 3D 渲染（pyrfm）
 import pyrfm
@@ -261,8 +257,8 @@ def save_isosurface_png_and_ply(
         ref=None
 ):
     # viz = pyrfm.RFMVisualizer3DMCMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
-    viz = NormalNormRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
-    # viz = MeanCurvatureRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
+    # viz = NormalNormRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
+    viz = MeanCurvatureRFMVisualizer3DMC(model, t=0.0, resolution=resolution, component_idx=0, view=view, ref=ref)
     viz.plot(cmap="viridis", level=level, grid=grid)
 
     save_png_path = Path(save_png_path);
@@ -749,210 +745,649 @@ if __name__ == "__main__":
 
     # cheese-like
 
-    pth_path = "../data/cheese_in.pth"
-    pt_path = "./sec3_2/checkpoints/cheese_in/tanh-tanh/sdf_best.pt"
-    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
-    pts_t = x.to(device=device, dtype=dtype)
-    nrms_t = normal.to(device=device, dtype=dtype)
-    mins = pts_t.min(dim=0).values;
-    maxs = pts_t.max(dim=0).values
-    center = (mins + maxs) * 0.5;
-    half = (maxs - mins) * 0.5
-    scale = torch.max(half)
+    # pth_path = "../data/cheese_in.pth"
+    # pt_path = "./sec3_2/checkpoints/cheese_in/tanh-tanh/sdf_best.pt"
+    # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    # pts_t = x.to(device=device, dtype=dtype)
+    # nrms_t = normal.to(device=device, dtype=dtype)
+    # mins = pts_t.min(dim=0).values;
+    # maxs = pts_t.max(dim=0).values
+    # center = (mins + maxs) * 0.5;
+    # half = (maxs - mins) * 0.5
+    # scale = torch.max(half)
+    #
+    # pts_n = (pts_t - center) / scale
+    # nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    #
+    # mins_n = pts_n.min(dim=0).values;
+    # maxs_n = pts_n.max(dim=0).values
+    # bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+    #                    mins_n[1].item(), maxs_n[1].item(),
+    #                    mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+    #
+    # ckpt = torch.load(pt_path, map_location=device)
+    # plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    # domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    # model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+    # model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+    # model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+    # model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+    # model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+    # model.W = plain_state_dict["final_layer.weight"].t()
+    #
+    #
+    # class NearShapeForViz(pyrfm.GeometryBase):
+    #     def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+    #
+    #     def get_bounding_box(self): return bbox.get_bounding_box()
+    #
+    #     def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+    #
+    #     def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+    #
+    #     def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    #         return model(p).squeeze()
+    #
+    #
+    # near_shape = NearShapeForViz()
+    # model.domain = near_shape
+    #
+    # save_isosurface_png_and_ply("figures/cheese_tanh2_iso_normal.png", "/dev/null",
+    #                             model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+    #                             resolution=(800, 800), view="iso")
+    # save_model_slice_png("figures/cheese_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
+    #                      axis="y", device=device)
+    #
+    # pth_path = "../data/cheese_in.pth"
+    # pt_path = "./sec3_3/checkpoints/cheese_in/tanh/sdf_best.pt"
+    # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    # pts_t = x.to(device=device, dtype=dtype)
+    # nrms_t = normal.to(device=device, dtype=dtype)
+    # mins = pts_t.min(dim=0).values;
+    # maxs = pts_t.max(dim=0).values
+    # center = (mins + maxs) * 0.5;
+    # half = (maxs - mins) * 0.5
+    # scale = torch.max(half)
+    # pts_n = (pts_t - center) / scale
+    # nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    #
+    # mins_n = pts_n.min(dim=0).values;
+    # maxs_n = pts_n.max(dim=0).values
+    # bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+    #                    mins_n[1].item(), maxs_n[1].item(),
+    #                    mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+    #
+    # ckpt = torch.load(pt_path, map_location=device)
+    # plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    # print(plain_state_dict.keys())
+    # domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    # model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH)
+    # model.submodels[0].weights = plain_state_dict["net.0.weight"].t()
+    # model.submodels[0].biases = plain_state_dict["net.0.bias"]
+    # model.W = plain_state_dict["net.2.weight"].t()
+    #
+    #
+    # class NearShapeForViz(pyrfm.GeometryBase):
+    #     def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+    #
+    #     def get_bounding_box(self): return bbox.get_bounding_box()
+    #
+    #     def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+    #
+    #     def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+    #
+    #     def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    #         return model(p).squeeze()
+    #
+    #
+    # near_shape = NearShapeForViz()
+    # model.domain = near_shape
+    #
+    # save_isosurface_png_and_ply("figures/cheese_tanh1_iso_normal.png", "/dev/null",
+    #                             model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+    #                             resolution=(800, 800), view="iso")
+    # save_model_slice_png("figures/cheese_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
+    #                      axis="y", device=device)
+    #
+    # # bunny
+    # pth_path = "../data/bunny_in.pth"
+    # pt_path = "./sec3_2/checkpoints/bunny_in/tanh-tanh/sdf_best.pt"
+    # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    # pts_t = x.to(device=device, dtype=dtype)
+    # nrms_t = normal.to(device=device, dtype=dtype)
+    # mins = pts_t.min(dim=0).values;
+    # maxs = pts_t.max(dim=0).values
+    # center = (mins + maxs) * 0.5;
+    # half = (maxs - mins) * 0.5
+    # scale = torch.max(half)
+    # pts_n = (pts_t - center) / scale
+    # nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    #
+    # mins_n = pts_n.min(dim=0).values;
+    # maxs_n = pts_n.max(dim=0).values
+    # bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+    #                    mins_n[1].item(), maxs_n[1].item(),
+    #                    mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+    #
+    # ckpt = torch.load(pt_path, map_location=device)
+    # plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    # domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    # model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+    # model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+    # model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+    # model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+    # model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+    # model.W = plain_state_dict["final_layer.weight"].t()
+    #
+    #
+    # class NearShapeForViz(pyrfm.GeometryBase):
+    #     def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+    #
+    #     def get_bounding_box(self): return bbox.get_bounding_box()
+    #
+    #     def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+    #
+    #     def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+    #
+    #     def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    #         return model(p).squeeze()
+    #
+    #
+    # near_shape = NearShapeForViz()
+    # model.domain = near_shape
+    #
+    # save_isosurface_png_and_ply("figures/bunny_tanh2_front_normal.png", "/dev/null",
+    #                             model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+    #                             resolution=(800, 800), view="front")
+    # save_model_slice_png("figures/bunny_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
+    #                      axis="y", device=device)
+    #
+    # pth_path = "../data/bunny_in.pth"
+    # pt_path = "./sec3_3/checkpoints/bunny_in/tanh/sdf_best.pt"
+    # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    # pts_t = x.to(device=device, dtype=dtype)
+    # nrms_t = normal.to(device=device, dtype=dtype)
+    # mins = pts_t.min(dim=0).values;
+    # maxs = pts_t.max(dim=0).values
+    # center = (mins + maxs) * 0.5;
+    # half = (maxs - mins) * 0.5
+    # scale = torch.max(half)
+    # pts_n = (pts_t - center) / scale
+    # nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    #
+    # mins_n = pts_n.min(dim=0).values;
+    # maxs_n = pts_n.max(dim=0).values
+    # bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+    #                    mins_n[1].item(), maxs_n[1].item(),
+    #                    mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+    #
+    # ckpt = torch.load(pt_path, map_location=device)
+    # plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    # print(plain_state_dict.keys())
+    # domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    # model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH)
+    # model.submodels[0].weights = plain_state_dict["net.0.weight"].t()
+    # model.submodels[0].biases = plain_state_dict["net.0.bias"]
+    # model.W = plain_state_dict["net.2.weight"].t()
+    #
+    #
+    # class NearShapeForViz(pyrfm.GeometryBase):
+    #     def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+    #
+    #     def get_bounding_box(self): return bbox.get_bounding_box()
+    #
+    #     def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+    #
+    #     def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+    #
+    #     def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    #         return model(p).squeeze()
+    #
+    #
+    # near_shape = NearShapeForViz()
+    # model.domain = near_shape
+    #
+    # save_isosurface_png_and_ply("figures/bunny_tanh1_front_normal.png", "/dev/null",
+    #                             model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+    #                             resolution=(800, 800), view="front")
+    # save_model_slice_png("figures/bunny_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
+    #                      axis="y", device=device)
 
-    pts_n = (pts_t - center) / scale
-    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    ## section 3.5
+    # @dataclass
+    # class TrainingLog:
+    #     """
+    #     解析单个训练日志文件为结构化数据（含尾部汇总信息）。
+    #
+    #     字段：
+    #       - 基本：label, epochs, loss, best, lr, val_mean, val_max
+    #       - 尾部：
+    #           last_ckpt_path, last_ckpt_epoch, last_ckpt_best
+    #           test_sdf_abs_max, test_sdf_abs_mean
+    #           time_elapsed_hms, time_elapsed_s, epochs_done, avg_epoch_s
+    #           finished (是否出现 'Training finished.')
+    #     """
+    #     path: Path
+    #     label: Optional[str] = None
+    #
+    #     # per-epoch 数组
+    #     epochs: np.ndarray = field(default_factory=lambda: np.empty((0,), dtype=int))
+    #     loss: np.ndarray = field(default_factory=lambda: np.empty((0,), dtype=float))
+    #     best: np.ndarray = field(default_factory=lambda: np.empty((0,), dtype=float))
+    #     lr: np.ndarray = field(default_factory=lambda: np.empty((0,), dtype=float))
+    #     val_mean: np.ndarray = field(default_factory=lambda: np.empty((0,), dtype=float))
+    #     val_max: np.ndarray = field(default_factory=lambda: np.empty((0,), dtype=float))
+    #
+    #     # 尾部信息
+    #     last_ckpt_path: Optional[str] = None
+    #     last_ckpt_epoch: Optional[int] = None
+    #     last_ckpt_best: Optional[float] = None
+    #     test_sdf_abs_max: Optional[float] = None
+    #     test_sdf_abs_mean: Optional[float] = None
+    #     time_elapsed_hms: Optional[str] = None
+    #     time_elapsed_s: Optional[float] = None
+    #     epochs_done: Optional[int] = None
+    #     avg_epoch_s: Optional[float] = None
+    #     finished: bool = False
+    #
+    #     # ---------------------- 正则（类属性） ----------------------
+    #     _EPOCH_RE = re.compile(
+    #         r"^Epoch\s*\[(?P<epoch>\d+)\s*/\s*(?P<total>\d+)\]\s*"
+    #         r"Loss:\s*(?P<loss>[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*\|\s*"
+    #         r"Best:\s*(?P<best>[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*\|\s*"
+    #         r"LR:\s*(?P<lr>[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*\|\s*"
+    #         r"ValAngle\(deg\):\s*mean=(?P<val_mean>[+-]?\d+(?:\.\d+)?),\s*max=(?P<val_max>[+-]?\d+(?:\.\d+)?)",
+    #         re.IGNORECASE,
+    #     )
+    #     _RESET_RE = re.compile(r"^\[Clean\].*tag=(?P<tag>[^.\]]+)", re.IGNORECASE)
+    #
+    #     _CKPT_RE = re.compile(
+    #         r"^\[Checkpoint\]\s*saved:\s*(?P<path>.+?)\s*\(epoch=(?P<epoch>\d+),\s*best=(?P<best>[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\)",
+    #         re.IGNORECASE,
+    #     )
+    #     _FINISH_RE = re.compile(r"^\s*Training finished\.\s*$", re.IGNORECASE)
+    #     _EVAL_MAX_RE = re.compile(
+    #         r"^\[Eval/Test\]\s*Max\s*\|SDF\(pts_test\)\|\s*:\s*(?P<value>[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*$",
+    #         re.IGNORECASE,
+    #     )
+    #     _EVAL_MEAN_RE = re.compile(
+    #         r"^\[Eval/Test\]\s*Mean\s*\|SDF\(pts_test\)\|\s*:\s*(?P<value>[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*$",
+    #         re.IGNORECASE,
+    #     )
+    #     _TIME_RE = re.compile(
+    #         r"^\[Time\]\s*Total\s*elapsed:\s*(?P<hms>\d{2}:\d{2}:\d{2}(?:\.\d{1,2})?)\s*"
+    #         r"\((?P<secs>[+-]?\d+(?:\.\d+)?)s\)\s*\|\s*epochs_done=(?P<ed>\d+)\s*\|\s*avg/epoch=(?P<avg>[+-]?\d+(?:\.\d+)?)s\s*$",
+    #         re.IGNORECASE,
+    #     )
+    #
+    #     # ---------------------- 工具（都收进类里） ----------------------
+    #     @staticmethod
+    #     def _safe_float(x: str) -> Optional[float]:
+    #         try:
+    #             return float(x)
+    #         except Exception:
+    #             return None
+    #
+    #     @staticmethod
+    #     def _to_np_float(arr: List[Optional[float]]) -> np.ndarray:
+    #         return np.array([np.nan if v is None else float(v) for v in arr], dtype=float)
+    #
+    #     @staticmethod
+    #     def _ensure_parent(path: Path) -> None:
+    #         path.parent.mkdir(parents=True, exist_ok=True)
+    #
+    #     # ---------------------- 入口 ----------------------
+    #     @classmethod
+    #     def from_file(cls, path: str | Path) -> "TrainingLog":
+    #         p = Path(path)
+    #
+    #         epochs: List[int] = []
+    #         loss: List[Optional[float]] = []
+    #         best: List[Optional[float]] = []
+    #         lr: List[Optional[float]] = []
+    #         val_mean: List[Optional[float]] = []
+    #         val_max: List[Optional[float]] = []
+    #
+    #         label: Optional[str] = None
+    #
+    #         # 尾部（取最后一次匹配为准）
+    #         last_ckpt_path: Optional[str] = None
+    #         last_ckpt_epoch: Optional[int] = None
+    #         last_ckpt_best: Optional[float] = None
+    #         finished: bool = False
+    #         test_max: Optional[float] = None
+    #         test_mean: Optional[float] = None
+    #         hms: Optional[str] = None
+    #         secs: Optional[float] = None
+    #         epochs_done: Optional[int] = None
+    #         avg_epoch_s: Optional[float] = None
+    #
+    #         with p.open("r", encoding="utf-8", errors="ignore") as f:
+    #             for raw in f:
+    #                 line = raw.strip()
+    #
+    #                 # 1) tag / label
+    #                 if label is None:
+    #                     mtag = cls._RESET_RE.match(line)
+    #                     if mtag:
+    #                         label = mtag.group("tag").strip()
+    #
+    #                 # 2) per-epoch
+    #                 m = cls._EPOCH_RE.match(line)
+    #                 if m:
+    #                     epochs.append(int(m.group("epoch")))
+    #                     loss.append(cls._safe_float(m.group("loss")))
+    #                     best.append(cls._safe_float(m.group("best")))
+    #                     lr.append(cls._safe_float(m.group("lr")))
+    #                     val_mean.append(cls._safe_float(m.group("val_mean")))
+    #                     val_max.append(cls._safe_float(m.group("val_max")))
+    #                     # 注意：不 return，继续读取，后面还有尾部信息
+    #                     continue
+    #
+    #                 # 3) checkpoint（保留最后一次）
+    #                 mck = cls._CKPT_RE.match(line)
+    #                 if mck:
+    #                     last_ckpt_path = mck.group("path").strip()
+    #                     last_ckpt_epoch = int(mck.group("epoch"))
+    #                     last_ckpt_best = cls._safe_float(mck.group("best"))
+    #                     continue
+    #
+    #                 # 4) finished
+    #                 if cls._FINISH_RE.match(line):
+    #                     finished = True
+    #                     continue
+    #
+    #                 # 5) eval/test
+    #                 mmax = cls._EVAL_MAX_RE.match(line)
+    #                 if mmax:
+    #                     test_max = cls._safe_float(mmax.group("value"))
+    #                     continue
+    #
+    #                 mmean = cls._EVAL_MEAN_RE.match(line)
+    #                 if mmean:
+    #                     test_mean = cls._safe_float(mmean.group("value"))
+    #                     continue
+    #
+    #                 # 6) time summary
+    #                 mt = cls._TIME_RE.match(line)
+    #                 if mt:
+    #                     hms = mt.group("hms")
+    #                     secs = cls._safe_float(mt.group("secs"))
+    #                     epochs_done = int(mt.group("ed"))
+    #                     avg_epoch_s = cls._safe_float(mt.group("avg"))
+    #                     continue
+    #
+    #         if label is None:
+    #             label = p.stem
+    #
+    #         return cls(
+    #             path=p,
+    #             label=label,
+    #             epochs=np.asarray(epochs, dtype=int),
+    #             loss=cls._to_np_float(loss),
+    #             best=cls._to_np_float(best),
+    #             lr=cls._to_np_float(lr),
+    #             val_mean=cls._to_np_float(val_mean),
+    #             val_max=cls._to_np_float(val_max),
+    #             last_ckpt_path=last_ckpt_path,
+    #             last_ckpt_epoch=last_ckpt_epoch,
+    #             last_ckpt_best=last_ckpt_best,
+    #             test_sdf_abs_max=test_max,
+    #             test_sdf_abs_mean=test_mean,
+    #             time_elapsed_hms=hms,
+    #             time_elapsed_s=secs,
+    #             epochs_done=epochs_done,
+    #             avg_epoch_s=avg_epoch_s,
+    #             finished=finished,
+    #         )
+    #
+    #     # ---------------------- 导出/转换 ----------------------
+    #     def to_dict(self) -> Dict[str, object]:
+    #         return {
+    #             # 基本
+    #             "label": self.label,
+    #             "epochs": self.epochs,
+    #             "loss": self.loss,
+    #             "best": self.best,
+    #             "lr": self.lr,
+    #             "val_mean": self.val_mean,
+    #             "val_max": self.val_max,
+    #             # 尾部
+    #             "last_ckpt_path": self.last_ckpt_path,
+    #             "last_ckpt_epoch": self.last_ckpt_epoch,
+    #             "last_ckpt_best": self.last_ckpt_best,
+    #             "test_sdf_abs_max": self.test_sdf_abs_max,
+    #             "test_sdf_abs_mean": self.test_sdf_abs_mean,
+    #             "time_elapsed_hms": self.time_elapsed_hms,
+    #             "time_elapsed_s": self.time_elapsed_s,
+    #             "epochs_done": self.epochs_done,
+    #             "avg_epoch_s": self.avg_epoch_s,
+    #             "finished": self.finished,
+    #         }
+    #
+    #     def to_dataframe(self):
+    #         if not _HAS_PANDAS:
+    #             raise ImportError("to_dataframe 需要 pandas，请先安装：pip install pandas")
+    #         return pd.DataFrame({
+    #             "epoch": self.epochs,
+    #             "loss": self.loss,
+    #             "best": self.best,
+    #             "lr": self.lr,
+    #             "val_mean": self.val_mean,
+    #             "val_max": self.val_max,
+    #         })
+    #
+    #     def save_csv(self, out_csv: str | Path) -> None:
+    #         out_csv = Path(out_csv)
+    #         self._ensure_parent(out_csv)
+    #         with out_csv.open("w", encoding="utf-8") as f:
+    #             f.write("epoch,loss,best,lr,val_mean,val_max\n")
+    #             for i in range(len(self.epochs)):
+    #                 def _fmt(v):
+    #                     return "" if (v is None or (isinstance(v, float) and np.isnan(v))) else f"{v}"
+    #
+    #                 f.write(
+    #                     f"{int(self.epochs[i])},"
+    #                     f"{_fmt(self.loss[i])},"
+    #                     f"{_fmt(self.best[i])},"
+    #                     f"{_fmt(self.lr[i])},"
+    #                     f"{_fmt(self.val_mean[i])},"
+    #                     f"{_fmt(self.val_max[i])}\n"
+    #                 )
+    #
+    #     # ---------------------- 便捷摘要 ----------------------
+    #     def brief_summary(self) -> str:
+    #         parts = [f"label={self.label}"]
+    #         if self.epochs.size:
+    #             parts.append(f"epochs=[{self.epochs[0]}..{self.epochs[-1]}] (n={self.epochs.size})")
+    #         if self.last_ckpt_epoch is not None:
+    #             parts.append(
+    #                 f"last_ckpt: epoch={self.last_ckpt_epoch}, best={self.last_ckpt_best}, path={self.last_ckpt_path}")
+    #         if self.test_sdf_abs_max is not None or self.test_sdf_abs_mean is not None:
+    #             parts.append(f"test |SDF|: max={self.test_sdf_abs_max}, mean={self.test_sdf_abs_mean}")
+    #         if self.time_elapsed_hms:
+    #             parts.append(
+    #                 f"time: {self.time_elapsed_hms} ({self.time_elapsed_s}s), epochs_done={self.epochs_done}, avg/epoch={self.avg_epoch_s}s")
+    #         if self.finished:
+    #             parts.append("finished=True")
+    #         return " | ".join(parts)
+    #
+    #
+    # log1 = TrainingLog.from_file(
+    #     "/home/yfsun/Documents/pyRFM/test/surface/sec3/sec3_2/logs/bottle_in/relu-tanh/train_20250919_223249.log")
+    # log2 = TrainingLog.from_file(
+    #     "/home/yfsun/Documents/pyRFM/test/surface/sec3/sec3_2/logs/bottle_in/tanh-tanh/train_20250919_214818.log")
+    # print(log1.brief_summary())
+    # print(log1.loss)
+    # print(log2.loss)
+    # plt.rcParams.update({
+    #     "figure.figsize": (4.0, 2.4),
+    #     "figure.dpi": 300,
+    #     "savefig.dpi": 300,
+    #     "font.size": 10,
+    #     "axes.titlesize": 11,
+    #     "axes.labelsize": 10.5,
+    #     "xtick.labelsize": 9.5,
+    #     "ytick.labelsize": 9.5,
+    #     "legend.fontsize": 9.5,
+    #     "axes.linewidth": 0.9,
+    #     "lines.linewidth": 1.8,
+    #     "lines.markersize": 3.8,
+    #     "pdf.fonttype": 42, "ps.fonttype": 42,
+    #     "axes.spines.top": False, "axes.spines.right": False,
+    #     "axes.grid": True, "grid.linestyle": "--", "grid.alpha": 0.35,
+    #     "legend.frameon": False,
+    #     "font.family": "serif",
+    #     "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
+    # })
+    #
+    # # 取有效数据（去掉 NaN）
+    # x1, y1 = log1.epochs[np.isfinite(log1.loss)], log1.loss[np.isfinite(log1.loss)]
+    # x2, y2 = log2.epochs[np.isfinite(log2.loss)], log2.loss[np.isfinite(log2.loss)]
+    #
+    # # 单栏友好尺寸
+    # fig, ax = plt.subplots(figsize=(3.5, 2.2), dpi=300)
+    #
+    # # 画早期区间背景（前 15% epoch）
+    # if x1.size > 0 and x2.size > 0:
+    #     xmax = min(x1[-1], x2[-1])
+    #     early_end = int(np.floor(xmax * 0.15))
+    #     if early_end > 0:
+    #         ax.axvspan(0, early_end, alpha=0.06, color="gray")
+    #
+    # # 曲线
+    # ax.plot(x1, y1, "-", marker="o", markevery=max(1, x1.size // 20),
+    #         label=log1.label or "log1")
+    # ax.plot(x2, y2, "--", marker="s", markevery=max(1, x2.size // 20),
+    #         label=log2.label or "log2")
+    #
+    # ax.set_xlabel("Epoch")
+    # ax.set_ylabel("Training Loss")
+    # ax.set_yscale("log")
+    #
+    # # 标注最后的点（避免重叠：一条偏上，一条偏下）
+    # offsets = [(8, -10), (8, +12)]  # 第一条曲线往上，第二条往下
+    # for (x, y, lg), (ox, oy) in zip([(x1, y1, log1), (x2, y2, log2)], offsets):
+    #     if x.size:
+    #         ax.scatter([x[-1]], [y[-1]], s=22, zorder=5)
+    #         ax.annotate(f"{(lg.label or 'log')}: {y[-1]:.2e}",
+    #                     xy=(x[-1], y[-1]),
+    #                     xytext=(ox, oy),
+    #                     textcoords="offset points",
+    #                     va="center", ha="left",
+    #                     fontsize=8,
+    #                     arrowprops=dict(arrowstyle="-", lw=0.8, color="gray", alpha=0.6))
+    #
+    # ax.legend()
+    # # fig.tight_layout()
+    #
+    # # 保存
+    # fig.savefig("./figures/loss_compare.png", dpi=300, bbox_inches="tight")
+    # plt.show()
+    # print("图像已保存为 loss_compare.png")
 
-    mins_n = pts_n.min(dim=0).values;
-    maxs_n = pts_n.max(dim=0).values
-    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
-                       mins_n[1].item(), maxs_n[1].item(),
-                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
-
-    ckpt = torch.load(pt_path, map_location=device)
-    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
-    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
-    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
-    model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
-    model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
-    model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
-    model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
-    model.W = plain_state_dict["final_layer.weight"].t()
-
-
-    class NearShapeForViz(pyrfm.GeometryBase):
-        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
-
-        def get_bounding_box(self): return bbox.get_bounding_box()
-
-        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
-
-        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
-
-        def sdf(self, p: torch.Tensor) -> torch.Tensor:
-            return model(p).squeeze()
-
-
-    near_shape = NearShapeForViz()
-    model.domain = near_shape
-
-    save_isosurface_png_and_ply("figures/cheese_tanh2_iso_normal.png", "/dev/null",
-                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
-                                resolution=(800, 800), view="iso")
-    save_model_slice_png("figures/cheese_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
-                         axis="y", device=device)
-
-    pth_path = "../data/cheese_in.pth"
-    pt_path = "./sec3_3/checkpoints/cheese_in/tanh/sdf_best.pt"
-    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
-    pts_t = x.to(device=device, dtype=dtype)
-    nrms_t = normal.to(device=device, dtype=dtype)
-    mins = pts_t.min(dim=0).values;
-    maxs = pts_t.max(dim=0).values
-    center = (mins + maxs) * 0.5;
-    half = (maxs - mins) * 0.5
-    scale = torch.max(half)
-    pts_n = (pts_t - center) / scale
-    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
-
-    mins_n = pts_n.min(dim=0).values;
-    maxs_n = pts_n.max(dim=0).values
-    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
-                       mins_n[1].item(), maxs_n[1].item(),
-                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
-
-    ckpt = torch.load(pt_path, map_location=device)
-    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
-    print(plain_state_dict.keys())
-    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
-    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH)
-    model.submodels[0].weights = plain_state_dict["net.0.weight"].t()
-    model.submodels[0].biases = plain_state_dict["net.0.bias"]
-    model.W = plain_state_dict["net.2.weight"].t()
-
-
-    class NearShapeForViz(pyrfm.GeometryBase):
-        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
-
-        def get_bounding_box(self): return bbox.get_bounding_box()
-
-        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
-
-        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
-
-        def sdf(self, p: torch.Tensor) -> torch.Tensor:
-            return model(p).squeeze()
-
-
-    near_shape = NearShapeForViz()
-    model.domain = near_shape
-
-    save_isosurface_png_and_ply("figures/cheese_tanh1_iso_normal.png", "/dev/null",
-                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
-                                resolution=(800, 800), view="iso")
-    save_model_slice_png("figures/cheese_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
-                         axis="y", device=device)
-
-    # bunny
-    pth_path = "../data/bunny_in.pth"
-    pt_path = "./sec3_2/checkpoints/bunny_in/tanh-tanh/sdf_best.pt"
-    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
-    pts_t = x.to(device=device, dtype=dtype)
-    nrms_t = normal.to(device=device, dtype=dtype)
-    mins = pts_t.min(dim=0).values;
-    maxs = pts_t.max(dim=0).values
-    center = (mins + maxs) * 0.5;
-    half = (maxs - mins) * 0.5
-    scale = torch.max(half)
-    pts_n = (pts_t - center) / scale
-    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
-
-    mins_n = pts_n.min(dim=0).values;
-    maxs_n = pts_n.max(dim=0).values
-    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
-                       mins_n[1].item(), maxs_n[1].item(),
-                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
-
-    ckpt = torch.load(pt_path, map_location=device)
-    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
-    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
-    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
-    model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
-    model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
-    model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
-    model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
-    model.W = plain_state_dict["final_layer.weight"].t()
-
-
-    class NearShapeForViz(pyrfm.GeometryBase):
-        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
-
-        def get_bounding_box(self): return bbox.get_bounding_box()
-
-        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
-
-        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
-
-        def sdf(self, p: torch.Tensor) -> torch.Tensor:
-            return model(p).squeeze()
-
-
-    near_shape = NearShapeForViz()
-    model.domain = near_shape
-
-    save_isosurface_png_and_ply("figures/bunny_tanh2_front_normal.png", "/dev/null",
-                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
-                                resolution=(800, 800), view="front")
-    save_model_slice_png("figures/bunny_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
-                         axis="y", device=device)
-
-    pth_path = "../data/bunny_in.pth"
-    pt_path = "./sec3_3/checkpoints/bunny_in/tanh/sdf_best.pt"
-    x, normal, mean_curvature = torch.load(pth_path, map_location=device)
-    pts_t = x.to(device=device, dtype=dtype)
-    nrms_t = normal.to(device=device, dtype=dtype)
-    mins = pts_t.min(dim=0).values;
-    maxs = pts_t.max(dim=0).values
-    center = (mins + maxs) * 0.5;
-    half = (maxs - mins) * 0.5
-    scale = torch.max(half)
-    pts_n = (pts_t - center) / scale
-    nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
-
-    mins_n = pts_n.min(dim=0).values;
-    maxs_n = pts_n.max(dim=0).values
-    bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
-                       mins_n[1].item(), maxs_n[1].item(),
-                       mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
-
-    ckpt = torch.load(pt_path, map_location=device)
-    plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
-    print(plain_state_dict.keys())
-    domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
-    model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH)
-    model.submodels[0].weights = plain_state_dict["net.0.weight"].t()
-    model.submodels[0].biases = plain_state_dict["net.0.bias"]
-    model.W = plain_state_dict["net.2.weight"].t()
-
-
-    class NearShapeForViz(pyrfm.GeometryBase):
-        def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
-
-        def get_bounding_box(self): return bbox.get_bounding_box()
-
-        def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
-
-        def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
-
-        def sdf(self, p: torch.Tensor) -> torch.Tensor:
-            return model(p).squeeze()
-
-
-    near_shape = NearShapeForViz()
-    model.domain = near_shape
-
-    save_isosurface_png_and_ply("figures/bunny_tanh1_front_normal.png", "/dev/null",
-                                model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
-                                resolution=(800, 800), view="front")
-    save_model_slice_png("figures/bunny_tanh1_slice.png", model=model, bbox=bbox.get_bounding_box(),
-                         axis="y", device=device)
+    ## bottle slice
+    # pth_path = "../data/bottle_in.pth"
+    # pt_path = "./sec3_2/checkpoints/bottle_in/tanh-tanh/sdf_best.pt"
+    # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    # pts_t = x.to(device=device, dtype=dtype)
+    # nrms_t = normal.to(device=device, dtype=dtype)
+    # mins = pts_t.min(dim=0).values;
+    # maxs = pts_t.max(dim=0).values
+    # center = (mins + maxs) * 0.5;
+    # half = (maxs - mins) * 0.5
+    # scale = torch.max(half)
+    # pts_n = (pts_t - center) / scale
+    # nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    #
+    # mins_n = pts_n.min(dim=0).values;
+    # maxs_n = pts_n.max(dim=0).values
+    # bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+    #                    mins_n[1].item(), maxs_n[1].item(),
+    #                    mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+    #
+    # ckpt = torch.load(pt_path, map_location=device)
+    # plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    # domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    # model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+    # model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+    # model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+    # model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+    # model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+    # model.W = plain_state_dict["final_layer.weight"].t()
+    #
+    #
+    # class NearShapeForViz(pyrfm.GeometryBase):
+    #     def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+    #
+    #     def get_bounding_box(self): return bbox.get_bounding_box()
+    #
+    #     def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+    #
+    #     def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+    #
+    #     def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    #         return model(p).squeeze()
+    #
+    #
+    # near_shape = NearShapeForViz()
+    # model.domain = near_shape
+    #
+    # save_isosurface_png_and_ply("figures/bottle_tanh2_iso.png", "/dev/null",
+    #                             model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+    #                             resolution=(800, 800), view="top")
+    # save_model_slice_png("figures/bottle_tanh2_slice.png", model=model, bbox=bbox.get_bounding_box(),
+    #                      axis="z", device=device)
+    #
+    # ## bottle
+    # pth_path = "../data/bottle_in.pth"
+    # pt_path = "./sec3_2/checkpoints/bottle_in/relu-tanh/sdf_best.pt"
+    # x, normal, mean_curvature = torch.load(pth_path, map_location=device)
+    # pts_t = x.to(device=device, dtype=dtype)
+    # nrms_t = normal.to(device=device, dtype=dtype)
+    # mins = pts_t.min(dim=0).values;
+    # maxs = pts_t.max(dim=0).values
+    # center = (mins + maxs) * 0.5;
+    # half = (maxs - mins) * 0.5
+    # scale = torch.max(half)
+    # pts_n = (pts_t - center) / scale
+    # nrms_n = torch.nn.functional.normalize(nrms_t, dim=-1, eps=1e-9)
+    #
+    # mins_n = pts_n.min(dim=0).values;
+    # maxs_n = pts_n.max(dim=0).values
+    # bbox = BoundingBox(mins_n[0].item(), maxs_n[0].item(),
+    #                    mins_n[1].item(), maxs_n[1].item(),
+    #                    mins_n[2].item(), maxs_n[2].item()).expand(ratio=1.2)
+    #
+    # ckpt = torch.load(pt_path, map_location=device)
+    # plain_state_dict = restore_plain_state_dict(ckpt["model_state"])
+    # domain = pyrfm.Square3D(center=(0.0, 0.0, 0.0), radius=(1, 1, 1))
+    # model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFReLUTanH)
+    # model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+    # model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+    # model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+    # model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+    # model.W = plain_state_dict["final_layer.weight"].t()
+    #
+    #
+    # class NearShapeForViz(pyrfm.GeometryBase):
+    #     def __init__(self): super().__init__(dim=3, intrinsic_dim=2)
+    #
+    #     def get_bounding_box(self): return bbox.get_bounding_box()
+    #
+    #     def in_sample(self, num_samples: int, with_boundary: bool = False): raise NotImplementedError
+    #
+    #     def on_sample(self, num_samples: int, with_normal: bool = False): raise NotImplementedError
+    #
+    #     def sdf(self, p: torch.Tensor) -> torch.Tensor:
+    #         return model(p).squeeze()
+    #
+    #
+    # near_shape = NearShapeForViz()
+    # model.domain = near_shape
+    #
+    # save_isosurface_png_and_ply("figures/bottle_relu_tanh_iso.png", "/dev/null",
+    #                             model=model, bbox=bbox, level=0.0, grid=(256, 256, 256),
+    #                             resolution=(800, 800), view="top")
+    # save_model_slice_png("figures/bottle_relu_tanh_slice.png", model=model, bbox=bbox.get_bounding_box(),
+    #                      axis="z", device=device)

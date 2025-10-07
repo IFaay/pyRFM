@@ -136,6 +136,7 @@ def run_rfm(args):
 
 param_sets = [{"Q": 400, "M": 400}, {"Q": 800, "M": 400}, ]
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--Q", type=int, required=True)
     parser.add_argument("--M", type=int, required=True)

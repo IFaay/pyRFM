@@ -12,7 +12,7 @@ import spdlog
 logger = spdlog.ConsoleLogger('rfm_logger')
 logger.set_level(spdlog.LogLevel.DEBUG)
 
-import numpy
+import numpy as np
 
 import torch
 import torch.nn as nn
