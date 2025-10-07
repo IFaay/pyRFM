@@ -4,5 +4,6 @@ pyrfm/__pycache__/
 *.pyc
 build/
 dist/
+test/
 *.egg-info/
 
