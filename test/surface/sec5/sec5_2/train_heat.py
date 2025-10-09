@@ -44,14 +44,14 @@ from matplotlib.colors import TwoSlopeNorm
 import time
 
 
-def compute_rhs_fast(model, p: torch.Tensor, t: torch.Tensor, dt, A_lap_beltrami):
+def compute_rhs_fast(model, p: torch.Tensor, p0: torch.Tensor, t: torch.Tensor, dt, A_lap_beltrami):
     u_n = model(p)
-    f_np12 = func_f(p, t - dt / 2, normal, mean_curvature)
+    f_np12 = func_f(p, p0, t - dt / 2, normal, mean_curvature)
     b = u_n + (dt / 2) * (A_lap_beltrami @ model.W) + dt * f_np12
     return b
 
 
-def compute_rhs(model, p: torch.Tensor, t: torch.Tensor, dt, normal: torch.Tensor,
+def compute_rhs(model, p: torch.Tensor, p0: torch.Tensor, t: torch.Tensor, dt, normal: torch.Tensor,
                 mean_curvature: torch.Tensor) -> torch.Tensor:
     """
     Compute the right-hand side of the CN scheme:
@@ -61,7 +61,7 @@ def compute_rhs(model, p: torch.Tensor, t: torch.Tensor, dt, normal: torch.Tenso
     u_n = model(p)
     # f_n = func_f(p, t - dt, normal, mean_curvature)
     # f_np1 = func_f(p, t, normal, mean_curvature)
-    f_np12 = func_f(p, t - dt / 2, normal, mean_curvature)
+    f_np12 = func_f(p, p0, t - dt / 2, normal, mean_curvature)
     A_lap_beltrami = compute_laplace_beltrami_matrix(model, p, normal, mean_curvature)
     b = u_n + (dt / 2) * (A_lap_beltrami @ model.W) + dt * f_np12
     # b = u_n + (dt / 2) * (A_lap_beltrami @ model.W) + dt * (f_n + f_np1) / 2
@@ -72,13 +72,15 @@ def func_u(p: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     """
     Example function u(x, y, z) = sin(x + sin(t)) · exp(cos(y − z))
     """
-    return torch.sin(p[:, [0]] + torch.sin(t)) * torch.exp(torch.cos(p[:, [1]] - p[:, [2]]))
+    return torch.zeros(p.shape[0], 1)
 
 
-def func_f(p: torch.Tensor, t: torch.Tensor, normal: torch.Tensor, mean_curvature: torch.Tensor) -> torch.Tensor:
+def func_f(p: torch.Tensor, p0: torch.Tensor, t: torch.Tensor, normal: torch.Tensor,
+           mean_curvature: torch.Tensor) -> torch.Tensor:
     """
     f(𝐱) = exp(−‖𝐱 − 𝐱₀‖²)
     """
+    return torch.exp(-((p - p0) ** 2).sum(dim=1, keepdim=True))
 
 
 def compute_laplace_beltrami_matrix(
@@ -515,7 +517,7 @@ if __name__ == '__main__':
     device = torch.tensor(0.0).device
     dtype = torch.tensor(0.0).dtype
 
-    for shape in ["ellipsoid", "torus", "genus2", "cheese"]:
+    for shape in ["bunny"]:
         print(shape)
         pth_path = '../../data/{}_m.pth'.format(shape)
         pt_path = "../../sec3/sec3_2/checkpoints/{}_in/tanh-tanh/sdf_best.pt".format(shape)
@@ -529,7 +531,7 @@ if __name__ == '__main__':
         model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
         # model.W = plain_state_dict["final_layer.weight"].t()
 
-        x_in, normal, mean_curvature = torch.load(pth_path)
+        x_in, normal, mean_curvature = torch.load(pth_path, map_location=device)
 
         mins = x_in.min(dim=0).values
         maxs = x_in.max(dim=0).values
@@ -538,6 +540,8 @@ if __name__ == '__main__':
                            mins[2].item(), maxs[2].item()).expand(
             ratio=1.5 if shape == "cheese" else 1.1 if shape == "genus2" else 1.2)
         ## adjust ratio to look better
+        idx_max_y = torch.argmin(x_in[:, 1])  # 单个索引
+        p_max_y = x_in[idx_max_y]  # 对应的点 (1,3)
 
         # -----------------------------------
 
@@ -572,18 +576,43 @@ if __name__ == '__main__':
                 # b = compute_rhs(model, x_in, torch.tensor([[t]]), dt, normal, mean_curvature)
                 # model.compute(A, damp=1e-14).solve(b)
 
-                b = compute_rhs_fast(model, x_in, torch.tensor([[t]]), dt, A_lap_beltrami)
+                b = compute_rhs_fast(model, x_in, p_max_y, torch.tensor([[t]]), dt, A_lap_beltrami)
                 model.solve(b)
 
             sys.stdout = backup
-
-            u_pred = model(x_in)
-            u_exact = func_u(x_in, torch.tensor([t]))
-            error = torch.norm(u_pred - u_exact) / torch.norm(u_exact)
-            print(f'Error: {error.item():.4e}')
 
             # -----------------------------------
             # 🧮 计时结束
             t3 = time.time()
 
             print(f'[Timer] Total time: {t3 - t0:.2f} seconds')
+
+
+            class NearShapeForViz(pyrfm.ImplicitSurfaceBase):
+                def __init__(self, model, domain):
+                    super().__init__()
+                    self.model = model  # 这里一定要挂上支持 dForward 的 RFM 模型
+                    self._domain = domain
+
+                def get_bounding_box(self):
+                    return bbox.get_bounding_box()
+
+                def shape_func(self, p: torch.Tensor) -> torch.Tensor:
+                    # 返回模型预测的 SDF
+                    return self.model(p).squeeze(-1)
+
+
+            shape_model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+            shape_model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+            shape_model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+            shape_model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+            shape_model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+            shape_model.W = plain_state_dict["final_layer.weight"].t()
+
+            near_shape = NearShapeForViz(shape_model, domain)
+
+            model.domain = near_shape
+
+            save_isosurface_png_and_ply("../figures/{}_heat.png".format(shape), "/dev/null",
+                                        model=model, bbox=domain, level=0.0, grid=(128, 128, 128),
+                                        resolution=(800, 800), view="iso")
