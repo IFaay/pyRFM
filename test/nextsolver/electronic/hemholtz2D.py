@@ -123,9 +123,10 @@ def func_Dirac(x, x0, sigma, L):
     """
     coeff = 1.0 / (sigma * torch.sqrt(torch.tensor(2.0 * torch.pi)))  # 归一化系数
     r = (x - x0).norm(dim=1, p=2, keepdim=True)
-    gauss = torch.exp(-0.5 * (r / sigma) ** 2) * coeff  # 高斯函数
-    gauss /= gauss.mean()
-    return gauss / L  # 保证积分为 1
+    return torch.exp(-0.5 * (r / sigma) ** 2) * coeff
+    # gauss = torch.exp(-0.5 * (r / sigma) ** 2) * coeff  # 高斯函数
+    # gauss /= gauss.mean()
+    # return gauss / L  # 保证积分为 1
 
 
 def func_green_dirichlet(x, x0, k, L):
