@@ -484,7 +484,7 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
         pix = torch.stack([i, j], dim=-1)
         return pix, depth
 
-    def plot(self, cmap='viridis', level=0.0, grid=(128, 128, 128), chunk_pts=300_000, **kwargs):
+    def plot(self, cmap='viridis', level=0.0, grid=(128, 128, 128), chunk_pts=300_000, vmin=None, vmax=None, **kwargs):
         """
         Marching Cubes 绘制（视角/亮度与 ray-marching 版完全对齐）
         参数：
@@ -537,8 +537,8 @@ class RFMVisualizer3DMC(RFMVisualizer3D):
 
         # ---- 标量场 -> colormap 基色（顶点）----
         vfield = self._compute_field_values_points(verts_world)  # numpy (N,)
-        vmin = np.nanpercentile(vfield, 1)
-        vmax = np.nanpercentile(vfield, 99)
+        vmin = np.nanpercentile(vfield, 1) if vmin is None else vmin
+        vmax = np.nanpercentile(vfield, 99) if vmax is None else vmax
         denom = (vmax - vmin) if (vmax > vmin) else 1.0
         vnormed = np.clip((vfield - vmin) / denom, 0.0, 1.0)
 
