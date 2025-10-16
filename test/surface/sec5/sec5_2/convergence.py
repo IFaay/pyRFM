@@ -519,6 +519,8 @@ if __name__ == '__main__':
     device = torch.tensor(0.0).device
     dtype = torch.tensor(0.0).dtype
 
+    dts = [1e-1, 5e-2, 2e-2, 1e-2, 5e-3, 1e-1]
+
     for shape in ["bunny"]:
         print(shape)
         pth_path = '../../data/{}_m.pth'.format(shape)
@@ -547,76 +549,58 @@ if __name__ == '__main__':
 
         # -----------------------------------
 
-        # , 5e-2, 2e-2, 1e-2, 5e-3
-        for t_end in [1.0, 0.8, 0.6, 0.4, 0.2]:
-            for dt in [5e-3]:
-                t0 = time.time()
-                t = 0.0
+        #
+        t_end = 1
+        for dt in dts:
+            t0 = time.time()
+            t = 0.0
 
-                print("dt = {:.4e}".format(dt))
+            print("dt = {:.4e}".format(dt))
 
-                import io
-                import sys
+            import io
+            import sys
 
-                backup = sys.stdout
-                sys.stdout = io.StringIO()
+            backup = sys.stdout
+            sys.stdout = io.StringIO()
 
-                u0 = func_u(x_in, torch.tensor([[t]]))
-                A = model.features(x_in).cat(dim=1)
-                b = u0
-                model.compute(A).solve(b)
+            u0 = func_u(x_in, torch.tensor([[t]]))
+            A = model.features(x_in).cat(dim=1)
+            b = u0
+            model.compute(A).solve(b)
 
-                A_lap_beltrami = compute_laplace_beltrami_matrix(model, x_in, normal, mean_curvature)
-                A = model.features(x_in).cat(dim=1) - (dt / 2) * A_lap_beltrami
-                model.compute(A, damp=1e-14)
+            A_lap_beltrami = compute_laplace_beltrami_matrix(model, x_in, normal, mean_curvature)
+            A = model.features(x_in).cat(dim=1) - (dt / 2) * A_lap_beltrami
+            model.compute(A, damp=1e-14)
 
-                while t < t_end:
-                    """
-                    (I − Δt/2 · 𝓛) uⁿ⁺¹
-                    """
-                    t += dt
-                    print("t = {:.6f}".format(t))
+            while t < t_end:
+                """
+                (I − Δt/2 · 𝓛) uⁿ⁺¹
+                """
+                t += dt
+                print("t = {:.6f}".format(t))
 
-                    # b = compute_rhs(model, x_in, torch.tensor([[t]]), dt, normal, mean_curvature)
-                    # model.compute(A, damp=1e-14).solve(b)
+                # b = compute_rhs(model, x_in, torch.tensor([[t]]), dt, normal, mean_curvature)
+                # model.compute(A, damp=1e-14).solve(b)
 
-                    b = compute_rhs_fast(model, x_in, p_max_y, torch.tensor([[t]]), dt, A_lap_beltrami)
-                    model.solve(b)
+                b = compute_rhs_fast(model, x_in, p_max_y, torch.tensor([[t]]), dt, A_lap_beltrami)
+                model.solve(b)
 
-                sys.stdout = backup
+            sys.stdout = backup
 
-                # -----------------------------------
-                # 🧮 计时结束
-                t3 = time.time()
+            # -----------------------------------
+            # 🧮 计时结束
+            t3 = time.time()
 
-                print(f'[Timer] Total time: {t3 - t0:.2f} seconds')
+            print(f'[Timer] Total time: {t3 - t0:.2f} seconds')
 
+            u = model(x_in).detach()
+            # save results
 
-                class NearShapeForViz(pyrfm.ImplicitSurfaceBase):
-                    def __init__(self, model, domain):
-                        super().__init__()
-                        self.model = model  # 这里一定要挂上支持 dForward 的 RFM 模型
-                        self._domain = domain
+            torch.save(u, f'./{shape}_u_dt{dt:.0e}.pth')
 
-                    def get_bounding_box(self):
-                        return bbox.get_bounding_box()
+    u_reference = torch.load(f'./{shape}_u_dt{dts[-1]:.0e}.pth', map_location=device)
 
-                    def shape_func(self, p: torch.Tensor) -> torch.Tensor:
-                        # 返回模型预测的 SDF
-                        return self.model(p).squeeze(-1)
-
-
-                shape_model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
-                shape_model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
-                shape_model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
-                shape_model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
-                shape_model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
-                shape_model.W = plain_state_dict["final_layer.weight"].t()
-
-                near_shape = NearShapeForViz(shape_model, domain)
-
-                model.domain = near_shape
-
-                save_isosurface_png_and_ply("../figures/{}_heat_{:.6g}.png".format(shape, t), "/dev/null",
-                                            model=model, bbox=domain, level=0.0, grid=(128, 128, 128),
-                                            resolution=(800, 800), view="front", vmin=0.0, vmax=0.2)
+    for dt in dts[:-1]:
+        u = torch.load(f'./{shape}_u_dt{dt:.0e}.pth', map_location=device)
+        error = torch.linalg.norm(u - u_reference) / torch.linalg.norm(u_reference)
+        print(f'dt = {dt:.0e}, relative error = {error:.4e}')
