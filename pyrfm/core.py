@@ -14,6 +14,15 @@ from .utils import *
 
 
 class RFBase(ABC):
+    def clone(self, deep: bool = True):
+        """
+        Create a (deep) clone of the current RFBase instance.
+        :param deep: Whether to deep copy tensors and submodules.
+        :return: A new RFBase instance with the same configuration.
+        """
+        import copy
+        return copy.deepcopy(self) if deep else copy.copy(self)
+
     def __init__(self, dim: int, center: torch.Tensor, radius: torch.Tensor,
                  activation: nn.Module, n_hidden: int,
                  gen: torch.Generator = None,
@@ -669,6 +678,15 @@ class RFSin(RFBase):
 
 
 class POUBase(ABC):
+    def clone(self, deep: bool = True):
+        """
+        Create a (deep) clone of the current POUBase instance.
+        :param deep: Whether to deep copy tensors and submodules.
+        :return: A new POUBase instance with the same configuration.
+        """
+        import copy
+        return copy.deepcopy(self) if deep else copy.copy(self)
+
     def __init__(self, center: torch.Tensor, radius: torch.Tensor,
                  dtype: torch.dtype = None,
                  device: torch.device = None
@@ -845,6 +863,7 @@ class PsiG(POUBase):
 
 
 class RFMBase(ABC):
+
     def __init__(self, dim: int,
                  n_hidden: int,
                  domain: Union[Tuple, List, GeometryBase], n_subdomains: Union[int, Tuple, List] = 1,
@@ -956,8 +975,14 @@ class RFMBase(ABC):
         self.A_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
-    def plot(self, label="u", resolution=(800, 640)):
-        pass
+    def __call__(self, x, *args, **kwargs):
+        """
+        Make the class callable and forward the input tensor.
+
+        :param x: Input tensor.
+        :return: Output tensor after forward pass.
+        """
+        return self.forward(x)
 
     def add_c_condition(self, num_samples: int, order: int = 1, with_pts=False):
         """
@@ -1084,14 +1109,15 @@ class RFMBase(ABC):
         for submodel in self.submodels.flat_data:
             submodel.empty_cache()
 
-    def __call__(self, x, *args, **kwargs):
+    def clone(self, deep: bool = True):
         """
-        Make the class callable and forward the input tensor.
-
-        :param x: Input tensor.
-        :return: Output tensor after forward pass.
+        Create a (deep) clone of the current RFMBase instance.
+        :param deep: Whether to deep copy tensors and submodules.
+        :return: A new RFMBase instance with the same configuration.
         """
-        return self.forward(x)
+        import copy
+        new_obj = copy.deepcopy(self) if deep else copy.copy(self)
+        return new_obj
 
     def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False):
         """
@@ -1106,6 +1132,7 @@ class RFMBase(ABC):
             self.dtype = torch.complex128 if self.dtype == torch.float64 else torch.complex64
         A = A.to(dtype=self.dtype, device=self.device)
         self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+        # self.A_norm = torch.ones((A.shape[0], 1))
         A /= self.A_norm
         self.A_backup = A.clone().cpu()
         if abs(damp) > 0.0:
@@ -1124,7 +1151,7 @@ class RFMBase(ABC):
 
         return self
 
-    def solve(self, b: torch.Tensor, check_condition=False):
+    def solve(self, b: torch.Tensor, check_condition=False, verbose=True):
         """
         Solve the linear system Ax = b using the QR decomposition.
 
@@ -1148,13 +1175,12 @@ class RFMBase(ABC):
 
         try:
             y = torch.ormqr(self.A, self.tau, b, transpose=True)[:self.A.shape[1]]
-            diag = self.A.diagonal()
-            if torch.is_complex(diag):
-                diag_to_compare = diag.real  # 只用实部来判断正负
-            else:
-                diag_to_compare = diag
-
-            diag.add_((diag_to_compare >= 0).float() * torch.finfo(self.dtype).eps)
+            # diag = self.A.diagonal()
+            # if torch.is_complex(diag):
+            #     diag_to_compare = diag.real  # 只用实部来判断正负
+            # else:
+            #     diag_to_compare = diag
+            # diag.add_((diag_to_compare >= 0).float() * torch.finfo(self.dtype).eps)
             self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
             b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
             residual = torch.norm(b_ - b) / torch.norm(b)
@@ -1187,7 +1213,8 @@ class RFMBase(ABC):
                                         driver='gels').solution
             residual = torch.norm(torch.matmul(self.A, self.W) - b) / torch.norm(b)
 
-        print(f"Least Square Relative residual: {residual:.4e}")
+        if verbose:
+            print(f"Least Square Relative residual: {residual:.4e}")
 
         if self.W.numel() % (self.submodels.numel() * self.n_hidden) == 0:
             n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
@@ -1232,6 +1259,8 @@ class RFMBase(ABC):
         :param batch_size: Max number of points per batch to avoid OOM.
         :return: Derivative tensor of shape (N, out_dim).
         """
+        if self.W is None:
+            raise ValueError("Weights have not been computed yet.")
         # --- 规范化 multi-index ---
         if not isinstance(order, torch.Tensor):
             order = torch.tensor(order, dtype=self.dtype, device=self.device)
@@ -1703,6 +1732,15 @@ class STRFMBase(ABC):
         :return: Output tensor after forward pass.
         """
         return self.forward(x)
+
+    def clone(self, deep: bool = True):
+        """
+        Create a (deep) clone of the current STRFMBase instance.
+        :param deep: Whether to deep copy tensors and submodules.
+        :return: A new STRFMBase instance with the same configuration.
+        """
+        import copy
+        return copy.deepcopy(self) if deep else copy.copy(self)
 
     def compute(self, A: torch.Tensor):
         """
