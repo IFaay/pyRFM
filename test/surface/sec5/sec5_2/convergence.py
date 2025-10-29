@@ -519,7 +519,7 @@ if __name__ == '__main__':
     device = torch.tensor(0.0).device
     dtype = torch.tensor(0.0).dtype
 
-    dts = [1e-1, 5e-2, 2e-2, 1e-2, 5e-3, 1e-1]
+    dts = [1e-1, 5e-2, 2e-2, 1e-2, 5e-3]
 
     for shape in ["bunny"]:
         print(shape)
@@ -570,6 +570,7 @@ if __name__ == '__main__':
 
             A_lap_beltrami = compute_laplace_beltrami_matrix(model, x_in, normal, mean_curvature)
             A = model.features(x_in).cat(dim=1) - (dt / 2) * A_lap_beltrami
+
             model.compute(A, damp=1e-14)
 
             while t < t_end:
