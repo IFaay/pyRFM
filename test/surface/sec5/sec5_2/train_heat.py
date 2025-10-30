@@ -78,9 +78,9 @@ def func_u(p: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
 def func_f(p: torch.Tensor, p0: torch.Tensor, t: torch.Tensor, normal: torch.Tensor,
            mean_curvature: torch.Tensor) -> torch.Tensor:
     """
-    f(𝐱) = exp(−4‖𝐱 − 𝐱₀‖²)
+    f(𝐱) = exp(−4‖𝐱 − 𝐱₀‖)
     """
-    return torch.exp(-(4 * (p - p0) ** 2).sum(dim=1, keepdim=True))
+    return torch.exp(-(4 * (p - p0).norm(dim=1, keepdim=True, p=2) ** 2))
 
 
 def compute_laplace_beltrami_matrix(
@@ -618,5 +618,5 @@ if __name__ == '__main__':
                 model.domain = near_shape
 
                 save_isosurface_png_and_ply("../figures/{}_heat_{:.6g}.png".format(shape, t), "/dev/null",
-                                            model=model, bbox=domain, level=0.0, grid=(128, 128, 128),
+                                            model=model, bbox=domain, level=0.0, grid=(256, 256, 256),
                                             resolution=(800, 800), view="front", vmin=0.0, vmax=0.2)

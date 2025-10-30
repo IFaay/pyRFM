@@ -1207,6 +1207,8 @@ class RFMBase(ABC):
 
         except RuntimeError as e:
             # Add support for minium norm solution
+            logger.warning(e)
+            logger.warning("Switching to torch.linalg.lstsq solver.")
             self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
             b = b_backup.to(dtype=self.dtype, device=self.device)
             self.W = torch.linalg.lstsq(self.A, b,
