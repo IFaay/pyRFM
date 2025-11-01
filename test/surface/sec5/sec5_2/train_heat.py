@@ -605,18 +605,17 @@ if __name__ == '__main__':
                         # 返回模型预测的 SDF
                         return self.model(p).squeeze(-1)
 
-
-                shape_model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
-                shape_model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
-                shape_model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
-                shape_model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
-                shape_model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
-                shape_model.W = plain_state_dict["final_layer.weight"].t()
-
-                near_shape = NearShapeForViz(shape_model, domain)
-
-                model.domain = near_shape
-
-                save_isosurface_png_and_ply("../figures/{}_heat_{:.6g}.png".format(shape, t), "/dev/null",
-                                            model=model, bbox=domain, level=0.0, grid=(256, 256, 256),
-                                            resolution=(800, 800), view="front", vmin=0.0, vmax=0.2)
+                # shape_model = pyrfm.RFMBase(dim=3, n_hidden=512, domain=domain, n_subdomains=1, rf=pyrfm.RFTanH2)
+                # shape_model.submodels[0].inner.weights = plain_state_dict["input_layer.0.weight"].t()
+                # shape_model.submodels[0].inner.biases = plain_state_dict["input_layer.0.bias"]
+                # shape_model.submodels[0].weights = plain_state_dict["hidden_layer.0.weight"].t()
+                # shape_model.submodels[0].biases = plain_state_dict["hidden_layer.0.bias"]
+                # shape_model.W = plain_state_dict["final_layer.weight"].t()
+                #
+                # near_shape = NearShapeForViz(shape_model, domain)
+                #
+                # model.domain = near_shape
+                #
+                # save_isosurface_png_and_ply("../figures/{}_heat_{:.6g}.png".format(shape, t), "/dev/null",
+                #                             model=model, bbox=domain, level=0.0, grid=(256, 256, 256),
+                #                             resolution=(800, 800), view="front", vmin=0.0, vmax=0.2)

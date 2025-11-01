@@ -57,7 +57,7 @@ if __name__ == "__main__":
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     time1 = time.time()
     domain = pyrfm.Line1D(x1=0.0, x2=12.0)
-    model = pyrfm.RFMBase(dim=1, domain=domain, n_subdomains=2, n_hidden=20)
+    model = pyrfm.RFMBase(dim=1, domain=domain, n_subdomains=3, n_hidden=20)
 
     x_in = domain.in_sample(200, with_boundary=False)
     x_on = domain.on_sample(2)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     # ])
     # b = torch.tensor([0.5, 0.5])
 
-    dt = 1e-2
+    dt = 5e-3
     t_k = 0
     T = 1.0
 

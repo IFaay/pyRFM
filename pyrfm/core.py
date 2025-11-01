@@ -1160,7 +1160,8 @@ class RFMBase(ABC):
         :param complex: Whether to use complex numbers.
         """
         with_damping = None
-        b = b.clone().view(-1, 1).to(dtype=self.dtype, device=self.device)
+        b = b.clone().view(-1, 1).to(dtype=self.dtype, device=self.device) if b.dim() == 1 else b.to(
+            dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             if b.shape[0] + self.A.shape[1] == self.A.shape[0]:
                 with_damping = True
@@ -1223,6 +1224,8 @@ class RFMBase(ABC):
             self.W = self.W.view(n_out, -1).T
         else:
             raise ValueError("The output weight mismatch.")
+
+        return self.W
 
     def forward(self, x: torch.Tensor, batch_size: int = 32768):
         if self.W is None:
