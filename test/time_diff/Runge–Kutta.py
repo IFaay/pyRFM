@@ -12,6 +12,7 @@ import argparse
 import sys
 import time
 from typing import List
+import matplotlib.pyplot as plt
 
 """
 
@@ -103,8 +104,6 @@ if __name__ == "__main__":
     T = 1.0
 
     x_all = torch.cat([x_in, x_on], dim=0)
-    features = model.features(x_in).cat(dim=1)
-    features_all = model.features(x_all).cat(dim=1)
 
     alpha = torch.pi / 2.0
     F_feature = alpha ** (-2) * model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
@@ -115,11 +114,11 @@ if __name__ == "__main__":
 
 
     U0 = func_h(torch.cat([x_all, torch.zeros((x_all.shape[0], 1))], dim=1))
-    model.compute(features_all, damp=1e-14).solve(U0)
+    model.compute(model.features(x_all).cat(dim=1), damp=1e-12).solve(U0)
 
     # provide a model to fast approximate at x_in
     d_model = model.clone()
-    d_model.compute(features, damp=1e-14)
+    d_model.compute(d_model.features(x_in).cat(dim=1), damp=1e-12)
 
     n_steps = round(T / dt)
     u0 = U0[:x_in.shape[0]]
@@ -133,9 +132,9 @@ if __name__ == "__main__":
         u0 = d_model(x_in)
         t_k += dt
 
-    xtk = torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)
-    print(
-        "error at t = {:.4f}: {:.3e}".format(t_k, (model(x_all) - func_u(xtk)).norm(2) / func_u(xtk).norm(2)))
+        xtk = torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)
+        print(
+            "error at t = {:.4f}: {:.3e}".format(t_k, (model(x_all) - func_u(xtk)).norm(2) / func_u(xtk).norm(2)))
 
     time2 = time.time()
     print("Total time: {:.2f} seconds".format(time2 - time1))
