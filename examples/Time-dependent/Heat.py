@@ -17,7 +17,7 @@ import time
 Section 3.1.1 (Heat equation)
 Consider the following problem:
 
-    ∂ₜ u(x, t) - α² ∂ₓ² u(x, t) = 0,  x ∈ [x₀, x₁],  t ∈ [0, T],
+    ∂ₜ u(x, t) - (1 /α²) * ∂ₓ² u(x, t) = 0,  x ∈ [x₀, x₁],  t ∈ [0, T],
     u(x₀, t) = g₁(t),                 t ∈ [0, T],
     u(x₁, t) = g₂(t),                 t ∈ [0, T],
     u(x, 0) = h(x),                   x ∈ [x₀, x₁],
@@ -164,7 +164,7 @@ def run_rfm(args):
 
 
 if __name__ == "__main__":
-    # torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
+    torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     parser = argparse.ArgumentParser(description="Solve the heat equation using RFM")
     parser.add_argument("--Nx", type=int, required=True)
     parser.add_argument("--Nt", type=int, required=True)
