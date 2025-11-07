@@ -1160,7 +1160,7 @@ class RFMBase(ABC):
         :param complex: Whether to use complex numbers.
         """
         with_damping = None
-        b = b.clone().view(-1, 1).to(dtype=self.dtype, device=self.device) if b.dim() == 1 else b.to(
+        b = b.clone().view(-1, 1).to(dtype=self.dtype, device=self.device) if b.dim() == 1 else b.clone().to(
             dtype=self.dtype, device=self.device)
         if self.A.shape[0] != b.shape[0]:
             if b.shape[0] + self.A.shape[1] == self.A.shape[0]:
