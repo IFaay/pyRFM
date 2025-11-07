@@ -315,26 +315,78 @@ class UnionGeometry(GeometryBase):
         boxB = self.geomB.get_bounding_box()
         return [min(boxA[i], boxB[i]) if i % 2 == 0 else max(boxA[i], boxB[i]) for i in range(2 * self.dim)]
 
-    def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        samples = torch.cat(
-            [self.geomA.in_sample(num_samples, with_boundary), self.geomB.in_sample(num_samples, with_boundary)], dim=0)
-        if with_boundary:
-            return samples[(self.sdf(samples) <= 0).squeeze()]
+    def in_sample(self, num_samples: int, with_boundary: bool = False):
+        boxA = self.geomA.get_bounding_box()
+        boxB = self.geomB.get_bounding_box()
 
-        return samples[(self.sdf(samples) < 0).squeeze()]
+        VA, VB = 1.0, 1.0
+        dim = len(boxA) // 2
+        for i in range(dim):
+            VA *= max(0.0, boxA[2 * i + 1] - boxA[2 * i])
+            VB *= max(0.0, boxB[2 * i + 1] - boxB[2 * i])
 
-    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+        # sampling ratio
+        r = min(2.0, max(0.5, VA / (VB + 1e-12)))
+
+        # allocate
+        NA = max(5, int(num_samples * r / (1 + r)))
+        NB = max(5, num_samples - NA)
+
+        # --- 采样 ---
+        a = self.geomA.in_sample(NA, with_boundary)
+        b = self.geomB.in_sample(NB, with_boundary)
+        samples = torch.cat([a, b], dim=0)
+
+        # --- 过滤 union ---
+        mask = (self.sdf(samples) <= 0).squeeze() if with_boundary else (self.sdf(samples) < 0).squeeze()
+        filtered = samples[mask]
+
+        # fallback：确保不会返回空
+        if filtered.shape[0] == 0:
+            return samples
+
+        return filtered
+
+    def on_sample(self, num_samples: int, with_normal: bool = False):
+        boxA = self.geomA.get_bounding_box()
+        boxB = self.geomB.get_bounding_box()
+
+        VA, VB = 1.0, 1.0
+        dim = len(boxA) // 2
+        for i in range(dim):
+            VA *= max(0.0, boxA[2 * i + 1] - boxA[2 * i])
+            VB *= max(0.0, boxB[2 * i + 1] - boxB[2 * i])
+
+        # sampling ratio
+        r = min(2.0, max(0.5, VA / (VB + 1e-12)))
+
+        # allocate
+        NA = max(5, int(num_samples * r / (1 + r)))
+        NB = max(5, num_samples - NA)
+
+        # --- 采样 ---
         if with_normal:
-            a, an = self.geomA.on_sample(num_samples, with_normal=True)
-            b, bn = self.geomB.on_sample(num_samples, with_normal=True)
+            a, an = self.geomA.on_sample(NA, True)
+            b, bn = self.geomB.on_sample(NB, True)
+
             samples = torch.cat([a, b], dim=0)
             normals = torch.cat([an, bn], dim=0)
-            return samples[torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()], normals[
-                torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()]
 
-        samples = torch.cat(
-            [self.geomA.on_sample(num_samples, with_normal), self.geomB.on_sample(num_samples, with_normal)], dim=0)
-        return samples[torch.isclose(self.sdf(samples), torch.tensor(0.)).squeeze()]
+            mask = torch.isclose(self.sdf(samples), torch.tensor(0., device=samples.device))
+
+            if mask.sum() == 0:
+                return samples, normals
+            return samples[mask], normals[mask]
+
+        else:
+            a = self.geomA.on_sample(NA, False)
+            b = self.geomB.on_sample(NB, False)
+            samples = torch.cat([a, b], dim=0)
+
+            mask = torch.isclose(self.sdf(samples), torch.tensor(0., device=samples.device))
+            if mask.sum() == 0:
+                return samples
+            return samples[mask]
 
 
 class IntersectionGeometry(GeometryBase):

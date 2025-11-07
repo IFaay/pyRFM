@@ -70,17 +70,31 @@ if __name__ == "__main__":
     time1 = time.time()
 
     domain = pyrfm.Square2D(center=[0.5, 0.5], half=[0.5, 0.5])
-    model = pyrfm.RFMBase(dim=2, domain=domain, n_subdomains=2, n_hidden=400)
+    model = pyrfm.RFMBase(dim=2, domain=domain, n_subdomains=2, n_hidden=100)
 
     x_in = domain.in_sample(2000)
     x_on = domain.on_sample(200)
+
+    # featrues = model.features(x_in).cat(dim=1)
+    # # print the singular values of the feature matrix
+    # U, S, Vh = torch.linalg.svd(featrues, full_matrices=False)
+    # # print("Singular values of the feature matrix:", S)
+    # import matplotlib.pyplot as plt
+    #
+    # plt.plot(S.cpu().numpy())
+    # plt.yscale('log')
+    # plt.title('Singular values of the feature matrix')
+    # plt.xlabel('Index')
+    # plt.ylabel('Singular value (log scale)')
+    # plt.grid()
+    # plt.show()
 
     x_all = torch.cat([x_in, x_on], dim=0)
     x_all_t0 = torch.cat([x_all, torch.zeros(x_all.shape[0], 1)], dim=1)
 
     dt = 1e-5
     t_k = 0
-    T = 1e-3
+    T = 1.0
 
     n_steps = round(T / dt)
 
@@ -103,10 +117,16 @@ if __name__ == "__main__":
 
     for step in range(n_steps):
         u_in = model(x_in)
-        u = torch.cat([u_in, func_g(x_on)], dim=0)
-        model.solve(u)
+        u_exact = func_u(torch.cat([x_in, t_k * torch.ones(x_in.shape[0], 1)], dim=1))
+        error = torch.norm(u_in - u_exact) / torch.norm(u_exact)
+        print(f"t={t_k:.3e}, Relative L2 error : {error.item():.3e}")
 
-    u_pred = model(x_all)
-    u_exact = func_u(torch.cat([x_all, T * torch.ones(x_all.shape[0], 1)], dim=1))
-    error = torch.norm(u_pred - u_exact) / torch.norm(u_exact)
-    print(f"Relative L2 error at T={T}: {error.item():.3e}")
+        u = torch.cat([u_in, func_g(x_on)], dim=0)
+        model.solve(u, verbose=False)
+
+        t_k += dt
+
+    # u_pred = model(x_all)
+    # u_exact = func_u(torch.cat([x_all, T * torch.ones(x_all.shape[0], 1)], dim=1))
+    # error = torch.norm(u_pred - u_exact) / torch.norm(u_exact)
+    # print(f"Relative L2 error at T={T}: {error.item():.3e}")
