@@ -117,7 +117,7 @@ def run_rfm(args):
     visualizer = pyrfm.RFMVisualizer2D(model, component_idx=2)
     visualizer.plot()
     visualizer.show()
-    visualizer.savefig('stokes_flow_p.png', dpi=600)
+    # visualizer.savefig('stokes_flow_p.png', dpi=600)
 
     uvp = model.forward(x_in)
     u, v, p = uvp[:, [0]], uvp[:, [1]], uvp[:, [2]]
