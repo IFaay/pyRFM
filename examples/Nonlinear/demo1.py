@@ -55,7 +55,7 @@ def run_once(method: str, device: str):
     start_time = time.time()
 
     # Domain & model
-    domain = pyrfm.Square2D(center=[0.5, 0.5], radius=[0.5, 0.5])
+    domain = pyrfm.Square2D(center=[0.5, 0.5], half=[0.5, 0.5])
     model = pyrfm.RFMBase(dim=2, n_hidden=300, domain=domain, n_subdomains=2, pou=pyrfm.PsiB)
 
     # Sampling

@@ -376,7 +376,7 @@ class UnionGeometry(GeometryBase):
 
             if mask.sum() == 0:
                 return samples, normals
-            return samples[mask], normals[mask]
+            return samples[mask.flatten()], normals[mask.flatten()]
 
         else:
             a = self.geomA.on_sample(NA, False)
@@ -386,7 +386,7 @@ class UnionGeometry(GeometryBase):
             mask = torch.isclose(self.sdf(samples), torch.tensor(0., device=samples.device))
             if mask.sum() == 0:
                 return samples
-            return samples[mask]
+            return samples[mask.flatten()]
 
 
 class IntersectionGeometry(GeometryBase):
