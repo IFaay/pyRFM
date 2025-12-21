@@ -120,6 +120,7 @@ def run_rfm(args):
     # visualizer.savefig('stokes_flow_p.png', dpi=600)
 
     uvp = model.forward(x_in)
+    uvp_x = model.dForward(x_in, order=(1, 0))
     u, v, p = uvp[:, [0]], uvp[:, [1]], uvp[:, [2]]
     u_exact, v_exact = func_u(x_in), func_v(x_in)
     p_exact = func_p(x_in)
