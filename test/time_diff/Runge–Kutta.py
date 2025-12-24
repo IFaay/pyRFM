@@ -132,9 +132,8 @@ if __name__ == "__main__":
         u0 = d_model(x_in)
         t_k += dt
 
-        xtk = torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)
-        print(
-            "error at t = {:.4f}: {:.3e}".format(t_k, (model(x_all) - func_u(xtk)).norm(2) / func_u(xtk).norm(2)))
+    xtk = torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)
+    print("error at t = {:.4f}: {:.3e}".format(t_k, (model(x_all) - func_u(xtk)).norm(2) / func_u(xtk).norm(2)))
 
     time2 = time.time()
     print("Total time: {:.2f} seconds".format(time2 - time1))

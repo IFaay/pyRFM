@@ -239,6 +239,8 @@ def train_moe(num_experts=6, steps=2000, lr=1e-3, plot_interval=200):
 
     # domain = pyrfm.Square2D(center=[0, 0], half=[1, 1])
 
+    x = domain.in_sample(10000, with_boundary=True)
+
     # ==== K-Means 初始化，用于对比 ====
     km_centers = init_centers(x.cpu().numpy(), num_experts).to(x.device)
 

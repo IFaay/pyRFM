@@ -24,34 +24,37 @@ def func_u(p: torch.Tensor) -> torch.Tensor:
     """
     Example function u(x, y, z) = sin(x) * exp(cos(y - z))
     """
-    return (torch.sin(p[:, 0]) * torch.exp(torch.cos(p[:, 1] - p[:, 2]))).unsqueeze(-1)
+    return (torch.sin(torch.pi * p[:, 0]) * torch.exp(torch.cos(p[:, 1] - p[:, 2]))).unsqueeze(-1)
 
 
 def func_rhs(p: torch.Tensor) -> torch.Tensor:
     """
     Laplace–Beltrami of u(x,y,z) on given implicit surface
     """
-    return ((4 * p[:, 0] * (16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) * (
-            4 * p[:, 0] * torch.sin(p[:, 0]) + 9 * p[:, 1] * torch.sin(p[:, 1] - p[:, 2]) * torch.cos(
-        p[:, 0]) - 36 * p[:, 2] * torch.sin(p[:, 1] - p[:, 2]) * torch.cos(p[:, 0])) - 9 * p[:, 1] * (
-                     16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) * (
-                     -4 * p[:, 0] * torch.sin(p[:, 1] - p[:, 2]) * torch.cos(p[:, 0]) + 9 * p[:, 1] * (
-                     torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
-                 p[:, 0]) - 36 * p[:, 2] * (
-                             torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
-                 p[:, 0])) - 36 * p[:, 2] * (16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) * (
-                     4 * p[:, 0] * torch.sin(p[:, 1] - p[:, 2]) * torch.cos(p[:, 0]) - 9 * p[:, 1] * (
-                     torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
-                 p[:, 0]) + 36 * p[:, 2] * (
-                             torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
-                 p[:, 0])) + 2 * (torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * (
-                     16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) ** 2 * torch.sin(p[:, 0]) + (
-                     -720 * p[:, 0] ** 2 - 3240 * p[:, 1] ** 2 - 16848 * p[:, 2] ** 2) * (
-                     4 * p[:, 0] * torch.cos(p[:, 0]) - 9 * p[:, 1] * torch.sin(p[:, 0]) * torch.sin(
-                 p[:, 1] - p[:, 2]) + 36 * p[:, 2] * torch.sin(p[:, 0]) * torch.sin(p[:, 1] - p[:, 2])) - (
-                     16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) ** 2 * torch.sin(
-        p[:, 0])) * torch.exp(torch.cos(p[:, 1] - p[:, 2])) / (
-                    16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) ** 2).unsqueeze(-1)
+    return ((4 * torch.pi * p[:, 0] * (16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) * (
+                4 * torch.pi * p[:, 0] * torch.sin(torch.pi * p[:, 0]) + 9 * p[:, 1] * torch.sin(
+            p[:, 1] - p[:, 2]) * torch.cos(torch.pi * p[:, 0]) - 36 * p[:, 2] * torch.sin(
+            p[:, 1] - p[:, 2]) * torch.cos(torch.pi * p[:, 0])) - 9 * p[:, 1] * (
+                         16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) * (
+                         -4 * torch.pi * p[:, 0] * torch.sin(p[:, 1] - p[:, 2]) * torch.cos(torch.pi * p[:, 0]) + 9 * p[
+                     :, 1] * (torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
+                     torch.pi * p[:, 0]) - 36 * p[:, 2] * (
+                                     torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
+                     torch.pi * p[:, 0])) - 36 * p[:, 2] * (
+                         16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) * (
+                         4 * torch.pi * p[:, 0] * torch.sin(p[:, 1] - p[:, 2]) * torch.cos(torch.pi * p[:, 0]) - 9 * p[
+                     :, 1] * (torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
+                     torch.pi * p[:, 0]) + 36 * p[:, 2] * (
+                                     torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * torch.sin(
+                     torch.pi * p[:, 0])) + 2 * (torch.sin(p[:, 1] - p[:, 2]) ** 2 - torch.cos(p[:, 1] - p[:, 2])) * (
+                         16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) ** 2 * torch.sin(
+        torch.pi * p[:, 0]) + (-720 * p[:, 0] ** 2 - 3240 * p[:, 1] ** 2 - 16848 * p[:, 2] ** 2) * (
+                         4 * torch.pi * p[:, 0] * torch.cos(torch.pi * p[:, 0]) - 9 * p[:, 1] * torch.sin(
+                     torch.pi * p[:, 0]) * torch.sin(p[:, 1] - p[:, 2]) + 36 * p[:, 2] * torch.sin(
+                     torch.pi * p[:, 0]) * torch.sin(p[:, 1] - p[:, 2])) - torch.pi ** 2 * (
+                         16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) ** 2 * torch.sin(
+        torch.pi * p[:, 0])) * torch.exp(torch.cos(p[:, 1] - p[:, 2])) / (
+                        16 * p[:, 0] ** 2 + 81 * p[:, 1] ** 2 + 1296 * p[:, 2] ** 2) ** 2).unsqueeze(-1)
 
 
 if __name__ == '__main__':
