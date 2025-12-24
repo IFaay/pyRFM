@@ -1917,7 +1917,7 @@ class STRFMBase(ABC):
                     for i in range(0, xt.shape[0], batch_size):
                         xt_batch = xt[i:i + batch_size]
                         feat = self.features_derivative(xt=xt_batch, axis=d).cat(dim=1)
-                        outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                        outputs.append(torch.matmul(feat, self.W))
                     return torch.cat(outputs, dim=0)
 
                 elif ord_sum == 2:
@@ -1931,7 +1931,7 @@ class STRFMBase(ABC):
                         for i in range(0, xt.shape[0], batch_size):
                             xt_batch = xt[i:i + batch_size]
                             feat = self.features_second_derivative(xt=xt_batch, axis1=d, axis2=d).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            outputs.append(torch.matmul(feat, self.W))
                         return torch.cat(outputs, dim=0)
 
                     elif len(idx2) == 0 and len(idx1) == 2:
@@ -1940,7 +1940,7 @@ class STRFMBase(ABC):
                         for i in range(0, xt.shape[0], batch_size):
                             xt_batch = xt[i:i + batch_size]
                             feat = self.features_second_derivative(xt=xt_batch, axis1=d1, axis2=d2).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            outputs.append(torch.matmul(feat, self.W))
                         return torch.cat(outputs, dim=0)
 
                     else:

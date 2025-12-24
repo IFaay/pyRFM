@@ -4,6 +4,7 @@ Created on 2025/10/28
 
 @author: Yifei Sun
 """
+import matplotlib.pyplot as plt
 
 import pyrfm
 import torch
@@ -12,7 +13,6 @@ import argparse
 import sys
 import time
 from typing import List
-import matplotlib.pyplot as plt
 
 """
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     time1 = time.time()
     domain = pyrfm.Line1D(x1=0.0, x2=12.0)
-    model = pyrfm.RFMBase(dim=1, domain=domain, n_subdomains=3, n_hidden=20)
+    model = pyrfm.RFMBase(dim=1, domain=domain, n_subdomains=4, n_hidden=40)
 
     x_in = domain.in_sample(200, with_boundary=False)
     x_on = domain.on_sample(2)
@@ -99,11 +99,13 @@ if __name__ == "__main__":
     # ])
     # b = torch.tensor([0.5, 0.5])
 
-    dt = 5e-3
+    dt = 1e-4
     t_k = 0
-    T = 1.0
+    T = 1e-3
 
     x_all = torch.cat([x_in, x_on], dim=0)
+    features = model.features(x_in).cat(dim=1)
+    features_all = model.features(x_all).cat(dim=1)
 
     alpha = torch.pi / 2.0
     F_feature = alpha ** (-2) * model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
@@ -113,12 +115,12 @@ if __name__ == "__main__":
         return F_feature @ model.W
 
 
-    U0 = func_h(torch.cat([x_all, torch.zeros((x_all.shape[0], 1))], dim=1))
-    model.compute(model.features(x_all).cat(dim=1), damp=1e-12).solve(U0)
+    U0 = func_u(torch.cat([x_all, torch.zeros((x_all.shape[0], 1))], dim=1))
+    model.compute(features_all, damp=1e-14).solve(U0)
 
     # provide a model to fast approximate at x_in
     d_model = model.clone()
-    d_model.compute(d_model.features(x_in).cat(dim=1), damp=1e-12)
+    d_model.compute(features, damp=1e-14)
 
     n_steps = round(T / dt)
     u0 = U0[:x_in.shape[0]]
@@ -126,17 +128,30 @@ if __name__ == "__main__":
     for k in range(n_steps):
         K, u = rk.rk_step(func, x_in, t_k, dt, u0, d_model)
         # concat boundary condition
-        U = torch.cat([u, func_g(torch.cat([x_on, (t_k + dt) * torch.ones((x_on.shape[0], 1))], dim=1))], dim=0)
+        U = torch.cat([u, func_u(torch.cat([x_on, (t_k + dt) * torch.ones((x_on.shape[0], 1))], dim=1))], dim=0)
         model.solve(U, verbose=False)
         d_model.W = model.W.clone()
         u0 = d_model(x_in)
         t_k += dt
 
-    xtk = torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)
-    print("error at t = {:.4f}: {:.3e}".format(t_k, (model(x_all) - func_u(xtk)).norm(2) / func_u(xtk).norm(2)))
+        xtk = torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)
+        print(
+            "error at t = {:.4f}: {:.3e}".format(t_k, (model(x_all) - func_u(xtk)).norm() / func_u(xtk).norm()))
 
-    time2 = time.time()
-    print("Total time: {:.2f} seconds".format(time2 - time1))
+    # # plot
+    # plt.figure()
+    # plt.plot(model(x_all).cpu()[:-2])
+    # plt.plot(func_u(torch.cat([x_all, t_k * torch.ones((x_all.shape[0], 1))], dim=1)).cpu()[:-2])
+    # plt.legend(['RFM Solution', 'Exact Solution'])
+    # plt.title('RFM Solution vs Exact Solution at t={:.2f}'.format(t_k))
+    # plt.xlabel('Sample Index')
+    # plt.ylabel('u(x, t)')
+    # plt.grid()
+    # # plt.savefig("rfm_rk23_solution.png", dpi=600)
+    # plt.show()
+    #
+    # time2 = time.time()
+    # print("Total time: {:.2f} seconds".format(time2 - time1))
 
     exit(0)
 

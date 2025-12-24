@@ -56,7 +56,7 @@ def func_psi(xt):
 
 def run_rfm(args):
     time_stamp = torch.linspace(start=0, end=10, steps=args.Nb + 1)
-    domain = pyrfm.Square2D(center=[2.5, 2], radius=[2.5, 2])
+    domain = pyrfm.Square2D(center=[2.5, 2], half=[2.5, 2])
     models = []
     for (t0, t1) in zip(time_stamp[:-1], time_stamp[1:]):
         models.append(pyrfm.STRFMBase(dim=2,

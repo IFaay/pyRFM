@@ -92,7 +92,7 @@ if __name__ == "__main__":
     x_all = torch.cat([x_in, x_on], dim=0)
     x_all_t0 = torch.cat([x_all, torch.zeros(x_all.shape[0], 1)], dim=1)
 
-    dt = 1e-5
+    dt = 1e-1
     t_k = 0
     T = 1.0
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
         t_k += dt
 
-    # u_pred = model(x_all)
-    # u_exact = func_u(torch.cat([x_all, T * torch.ones(x_all.shape[0], 1)], dim=1))
-    # error = torch.norm(u_pred - u_exact) / torch.norm(u_exact)
-    # print(f"Relative L2 error at T={T}: {error.item():.3e}")
+    u_pred = model(x_all)
+    u_exact = func_u(torch.cat([x_all, T * torch.ones(x_all.shape[0], 1)], dim=1))
+    error = torch.norm(u_pred - u_exact) / torch.norm(u_exact)
+    print(f"Relative L2 error at T={T}: {error.item():.3e}")

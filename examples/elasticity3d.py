@@ -107,7 +107,7 @@ if __name__ == "__main__":
     torch.set_default_device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # --- 几何 ---
-    base = pyrfm.Square2D(center=[2.0, 1.5], radius=[0.5, 0.5])
+    base = pyrfm.Square2D(center=[2.0, 1.5], half=[0.5, 0.5])
 
     # 这些圆是要在 base 内保留下来的部分
     region1 = pyrfm.Circle2D(center=[1.9575995206832886, 1.2456529587507248], radius=0.05024437326937914)
