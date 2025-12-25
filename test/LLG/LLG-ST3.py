@@ -268,7 +268,7 @@ def run_rfm(args):
 
             return torch.cat([jac1, jac2, jac3], dim=0)
 
-        tol = 1e-8
+        tol = 1e-6
         x0 = torch.zeros((3 * u_in.shape[1], 1)) if i == 0 else models[i - 1].W.T.reshape(-1, 1)
         result = pyrfm.nonlinear_least_square(fcn=fcn,
                                               x0=x0,

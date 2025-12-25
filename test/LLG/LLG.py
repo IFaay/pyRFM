@@ -141,8 +141,8 @@ def func_g(xt, dim, alpha):
 
 param_sets_groups = [
     [
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC"},
-        {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
+        {"Nx": 4, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
+        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
