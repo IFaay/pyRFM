@@ -56,7 +56,7 @@ def run_once(method: str, device: str):
 
     # Domain & model
     domain = pyrfm.Square2D(center=[0.5, 0.5], half=[0.5, 0.5])
-    model = pyrfm.RFMBase(dim=2, n_hidden=300, domain=domain, n_subdomains=2, pou=pyrfm.PsiB)
+    model = pyrfm.RFMBase(dim=2, n_hidden=300, domain=domain, n_subdomains=4, pou=pyrfm.PsiB)
 
     # Sampling
     x_in = domain.in_sample(8000, with_boundary=False)
@@ -110,8 +110,11 @@ def run_once(method: str, device: str):
 
 
 if __name__ == '__main__':
-    methods = ['newton', 'trf', 'lm', 'dogbox']
-    devices = ['cpu'] + (['cuda'] if torch.cuda.is_available() else [])
+    # methods = ['newton', 'trf', 'lm', 'dogbox']
+    # devices = ['cpu'] + (['cuda'] if torch.cuda.is_available() else [])
+
+    methods = ['newton']
+    devices = ['cuda']
 
     results = []
     for device in devices:
