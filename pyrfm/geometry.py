@@ -1834,28 +1834,41 @@ class Square3D(GeometryBase):
 
 
 class Cube3D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple]):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], half: Union[torch.Tensor, List, Tuple],
+                 radius: Union[torch.Tensor, List, Tuple] = None):
         super().__init__(dim=3, intrinsic_dim=3)
+        # backward compatibility
+        if half is None and radius is None:
+            raise ValueError("You must provide `half` (preferred) or `radius` (deprecated)")
+
+        if radius is not None:
+            import warnings
+            warnings.warn(
+                "`radius` is deprecated and will be removed in future versions. Use `half` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            half = radius
         self.center = torch.tensor(center).view(1, -1).to(dtype=self.dtype)
-        self.radius = torch.tensor(radius).view(1, -1).to(dtype=self.dtype)
-        offsets = [[self.radius[0, 0], 0.0, 0.0], [-self.radius[0, 0], 0.0, 0.0], [0.0, self.radius[0, 1], 0.0],
-                   [0.0, -self.radius[0, 1], 0.0], [0.0, 0.0, self.radius[0, 2]], [0.0, 0.0, -self.radius[0, 2]]]
+        self.half = torch.tensor(half).view(1, -1).to(dtype=self.dtype)
+        offsets = [[self.half[0, 0], 0.0, 0.0], [-self.half[0, 0], 0.0, 0.0], [0.0, self.half[0, 1], 0.0],
+                   [0.0, -self.half[0, 1], 0.0], [0.0, 0.0, self.half[0, 2]], [0.0, 0.0, -self.half[0, 2]]]
         self.boundary = [Square3D(self.center + torch.tensor(offset),
-                                  torch.tensor([self.radius[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)])) for
+                                  torch.tensor([self.half[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)])) for
                          offset in offsets]
 
     def sdf(self, p: torch.Tensor):
-        d = torch.abs(p - self.center) - self.radius
+        d = torch.abs(p - self.center) - self.half
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
             torch.max(d, dim=1, keepdim=True).values, max=0.0)
 
     def get_bounding_box(self):
-        x_min = self.center[0, 0] - self.radius[0, 0]
-        x_max = self.center[0, 0] + self.radius[0, 0]
-        y_min = self.center[0, 1] - self.radius[0, 1]
-        y_max = self.center[0, 1] + self.radius[0, 1]
-        z_min = self.center[0, 2] - self.radius[0, 2]
-        z_max = self.center[0, 2] + self.radius[0, 2]
+        x_min = self.center[0, 0] - self.half[0, 0]
+        x_max = self.center[0, 0] + self.half[0, 0]
+        y_min = self.center[0, 1] - self.half[0, 1]
+        y_max = self.center[0, 1] + self.half[0, 1]
+        z_min = self.center[0, 2] - self.half[0, 2]
+        z_max = self.center[0, 2] + self.half[0, 2]
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: Union[int, List[int], Tuple[int, int, int]],
@@ -1867,9 +1880,9 @@ class Cube3D(GeometryBase):
         else:
             raise ValueError("num_samples must be an int or a list/tuple of three integers.")
 
-        x_min, x_max = self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0]
-        y_min, y_max = self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1]
-        z_min, z_max = self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2]
+        x_min, x_max = self.center[0, 0] - self.half[0, 0], self.center[0, 0] + self.half[0, 0]
+        y_min, y_max = self.center[0, 1] - self.half[0, 1], self.center[0, 1] + self.half[0, 1]
+        z_min, z_max = self.center[0, 2] - self.half[0, 2], self.center[0, 2] + self.half[0, 2]
 
         if with_boundary:
             x = torch.linspace(x_min, x_max, num_x)

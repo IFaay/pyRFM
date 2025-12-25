@@ -13,57 +13,93 @@ from scipy.optimize import least_squares
 from typing import Callable
 
 
-def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
-                           x0: torch.Tensor,
-                           jac: Callable[[torch.Tensor], torch.Tensor],
-                           method: str = None,
-                           maxfev: int = None,
-                           ftol: float = 1e-08,
-                           xtol: float = 1e-08,
-                           gtol: float = 1e-08,
-                           verbose: int = 0):
-    """
-    Solves a nonlinear least squares problem using different optimization methods.
-
-    Args:
-        fcn (Callable[[torch.Tensor], torch.Tensor]): The function to minimize.
-        x0 (torch.Tensor): Initial guess for the variables.
-        jac (Callable[[torch.Tensor], torch.Tensor]): Function to compute the Jacobian matrix.
-        method (str, optional): Optimization method ('trf', 'lm', 'dogbox', 'newton'). Defaults to None.
-        maxfev (int, optional): Maximum function evaluations before termination.
-        ftol (float, optional): Tolerance for function value change. Defaults to 1e-08.
-        xtol (float, optional): Tolerance for parameter updates. Defaults to 1e-08.
-        gtol (float, optional): Tolerance for gradient norm. Defaults to 1e-08.
-        verbose (int, optional): Verbosity level.
-            0: No output.
-            1: Output at each iteration.
-            2: Output at each function evaluation. Defaults to 0.
-
+def nonlinear_least_square(
+        fcn: Callable[[torch.Tensor], torch.Tensor],
+        x0: torch.Tensor,
+        jac: Callable[[torch.Tensor], torch.Tensor],
+        method: Optional[str] = None,
+        maxfev: Optional[int] = None,
+        ftol: float = 1e-8,
+        xtol: float = 1e-8,
+        gtol: float = 1e-8,
+        verbose: int = 0,
+) -> Tuple[torch.Tensor, int]:
+    """ Solves a nonlinear least squares problem using different optimization methods.
+    Args: fcn (Callable[[torch.Tensor], torch.Tensor]): The function to minimize.
+    x0 (torch.Tensor): Initial guess for the variables.
+    jac (Callable[[torch.Tensor], torch.Tensor]): Function to compute the Jacobian matrix.
+    method (str, optional): Optimization method ('trf', 'lm', 'dogbox', 'newton'). Defaults to None.
+    maxfev (int, optional): Maximum function evaluations before termination.
+    ftol (float, optional): Tolerance for function value change. Defaults to 1e-08.
+    xtol (float, optional): Tolerance for parameter updates. Defaults to 1e-08.
+    gtol (float, optional): Tolerance for gradient norm. Defaults to 1e-08.
+    verbose (int, optional): Verbosity level.
+        0: No output.
+        1: Output at each iteration.
+        2: Output at each function evaluation. Defaults to 0.
     Returns:
         torch.Tensor: The optimized solution.
         int: Status of optimization termination:
-            - 0: Maximum function evaluations exceeded.
-            - 1: Gradient norm condition met.
-            - 2: Function value tolerance condition met.
-            - 3: Parameter update tolerance condition met.
-            - 4: Both function value and parameter update tolerance met.
+        - 0: Maximum function evaluations exceeded.
+        - 1: Gradient norm condition met.
+        - 2: Function value tolerance condition met.
+        - 3: Parameter update tolerance condition met.
+        - 4: Both function value and parameter update tolerance met.
     """
-    if method in ['trf', 'lm', 'dogbox']:
+
+    def _report_problem_size(x: torch.Tensor) -> None:
+        # One-time probe at current x (typically x0)
+        with torch.no_grad():
+            F0 = fcn(x)
+            J0 = jac(x)
+
+        # Normalize shapes
+        F0 = F0.reshape(-1)
+        J0 = J0.reshape(F0.numel(), -1)
+
+        m = F0.numel()
+        n = x.numel()
+        nnz = int((J0 != 0).sum().item())
+        dens = nnz / (m * n) if (m * n) > 0 else float("nan")
+
+        print(
+            "[NLLS] problem size: "
+            f"m={m} residuals, n={n} parameters | "
+            f"J: {tuple(J0.shape)} | "
+            f"nnz(J)={nnz} (density={dens:.3e}) | "
+            f"dtype={x.dtype}, device={x.device}"
+        )
+
+    # -------------------- SciPy backends --------------------
+    if method in ["trf", "lm", "dogbox"]:
+        # 如果你这里用的是 scipy.optimize.least_squares，保持原逻辑
         dtype, device = x0.dtype, x0.device
+
+        if verbose >= 1:
+            _report_problem_size(x0)
 
         def fcn_numpy(w):
             w = torch.tensor(w, dtype=dtype, device=device).reshape(-1, 1)
-            return fcn(w).cpu().numpy().flatten()
+            return fcn(w).detach().cpu().numpy().reshape(-1)
 
         def jac_numpy(w):
             w = torch.tensor(w, dtype=dtype, device=device).reshape(-1, 1)
-            return jac(w).cpu().numpy()
+            return jac(w).detach().cpu().numpy()
 
-        result = least_squares(fun=fcn_numpy, x0=x0.cpu().numpy().flatten(), jac=jac_numpy,
-                               method=method, tr_solver='exact',
-                               ftol=ftol, xtol=xtol, gtol=gtol, verbose=verbose)
+        result = least_squares(
+            fun=fcn_numpy,
+            x0=x0.detach().cpu().numpy().reshape(-1),
+            jac=jac_numpy,
+            method=method,
+            tr_solver="exact",
+            ftol=ftol,
+            xtol=xtol,
+            gtol=gtol,
+            verbose=verbose,
+        )
         return torch.tensor(result.x, dtype=dtype, device=device).reshape(-1, 1), result.status
 
+    # -------------------- Newton backend --------------------
     elif method == "newton":
         def print_header():
             print(f"{'Iter':>6} {'Cost':>12} {'||grad||_inf':>15} {'Step norm':>12}")
@@ -72,38 +108,49 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
             print(f"{k:6d} {cost:12.4e} {grad_norm:15.4e} {step_norm:12.4e}")
 
         x = x0.clone()
-        k = 0
-        alpha = 1.0
 
         if maxfev is None:
             maxfev = 100 * x0.numel()
 
+        # 一次性输出规模（只输出一次）
+        if verbose >= 1:
+            _report_problem_size(x)
+
+        k = 0
         while True:
-            F_vec = fcn(x)
-            F_jac = jac(x)
+            F_vec = fcn(x).reshape(-1, 1)  # (m,1)
+            F_jac = jac(x)  # (m,n) or compatible
+            m = F_vec.shape[0]
+            n = x.numel()
+            F_jac = F_jac.reshape(m, n)
+
             cost = 0.5 * torch.sum(F_vec ** 2).item()
             grad = F_jac.T @ F_vec
-            grad_norm = torch.linalg.norm(grad, float('inf')).item()
+            grad_norm = torch.linalg.norm(grad, float("inf")).item()
 
-            scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
-            scale_inv[scale_inv == 0] = 1.0
+            # column scaling
+            scale = torch.linalg.norm(F_jac, dim=0)  # (n,)
+            scale[scale == 0] = 1.0
 
-            solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
-            p = solver.solution / scale_inv.T
-            step_norm = torch.linalg.norm(alpha * p).item()
+            # Solve (J/scale) p = -F  => p = solution/scale
+            solver = torch.linalg.lstsq(F_jac / scale, -F_vec, driver="gels")
+            p = solver.solution / scale.reshape(-1, 1)
+
+            step_norm = torch.linalg.norm(p).item()
 
             if verbose >= 1:
                 if k == 0:
                     print_header()
                 print_iteration(k, cost, grad_norm, step_norm)
+
             if verbose == 2:
                 print(f"  Function evaluation {k}: ||F(x)|| = {torch.linalg.norm(F_vec).item():.4e}")
 
-            # Termination checks
+            # termination
             if grad_norm < gtol:
                 status = 1
                 break
-            if torch.linalg.norm(F_vec) < ftol:
+            if torch.linalg.norm(F_vec).item() < ftol:
                 status = 2
                 break
             if step_norm < xtol * (xtol + torch.linalg.norm(x).item()):
@@ -113,14 +160,14 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                 status = 0
                 break
 
-            def phi(step_size):
-                return torch.linalg.norm(fcn(x + step_size * p))
+            # line search expects a scalar objective; keep your original norm(F)
+            def phi(step_size: float):
+                return torch.linalg.norm(fcn(x + step_size * p)).item()
 
+            # 关键修正：maxfev 由 line_search 内部扣减；这里不要再额外减一次
             alpha, maxfev = line_search(phi, 0.0, 1.0, maxfev, ftol)
             x = x + alpha * p
-
             k += 1
-            maxfev -= 1
 
         if verbose >= 1:
             print(f"Terminated with status {status}")
@@ -131,12 +178,20 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                 print("Gradient norm: ", grad_norm, " < gtol: ", gtol)
             elif status == 2:
                 print("Function value tolerance condition met.")
-                print("Function value: ", torch.linalg.norm(F_vec), " < ftol: ", ftol)
+                print("Function value: ", torch.linalg.norm(F_vec).item(), " < ftol: ", ftol)
             elif status == 3:
                 print("Parameter update tolerance condition met.")
-                print("Step norm: ", step_norm, " < relative_xtol: ", xtol * (xtol + torch.linalg.norm(x).item()))
+                print(
+                    "Step norm: ",
+                    step_norm,
+                    " < relative_xtol: ",
+                    xtol * (xtol + torch.linalg.norm(x).item()),
+                )
 
         return x, status
+
+    else:
+        raise ValueError(f"Unknown method={method!r}. Expected one of ['trf','lm','dogbox','newton'].")
 
 
 def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
