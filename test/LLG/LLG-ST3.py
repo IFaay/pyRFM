@@ -141,7 +141,7 @@ def func_g(xt, dim, alpha):
 
 param_sets_groups = [
     [
-        {"Nx": 1, "Nt": 1, "Qx": 200, "Qt": 5, "Jn": 200, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 300, "Qt": 10, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
@@ -189,7 +189,7 @@ def run_rfm(args):
                         u_boundary_z * x_on_normal[:, [2]])
 
         u_in = model.features(xt=x_in_t).cat(dim=1)
-        u_in_t = model.features_derivative(xt=x_in_t, axis=1).cat(dim=1)
+        u_in_t = model.features_derivative(xt=x_in_t, axis=3).cat(dim=1)
         u_in_xx = model.features_second_derivative(xt=x_in_t, axis1=0, axis2=0).cat(dim=1)
         u_in_yy = model.features_second_derivative(xt=x_in_t, axis1=1, axis2=1).cat(dim=1)
         u_in_zz = model.features_second_derivative(xt=x_in_t, axis1=2, axis2=2).cat(dim=1)
@@ -268,7 +268,7 @@ def run_rfm(args):
 
             return torch.cat([jac1, jac2, jac3], dim=0)
 
-        tol = 1e-6
+        tol = 1e-8
         x0 = torch.zeros((3 * u_in.shape[1], 1)) if i == 0 else models[i - 1].W.T.reshape(-1, 1)
         result = pyrfm.nonlinear_least_square(fcn=fcn,
                                               x0=x0,
