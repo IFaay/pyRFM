@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2025/12/27
+Created on 2025/12/29
 
 @author: Yifei Sun
 """
-from sympy.solvers.ode.systems import matrix_exp
 
 import pyrfm
 import torch
@@ -39,11 +38,13 @@ with 𝑥̄=𝑥²(1−𝑥)², 𝑦̄=𝑦²(1−𝑦)², 𝑧̄=𝑧²(1−�
 
 𝑔⃗ = 𝑚⃗ₑₜ + 𝑚⃗ₑ × Δ𝑚⃗ₑ + α 𝑚⃗ₑ × (𝑚⃗ₑ × Δ𝑚⃗ₑ)
 
-SICN method is used to solve the equation.
+ICN method is used to solve the equation.
 
-(2Φ/Δt + [ûⁿ⁺¹ᐟ²]×ΔΦ + α[ûⁿ⁺¹ᐟ²]×²ΔΦ) c = 2uⁿ/Δt − ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²) − α ûⁿ⁺¹ᐟ² × (ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²))
+∂rⁿ⁺¹_BC/∂cⁿ⁺¹ = ∂ₙΦ
+∂rⁿ⁺¹_PDE/∂cⁿ⁺¹ 
+= Φ/Δt + 1/2 ([uⁿ⁺¹ᐟ²]ₓΔΦ − [Δuⁿ⁺¹ᐟ²]ₓΦ) + α/2 (−[uⁿ⁺¹ᐟ²×Δuⁿ⁺¹ᐟ²]ₓΦ + [uⁿ⁺¹ᐟ²]ₓ²ΔΦ − [uⁿ⁺¹ᐟ²]ₓ[Δuⁿ⁺¹ᐟ²]ₓΦ)
 
-ûⁿ⁺¹ᐟ² = (3uⁿ − uⁿ⁻¹)/2, f̂ⁿ⁺¹ᐟ² = (3fⁿ − fⁿ⁻¹)/2
+
 
 
 """
@@ -173,7 +174,7 @@ def run_rfm(args):
     print(x_on_normal)
 
     t0 = 0.0
-    dt = 1e-3
+    dt = 1e-2
     n_steps = round(args.T / dt)
 
     def cross(a0, a1, a2, b0, b1, b2):
@@ -196,12 +197,11 @@ def run_rfm(args):
 
     # w_k = torch.zeros((args.Jn, 3))
     w_k_minus_1 = torch.zeros((args.Jn, 3))
-    w_k_minus_2 = torch.zeros((args.Jn, 3))
     A_test = None
 
     # (2Φ/Δt + [ûⁿ⁺¹ᐟ²]×ΔΦ + α[ûⁿ⁺¹ᐟ²]×²ΔΦ) c = 2uⁿ/Δt − ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²) − α ûⁿ⁺¹ᐟ² × (ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²))
     for k in range(n_steps):
-        if k <= 1:
+        if k == 0:
             A_test = pyrfm.concat_blocks([[u_test, torch.zeros_like(v_test), torch.zeros_like(w_test)],
                                           [torch.zeros_like(u_test), v_test, torch.zeros_like(w_test)],
                                           [torch.zeros_like(u_test), torch.zeros_like(v_test), w_test]])
@@ -295,19 +295,16 @@ def run_rfm(args):
             # plt.legend()
             # plt.tight_layout()
             # plt.show()
-
-            if k == 0:
-                w_k_minus_1 = model.W.clone()
+            w_k_minus_1 = model.W.clone()
 
         else:
-            w_k = model.W.clone()
-            w_k_minus_1, w_k_minus_2 = w_k.clone(), w_k_minus_1.clone()
+            w_k_minus_1 = model.W.clone()
             xt_in = torch.cat([x_in, (t0 + (k - 0.5) * dt) * torch.ones((x_in.shape[0], 1))], dim=1)
             g_in = func_g(xt_in, dim=1, alpha=args.alpha)
 
             m_k_minus_1 = u_in @ w_k_minus_1
             m_k_xx_minus_1 = u_in_xx @ w_k_minus_1
-            m_hat_k_minus_12 = u_in @ ((3 * w_k_minus_1 - w_k_minus_2) / 2)
+
             jac_u = pyrfm.concat_blocks([[u_in, torch.zeros_like(v_in), torch.zeros_like(w_in)]])
             jac_v = pyrfm.concat_blocks([[torch.zeros_like(u_in), v_in, torch.zeros_like(w_in)]])
             jac_w = pyrfm.concat_blocks([[torch.zeros_like(u_in), torch.zeros_like(v_in), w_in]])
@@ -320,45 +317,105 @@ def run_rfm(args):
             jac_v_n = pyrfm.concat_blocks([[torch.zeros_like(u_on_n), v_on_n, torch.zeros_like(w_on_n)]])
             jac_w_n = pyrfm.concat_blocks([[torch.zeros_like(u_on_n), torch.zeros_like(v_on_n), w_on_n]])
 
-            term1 = (2.0 / dt) * torch.cat([jac_u, jac_v, jac_w], dim=0)
-            term2 = torch.cat(cross(m_hat_k_minus_12[:, [0]],
-                                    m_hat_k_minus_12[:, [1]],
-                                    m_hat_k_minus_12[:, [2]],
-                                    jac_uxx, jac_vxx, jac_wxx), dim=0)
-            term3 = args.alpha * torch.cat(cross(m_hat_k_minus_12[:, [0]],
-                                                 m_hat_k_minus_12[:, [1]],
-                                                 m_hat_k_minus_12[:, [2]],
-                                                 *cross(m_hat_k_minus_12[:, [0]],
-                                                        m_hat_k_minus_12[:, [1]],
-                                                        m_hat_k_minus_12[:, [2]],
-                                                        jac_uxx, jac_vxx, jac_wxx)), dim=0)
+            def fcn(w):
+                # 𝐫ⁿ⁺¹_PDE = Φ(cⁿ⁺¹ − cⁿ)/Δt + (Φ cⁿ⁺½) × (ΔΦ cⁿ⁺½) + α (Φ cⁿ⁺½) × ((Φ cⁿ⁺½) × (ΔΦ cⁿ⁺½)) − 𝐟ⁿ⁺½
+                # 𝐫ⁿ⁺¹_BC = ∂ₙ 𝐮ⁿ⁺¹ = (∂ₙ Φ) cⁿ⁺¹
+                w = w.reshape(3, -1).T  # reshape w to a torch tensor of shape (N, 3)
+                r1 = u_in @ (w - w_k_minus_1) / dt
+                m_k_minus_12 = u_in @ ((w_k_minus_1 + w) / 2)
+                m_k_xx_minus_12 = u_in_xx @ ((w_k_minus_1 + w) / 2)
+                r2 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                     m_k_minus_12[:, [1]],
+                                     m_k_minus_12[:, [2]],
+                                     m_k_xx_minus_12[:, [0]],
+                                     m_k_xx_minus_12[:, [1]],
+                                     m_k_xx_minus_12[:, [2]]
+                                     ), dim=1)
+                r3 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                     m_k_minus_12[:, [1]],
+                                     m_k_minus_12[:, [2]],
+                                     *cross(
+                                         m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         m_k_xx_minus_12[:, [0]],
+                                         m_k_xx_minus_12[:, [1]],
+                                         m_k_xx_minus_12[:, [2]]
+                                     )), dim=1)
+                r_pde = r1 + r2 + args.alpha * r3 - g_in
+                r_bc = u_on_n @ w
+                return torch.cat([r_pde[:, [0]], r_pde[:, [1]], r_pde[:, [2]],
+                                  r_bc[:, [0]], r_bc[:, [1]], r_bc[:, [2]]], dim=0)
 
-            A = term1 + term2 + term3
-            A = pyrfm.concat_blocks([[A], [jac_u_n], [jac_v_n], [jac_w_n]])
-            # m_x_m = cross(m_hat_k_minus_12[:, [0]],
-            #               m_hat_k_minus_12[:, [1]],
-            #               m_hat_k_minus_12[:, [2]],
-            #               (m_k_xx_minus_1 + 2 * g_in)[:, [0]],
-            #               (m_k_xx_minus_1 + 2 * g_in)[:, [1]],
-            #               (m_k_xx_minus_1 + 2 * g_in)[:, [2]])
-            m_x_m = cross(m_hat_k_minus_12[:, [0]],
-                          m_hat_k_minus_12[:, [1]],
-                          m_hat_k_minus_12[:, [2]],
-                          m_k_xx_minus_1[:, [0]],
-                          m_k_xx_minus_1[:, [1]],
-                          m_k_xx_minus_1[:, [2]])
-            m_x_m_x_m = cross(m_hat_k_minus_12[:, [0]],
-                              m_hat_k_minus_12[:, [1]],
-                              m_hat_k_minus_12[:, [2]],
-                              *m_x_m)
-            b = (2.0 / dt) * m_k_minus_1 - torch.cat(m_x_m, dim=1) - args.alpha * torch.cat(m_x_m_x_m, dim=1) + 2 * g_in
-            b = torch.cat([b[:, [0]], b[:, [1]], b[:, [2]],
-                           torch.zeros((jac_u_n.shape[0], 1)),
-                           torch.zeros((jac_v_n.shape[0], 1)),
-                           torch.zeros((jac_w_n.shape[0], 1))], dim=0)
-            print(A.shape, b.shape)
+            def jac(w):
+                # ∂rⁿ⁺¹_PDE/∂cⁿ⁺¹ = Φ/Δt + 1/2 ([uⁿ⁺¹ᐟ²]ₓΔΦ − [Δuⁿ⁺¹ᐟ²]ₓΦ)
+                #                      + α/2 (−[uⁿ⁺¹ᐟ²×Δuⁿ⁺¹ᐟ²]ₓΦ + [uⁿ⁺¹ᐟ²]ₓ²ΔΦ − [uⁿ⁺¹ᐟ²]ₓ[Δuⁿ⁺¹ᐟ²]ₓΦ)
+                # ∂rⁿ⁺¹_BC/∂cⁿ⁺¹ = ∂ₙΦ
+                w = w.reshape(3, -1).T  # reshape w to a torch tensor of shape (N, 3)
+                m_k_minus_12 = u_in @ ((w_k_minus_1 + w) / 2)
+                m_k_xx_minus_12 = u_in_xx @ ((w_k_minus_1 + w) / 2)
+                jac1_1 = torch.cat([jac_u, jac_v, jac_w], dim=0)
+                jac1_2 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         jac_uxx, jac_vxx, jac_wxx), dim=0)
+                jac1_3 = torch.cat(cross(m_k_xx_minus_12[:, [0]],
+                                         m_k_xx_minus_12[:, [1]],
+                                         m_k_xx_minus_12[:, [2]],
+                                         jac_u, jac_v, jac_w
+                                         ), dim=0)
+                jac1_4 = torch.cat(cross(*cross(m_k_minus_12[:, [0]],
+                                                m_k_minus_12[:, [1]],
+                                                m_k_minus_12[:, [2]],
+                                                m_k_xx_minus_12[:, [0]],
+                                                m_k_xx_minus_12[:, [1]],
+                                                m_k_xx_minus_12[:, [2]]),
+                                         jac_u, jac_v, jac_w), dim=0)
+                jac1_5 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         *cross(m_k_minus_12[:, [0]],
+                                                m_k_minus_12[:, [1]],
+                                                m_k_minus_12[:, [2]],
+                                                jac_uxx, jac_vxx, jac_wxx)), dim=0)
+                jac1_6 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         *cross(m_k_xx_minus_12[:, [0]],
+                                                m_k_xx_minus_12[:, [1]],
+                                                m_k_xx_minus_12[:, [2]],
+                                                jac_u, jac_v, jac_w
+                                                )), dim=0)
+                jac1 = 1.0 / dt * jac1_1 + 0.5 * (jac1_2 - jac1_3) + 0.5 * args.alpha * (-jac1_4 + jac1_5 - jac1_6)
+                jac2 = pyrfm.concat_blocks([[jac_u_n], [jac_v_n], [jac_w_n]])
+                return pyrfm.concat_blocks([[jac1], [jac2]])
 
-            model.compute(A, damp=1e-12).solve(b)
+            tol = 1e-8
+            x0 = torch.zeros((3 * u_in.shape[1], 1)) if k == 0 else model.W.T.reshape(-1, 1)
+            result = pyrfm.nonlinear_least_square(fcn=fcn,
+                                                  x0=x0,
+                                                  jac=jac,
+                                                  ftol=tol,
+                                                  gtol=tol,
+                                                  xtol=tol,
+                                                  method='newton')
+
+            status = result[1]
+
+            if status == 0:
+                print("The maximum number of function evaluations is exceeded.")
+            elif status == 1:
+                print("gtol termination condition is satisfied.")
+            elif status == 2:
+                print("ftol termination condition is satisfied.")
+            elif status == 3:
+                print("xtol termination condition is satisfied.")
+            elif status == 4:
+                print("Both ftol and xtol termination conditions are satisfied.")
+            else:
+                print("Unknown status.")
+
+            model.W = result[0].reshape(3, -1).T
 
             m_pred = model(x_test)
             m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)

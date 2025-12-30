@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2025/12/27
+Created on 2025/12/30
 
 @author: Yifei Sun
 """
-from sympy.solvers.ode.systems import matrix_exp
 
 import pyrfm
 import torch
@@ -39,11 +38,13 @@ with 𝑥̄=𝑥²(1−𝑥)², 𝑦̄=𝑦²(1−𝑦)², 𝑧̄=𝑧²(1−�
 
 𝑔⃗ = 𝑚⃗ₑₜ + 𝑚⃗ₑ × Δ𝑚⃗ₑ + α 𝑚⃗ₑ × (𝑚⃗ₑ × Δ𝑚⃗ₑ)
 
-SICN method is used to solve the equation.
+ICN method is used to solve the equation.
 
-(2Φ/Δt + [ûⁿ⁺¹ᐟ²]×ΔΦ + α[ûⁿ⁺¹ᐟ²]×²ΔΦ) c = 2uⁿ/Δt − ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²) − α ûⁿ⁺¹ᐟ² × (ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²))
+∂rⁿ⁺¹_BC/∂cⁿ⁺¹ = ∂ₙΦ
+∂rⁿ⁺¹_PDE/∂cⁿ⁺¹ 
+= Φ/Δt + 1/2 ([uⁿ⁺¹ᐟ²]ₓΔΦ − [Δuⁿ⁺¹ᐟ²]ₓΦ) + α/2 (−[uⁿ⁺¹ᐟ²×Δuⁿ⁺¹ᐟ²]ₓΦ + [uⁿ⁺¹ᐟ²]ₓ²ΔΦ − [uⁿ⁺¹ᐟ²]ₓ[Δuⁿ⁺¹ᐟ²]ₓΦ)
 
-ûⁿ⁺¹ᐟ² = (3uⁿ − uⁿ⁻¹)/2, f̂ⁿ⁺¹ᐟ² = (3fⁿ − fⁿ⁻¹)/2
+
 
 
 """
@@ -149,7 +150,7 @@ def func_g(xt, dim, alpha):
 
 param_sets_groups = [
     [
-        {"Nx": 1, "Nt": 1, "Qx": 100, "Qt": 20, "Jn": 40, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 2000, "Qt": 20, "Jn": 200, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
@@ -164,30 +165,34 @@ group_labels = ["Convergence",
 def run_rfm(args):
     t_end = args.T
     time_stamp = torch.linspace(0, t_end, args.Nb + 1)
-    domain = pyrfm.Line1D(x1=0.0, x2=1.0)
+    domain = pyrfm.Cube3D(center=[0.5, 0.5, 0.5], half=[0.5, 0.5, 0.5])
 
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
     x_test = domain.in_sample(args.Qx * args.Nx, with_boundary=True)
-    x_on, x_on_normal = domain.on_sample(2, with_normal=True)
-
-    print(x_on_normal)
+    x_on, x_on_normal = domain.on_sample(400, with_normal=True)
 
     t0 = 0.0
-    dt = 1e-3
+    dt = 1e-2
     n_steps = round(args.T / dt)
 
     def cross(a0, a1, a2, b0, b1, b2):
         return a1 * b2 - a2 * b1, a2 * b0 - a0 * b2, a0 * b1 - a1 * b0
 
-    model = pyrfm.RFMBase(dim=1, n_hidden=args.Jn, domain=domain)
+    model = pyrfm.RFMBase(dim=3, n_hidden=args.Jn, domain=domain)
 
     u_test = model.features(x_test).cat(dim=1)
 
     u_in = model.features(x_in).cat(dim=1)
     u_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
+    u_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1).cat(dim=1)
+    u_in_zz = model.features_second_derivative(x_in, axis1=2, axis2=2).cat(dim=1)
+    u_in_xx += u_in_yy
+    u_in_xx += u_in_zz
 
     u_on_x = model.features_derivative(x_on, axis=0).cat(dim=1)
-    u_on_n = u_on_x * x_on_normal[:, [0]]
+    u_on_y = model.features_derivative(x_on, axis=1).cat(dim=1)
+    u_on_z = model.features_derivative(x_on, axis=2).cat(dim=1)
+    u_on_n = u_on_x * x_on_normal[:, [0]] + u_on_y * x_on_normal[:, [1]] + u_on_z * x_on_normal[:, [2]]
 
     v_test, w_test = u_test, u_test
     v_in, w_in = u_in, u_in
@@ -196,21 +201,20 @@ def run_rfm(args):
 
     # w_k = torch.zeros((args.Jn, 3))
     w_k_minus_1 = torch.zeros((args.Jn, 3))
-    w_k_minus_2 = torch.zeros((args.Jn, 3))
     A_test = None
 
     # (2Φ/Δt + [ûⁿ⁺¹ᐟ²]×ΔΦ + α[ûⁿ⁺¹ᐟ²]×²ΔΦ) c = 2uⁿ/Δt − ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²) − α ûⁿ⁺¹ᐟ² × (ûⁿ⁺¹ᐟ² × (Δuⁿ + 2f̂ⁿ⁺¹ᐟ²))
     for k in range(n_steps):
-        if k <= 1:
+        if k == 0:
             A_test = pyrfm.concat_blocks([[u_test, torch.zeros_like(v_test), torch.zeros_like(w_test)],
                                           [torch.zeros_like(u_test), v_test, torch.zeros_like(w_test)],
                                           [torch.zeros_like(u_test), torch.zeros_like(v_test), w_test]])
-            m0 = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=1)
+            m0 = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             b = torch.cat([m0[:, [0]], m0[:, [1]], m0[:, [2]]], dim=0)
             model.compute(A_test.clone()).solve(b)
             m_pred = model(x_test)
             m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
-            m_exact = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=1)
+            m_exact = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
             print(f"Step {k}/{n_steps}, Time {t0 + k * dt:.4f}, Error: {error:.4e}")
 
@@ -295,19 +299,16 @@ def run_rfm(args):
             # plt.legend()
             # plt.tight_layout()
             # plt.show()
-
-            if k == 0:
-                w_k_minus_1 = model.W.clone()
+            w_k_minus_1 = model.W.clone()
 
         else:
-            w_k = model.W.clone()
-            w_k_minus_1, w_k_minus_2 = w_k.clone(), w_k_minus_1.clone()
+            w_k_minus_1 = model.W.clone()
             xt_in = torch.cat([x_in, (t0 + (k - 0.5) * dt) * torch.ones((x_in.shape[0], 1))], dim=1)
             g_in = func_g(xt_in, dim=1, alpha=args.alpha)
 
             m_k_minus_1 = u_in @ w_k_minus_1
             m_k_xx_minus_1 = u_in_xx @ w_k_minus_1
-            m_hat_k_minus_12 = u_in @ ((3 * w_k_minus_1 - w_k_minus_2) / 2)
+
             jac_u = pyrfm.concat_blocks([[u_in, torch.zeros_like(v_in), torch.zeros_like(w_in)]])
             jac_v = pyrfm.concat_blocks([[torch.zeros_like(u_in), v_in, torch.zeros_like(w_in)]])
             jac_w = pyrfm.concat_blocks([[torch.zeros_like(u_in), torch.zeros_like(v_in), w_in]])
@@ -320,52 +321,114 @@ def run_rfm(args):
             jac_v_n = pyrfm.concat_blocks([[torch.zeros_like(u_on_n), v_on_n, torch.zeros_like(w_on_n)]])
             jac_w_n = pyrfm.concat_blocks([[torch.zeros_like(u_on_n), torch.zeros_like(v_on_n), w_on_n]])
 
-            term1 = (2.0 / dt) * torch.cat([jac_u, jac_v, jac_w], dim=0)
-            term2 = torch.cat(cross(m_hat_k_minus_12[:, [0]],
-                                    m_hat_k_minus_12[:, [1]],
-                                    m_hat_k_minus_12[:, [2]],
-                                    jac_uxx, jac_vxx, jac_wxx), dim=0)
-            term3 = args.alpha * torch.cat(cross(m_hat_k_minus_12[:, [0]],
-                                                 m_hat_k_minus_12[:, [1]],
-                                                 m_hat_k_minus_12[:, [2]],
-                                                 *cross(m_hat_k_minus_12[:, [0]],
-                                                        m_hat_k_minus_12[:, [1]],
-                                                        m_hat_k_minus_12[:, [2]],
-                                                        jac_uxx, jac_vxx, jac_wxx)), dim=0)
+            def fcn(w):
+                # 𝐫ⁿ⁺¹_PDE = Φ(cⁿ⁺¹ − cⁿ)/Δt + (Φ cⁿ⁺½) × (ΔΦ cⁿ⁺½) + α (Φ cⁿ⁺½) × ((Φ cⁿ⁺½) × (ΔΦ cⁿ⁺½)) − 𝐟ⁿ⁺½
+                # 𝐫ⁿ⁺¹_BC = ∂ₙ 𝐮ⁿ⁺¹ = (∂ₙ Φ) cⁿ⁺¹
+                w = w.reshape(3, -1).T  # reshape w to a torch tensor of shape (N, 3)
+                r1 = u_in @ (w - w_k_minus_1) / dt
+                m_k_minus_12 = u_in @ ((w_k_minus_1 + w) / 2)
+                m_k_xx_minus_12 = u_in_xx @ ((w_k_minus_1 + w) / 2)
+                r2 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                     m_k_minus_12[:, [1]],
+                                     m_k_minus_12[:, [2]],
+                                     m_k_xx_minus_12[:, [0]],
+                                     m_k_xx_minus_12[:, [1]],
+                                     m_k_xx_minus_12[:, [2]]
+                                     ), dim=1)
+                r3 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                     m_k_minus_12[:, [1]],
+                                     m_k_minus_12[:, [2]],
+                                     *cross(
+                                         m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         m_k_xx_minus_12[:, [0]],
+                                         m_k_xx_minus_12[:, [1]],
+                                         m_k_xx_minus_12[:, [2]]
+                                     )), dim=1)
+                r_pde = r1 + r2 + args.alpha * r3 - g_in
+                r_bc = u_on_n @ w
+                return torch.cat([r_pde[:, [0]], r_pde[:, [1]], r_pde[:, [2]],
+                                  r_bc[:, [0]], r_bc[:, [1]], r_bc[:, [2]]], dim=0)
 
-            A = term1 + term2 + term3
-            A = pyrfm.concat_blocks([[A], [jac_u_n], [jac_v_n], [jac_w_n]])
-            # m_x_m = cross(m_hat_k_minus_12[:, [0]],
-            #               m_hat_k_minus_12[:, [1]],
-            #               m_hat_k_minus_12[:, [2]],
-            #               (m_k_xx_minus_1 + 2 * g_in)[:, [0]],
-            #               (m_k_xx_minus_1 + 2 * g_in)[:, [1]],
-            #               (m_k_xx_minus_1 + 2 * g_in)[:, [2]])
-            m_x_m = cross(m_hat_k_minus_12[:, [0]],
-                          m_hat_k_minus_12[:, [1]],
-                          m_hat_k_minus_12[:, [2]],
-                          m_k_xx_minus_1[:, [0]],
-                          m_k_xx_minus_1[:, [1]],
-                          m_k_xx_minus_1[:, [2]])
-            m_x_m_x_m = cross(m_hat_k_minus_12[:, [0]],
-                              m_hat_k_minus_12[:, [1]],
-                              m_hat_k_minus_12[:, [2]],
-                              *m_x_m)
-            b = (2.0 / dt) * m_k_minus_1 - torch.cat(m_x_m, dim=1) - args.alpha * torch.cat(m_x_m_x_m, dim=1) + 2 * g_in
-            b = torch.cat([b[:, [0]], b[:, [1]], b[:, [2]],
-                           torch.zeros((jac_u_n.shape[0], 1)),
-                           torch.zeros((jac_v_n.shape[0], 1)),
-                           torch.zeros((jac_w_n.shape[0], 1))], dim=0)
-            print(A.shape, b.shape)
+            def jac(w):
+                # ∂rⁿ⁺¹_PDE/∂cⁿ⁺¹ = Φ/Δt + 1/2 ([uⁿ⁺¹ᐟ²]ₓΔΦ − [Δuⁿ⁺¹ᐟ²]ₓΦ)
+                #                      + α/2 (−[uⁿ⁺¹ᐟ²×Δuⁿ⁺¹ᐟ²]ₓΦ + [uⁿ⁺¹ᐟ²]ₓ²ΔΦ − [uⁿ⁺¹ᐟ²]ₓ[Δuⁿ⁺¹ᐟ²]ₓΦ)
+                # ∂rⁿ⁺¹_BC/∂cⁿ⁺¹ = ∂ₙΦ
+                w = w.reshape(3, -1).T  # reshape w to a torch tensor of shape (N, 3)
+                m_k_minus_12 = u_in @ ((w_k_minus_1 + w) / 2)
+                m_k_xx_minus_12 = u_in_xx @ ((w_k_minus_1 + w) / 2)
+                jac1_1 = torch.cat([jac_u, jac_v, jac_w], dim=0)
+                jac1_2 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         jac_uxx, jac_vxx, jac_wxx), dim=0)
+                jac1_3 = torch.cat(cross(m_k_xx_minus_12[:, [0]],
+                                         m_k_xx_minus_12[:, [1]],
+                                         m_k_xx_minus_12[:, [2]],
+                                         jac_u, jac_v, jac_w
+                                         ), dim=0)
+                jac1_4 = torch.cat(cross(*cross(m_k_minus_12[:, [0]],
+                                                m_k_minus_12[:, [1]],
+                                                m_k_minus_12[:, [2]],
+                                                m_k_xx_minus_12[:, [0]],
+                                                m_k_xx_minus_12[:, [1]],
+                                                m_k_xx_minus_12[:, [2]]),
+                                         jac_u, jac_v, jac_w), dim=0)
+                jac1_5 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         *cross(m_k_minus_12[:, [0]],
+                                                m_k_minus_12[:, [1]],
+                                                m_k_minus_12[:, [2]],
+                                                jac_uxx, jac_vxx, jac_wxx)), dim=0)
+                jac1_6 = torch.cat(cross(m_k_minus_12[:, [0]],
+                                         m_k_minus_12[:, [1]],
+                                         m_k_minus_12[:, [2]],
+                                         *cross(m_k_xx_minus_12[:, [0]],
+                                                m_k_xx_minus_12[:, [1]],
+                                                m_k_xx_minus_12[:, [2]],
+                                                jac_u, jac_v, jac_w
+                                                )), dim=0)
+                jac1 = 1.0 / dt * jac1_1 + 0.5 * (jac1_2 - jac1_3) + 0.5 * args.alpha * (-jac1_4 + jac1_5 - jac1_6)
+                jac2 = pyrfm.concat_blocks([[jac_u_n], [jac_v_n], [jac_w_n]])
 
-            model.compute(A, damp=1e-12).solve(b)
+                return pyrfm.concat_blocks([[jac1], [jac2]])
+
+            tol = 1e-8
+            x0 = torch.zeros((3 * u_in.shape[1], 1)) if k == 0 else model.W.T.reshape(-1, 1)
+            result = pyrfm.nonlinear_least_square(fcn=fcn,
+                                                  x0=x0,
+                                                  jac=jac,
+                                                  ftol=tol,
+                                                  gtol=tol,
+                                                  xtol=tol,
+                                                  method='newton',
+                                                  verbose=1)
+
+            status = result[1]
+
+            if status == 0:
+                print("The maximum number of function evaluations is exceeded.")
+            elif status == 1:
+                print("gtol termination condition is satisfied.")
+            elif status == 2:
+                print("ftol termination condition is satisfied.")
+            elif status == 3:
+                print("xtol termination condition is satisfied.")
+            elif status == 4:
+                print("Both ftol and xtol termination conditions are satisfied.")
+            else:
+                print("Unknown status.")
+
+            model.W = result[0].reshape(3, -1).T
 
             m_pred = model(x_test)
             m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
             model.compute(A_test.clone()).solve(torch.cat([m_pred[:, [0]], m_pred[:, [1]], m_pred[:, [2]]], dim=0))
 
             # m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
-            m_exact = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=1)
+            m_exact = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
             print(f"Step {k}/{n_steps}, Time {t0 + k * dt:.4f}, Error: {error:.4e}")
 
@@ -455,7 +518,7 @@ def run_rfm(args):
             # plt.show()
 
     xt_test = torch.cat([x_test, (t0 + k * dt) * torch.ones((x_in.shape[0], 1))], dim=1)
-    m_exact = func_m(xt_test, dim=1)
+    m_exact = func_m(xt_test, dim=3)
     m_pred = model(x_test)
     m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
 

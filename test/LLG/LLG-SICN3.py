@@ -164,30 +164,36 @@ group_labels = ["Convergence",
 def run_rfm(args):
     t_end = args.T
     time_stamp = torch.linspace(0, t_end, args.Nb + 1)
-    domain = pyrfm.Line1D(x1=0.0, x2=1.0)
+    domain = pyrfm.Cube3D(center=(0.5, 0.5, 0.5), half=(0.5, 0.5, 0.5))
 
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
     x_test = domain.in_sample(args.Qx * args.Nx, with_boundary=True)
-    x_on, x_on_normal = domain.on_sample(2, with_normal=True)
+    x_on, x_on_normal = domain.on_sample(200, with_normal=True)
 
-    print(x_on_normal)
+    print(x_on.shape, x_on_normal.shape)
 
     t0 = 0.0
-    dt = 1e-3
+    dt = 1e-2
     n_steps = round(args.T / dt)
 
     def cross(a0, a1, a2, b0, b1, b2):
         return a1 * b2 - a2 * b1, a2 * b0 - a0 * b2, a0 * b1 - a1 * b0
 
-    model = pyrfm.RFMBase(dim=1, n_hidden=args.Jn, domain=domain)
+    model = pyrfm.RFMBase(dim=3, n_hidden=args.Jn, domain=domain)
 
     u_test = model.features(x_test).cat(dim=1)
 
     u_in = model.features(x_in).cat(dim=1)
     u_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
+    u_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1).cat(dim=1)
+    u_in_zz = model.features_second_derivative(x_in, axis1=2, axis2=2).cat(dim=1)
+    u_in_xx += u_in_yy
+    u_in_xx += u_in_zz
 
     u_on_x = model.features_derivative(x_on, axis=0).cat(dim=1)
-    u_on_n = u_on_x * x_on_normal[:, [0]]
+    u_on_y = model.features_derivative(x_on, axis=1).cat(dim=1)
+    u_on_z = model.features_derivative(x_on, axis=2).cat(dim=1)
+    u_on_n = u_on_x * x_on_normal[:, [0]] + u_on_y * x_on_normal[:, [1]] + u_on_z * x_on_normal[:, [2]]
 
     v_test, w_test = u_test, u_test
     v_in, w_in = u_in, u_in
@@ -303,7 +309,7 @@ def run_rfm(args):
             w_k = model.W.clone()
             w_k_minus_1, w_k_minus_2 = w_k.clone(), w_k_minus_1.clone()
             xt_in = torch.cat([x_in, (t0 + (k - 0.5) * dt) * torch.ones((x_in.shape[0], 1))], dim=1)
-            g_in = func_g(xt_in, dim=1, alpha=args.alpha)
+            g_in = func_g(xt_in, dim=3, alpha=args.alpha)
 
             m_k_minus_1 = u_in @ w_k_minus_1
             m_k_xx_minus_1 = u_in_xx @ w_k_minus_1
@@ -455,7 +461,7 @@ def run_rfm(args):
             # plt.show()
 
     xt_test = torch.cat([x_test, (t0 + k * dt) * torch.ones((x_in.shape[0], 1))], dim=1)
-    m_exact = func_m(xt_test, dim=1)
+    m_exact = func_m(xt_test, dim=3)
     m_pred = model(x_test)
     m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
 
