@@ -202,6 +202,7 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
             if a == 0.0:
                 return 0.0, maxfev
             return (a + b) / 2, maxfev
+    return (a + b) / 2, maxfev
 
 
 class GivensRotation:

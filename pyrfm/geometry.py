@@ -1790,26 +1790,34 @@ class Square3D(GeometryBase):
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        # FIXME: wrong use with meshgrid
-        num_samples = int(num_samples ** (1 / 2))
-        if with_boundary:
-            x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
-                               num_samples)
-            y = torch.linspace(self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1],
-                               num_samples)
-            z = torch.linspace(self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2],
-                               num_samples)
-            X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
-            return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
+        """
+        Uniform sampling on the interior of the square face (2D manifold in R^3).
+        """
+        n = int(num_samples ** 0.5)
+
+        # 找到法向方向 i，以及面内方向 j,k
+        for i in range(3):
+            if self.radius[0, i] == 0.0:
+                j, k = (i + 1) % 3, (i + 2) % 3
+                break
         else:
-            x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
-                               num_samples + 2)[1:-1]
-            y = torch.linspace(self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1],
-                               num_samples + 2)[1:-1]
-            z = torch.linspace(self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2],
-                               num_samples + 2)[1:-1]
-            X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
-            return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
+            raise ValueError("Square3D requires exactly one zero radius.")
+
+        if with_boundary:
+            tj = torch.linspace(-self.radius[0, j], self.radius[0, j], n)
+            tk = torch.linspace(-self.radius[0, k], self.radius[0, k], n)
+        else:
+            tj = torch.linspace(-self.radius[0, j], self.radius[0, j], n + 2)[1:-1]
+            tk = torch.linspace(-self.radius[0, k], self.radius[0, k], n + 2)[1:-1]
+
+        TJ, TK = torch.meshgrid(tj, tk, indexing="ij")
+
+        pts = torch.zeros((TJ.numel(), 3), dtype=self.center.dtype)
+        pts[:, i] = self.center[0, i]
+        pts[:, j] = self.center[0, j] + TJ.reshape(-1)
+        pts[:, k] = self.center[0, k] + TK.reshape(-1)
+
+        return pts
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 4, with_boundary=True)
@@ -1896,16 +1904,25 @@ class Cube3D(GeometryBase):
         X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
         return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def on_sample(self, num_samples: int, with_normal: bool = False):
         samples = []
-        for square in self.boundary:
-            samples.append(square.in_sample(num_samples // 6, with_boundary=True))
+        normals = []
+
+        n_face = max(1, num_samples // 6)  # 每个面给一个“预算”，点数最终由 square.in_sample 决定
+
+        for i, square in enumerate(self.boundary):
+            # 每个面独立采样
+            s = square.in_sample(n_face, with_boundary=True)
+            samples.append(s)
+
+            if with_normal:
+                n = torch.zeros((s.shape[0], 3), dtype=s.dtype, device=s.device)
+                axis = i // 2  # 0:x, 1:y, 2:z
+                sign = 1.0 if (i % 2 == 0) else -1.0
+                n[:, axis] = sign
+                normals.append(n)
+
         if with_normal:
-            normals = []
-            for i in range(6):
-                normal = torch.zeros((num_samples // 6, 3))
-                normal[:, i // 2] = 1.0 if i % 2 == 0 else -1.0
-                normals.append(normal)
             return torch.cat(samples, dim=0), torch.cat(normals, dim=0)
         else:
             return torch.cat(samples, dim=0)
