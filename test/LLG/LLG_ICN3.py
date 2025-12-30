@@ -170,6 +170,7 @@ def run_rfm(args):
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
     x_test = domain.in_sample(args.Qx * args.Nx, with_boundary=True)
     x_on, x_on_normal = domain.on_sample(400, with_normal=True)
+    print(x_on)
 
     t0 = 0.0
     dt = 1e-2
