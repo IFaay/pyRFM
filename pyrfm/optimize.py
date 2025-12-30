@@ -21,7 +21,8 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                            ftol: float = 1e-08,
                            xtol: float = 1e-08,
                            gtol: float = 1e-08,
-                           verbose: int = 0):
+                           verbose: int = 0,
+                           ):
     """
     Solves a nonlinear least squares problem using different optimization methods.
 
@@ -59,6 +60,13 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
             w = torch.tensor(w, dtype=dtype, device=device).reshape(-1, 1)
             return jac(w).cpu().numpy()
 
+        # Output problem size once (n_vars, n_residuals, jac_shape)
+        if verbose >= 1:
+            _x_probe = x0.detach()
+            _f_probe = fcn(_x_probe)
+            print(
+                f"[NLS size] n_vars={_x_probe.numel()}, n_residuals={_f_probe.numel()}, jac_shape=({_f_probe.numel()}, {_x_probe.numel()})")
+
         result = least_squares(fun=fcn_numpy, x0=x0.cpu().numpy().flatten(), jac=jac_numpy,
                                method=method, tr_solver='exact',
                                ftol=ftol, xtol=xtol, gtol=gtol, verbose=verbose)
@@ -78,9 +86,17 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
         if maxfev is None:
             maxfev = 100 * x0.numel()
 
+        # Output problem size once (n_vars, n_residuals, jac_shape)
+        _printed_size = False
+
         while True:
             F_vec = fcn(x)
             F_jac = jac(x)
+
+            if (not _printed_size) and (verbose >= 1):
+                print(f"[NLS size] n_vars={x.numel()}, n_residuals={F_vec.numel()}, jac_shape={tuple(F_jac.shape)}")
+                _printed_size = True
+
             cost = 0.5 * torch.sum(F_vec ** 2).item()
             grad = F_jac.T @ F_vec
             grad_norm = torch.linalg.norm(grad, float('inf')).item()
@@ -186,6 +202,7 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
             if a == 0.0:
                 return 0.0, maxfev
             return (a + b) / 2, maxfev
+    return (a + b) / 2, maxfev
 
 
 class GivensRotation:

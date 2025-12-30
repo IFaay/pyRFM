@@ -376,7 +376,7 @@ class UnionGeometry(GeometryBase):
 
             if mask.sum() == 0:
                 return samples, normals
-            return samples[mask], normals[mask]
+            return samples[mask.flatten()], normals[mask.flatten()]
 
         else:
             a = self.geomA.on_sample(NA, False)
@@ -386,7 +386,7 @@ class UnionGeometry(GeometryBase):
             mask = torch.isclose(self.sdf(samples), torch.tensor(0., device=samples.device))
             if mask.sum() == 0:
                 return samples
-            return samples[mask]
+            return samples[mask.flatten()]
 
 
 class IntersectionGeometry(GeometryBase):
@@ -1790,26 +1790,34 @@ class Square3D(GeometryBase):
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
-        # FIXME: wrong use with meshgrid
-        num_samples = int(num_samples ** (1 / 2))
-        if with_boundary:
-            x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
-                               num_samples)
-            y = torch.linspace(self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1],
-                               num_samples)
-            z = torch.linspace(self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2],
-                               num_samples)
-            X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
-            return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
+        """
+        Uniform sampling on the interior of the square face (2D manifold in R^3).
+        """
+        n = int(num_samples ** 0.5)
+
+        # 找到法向方向 i，以及面内方向 j,k
+        for i in range(3):
+            if self.radius[0, i] == 0.0:
+                j, k = (i + 1) % 3, (i + 2) % 3
+                break
         else:
-            x = torch.linspace(self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0],
-                               num_samples + 2)[1:-1]
-            y = torch.linspace(self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1],
-                               num_samples + 2)[1:-1]
-            z = torch.linspace(self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2],
-                               num_samples + 2)[1:-1]
-            X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
-            return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
+            raise ValueError("Square3D requires exactly one zero radius.")
+
+        if with_boundary:
+            tj = torch.linspace(-self.radius[0, j], self.radius[0, j], n)
+            tk = torch.linspace(-self.radius[0, k], self.radius[0, k], n)
+        else:
+            tj = torch.linspace(-self.radius[0, j], self.radius[0, j], n + 2)[1:-1]
+            tk = torch.linspace(-self.radius[0, k], self.radius[0, k], n + 2)[1:-1]
+
+        TJ, TK = torch.meshgrid(tj, tk, indexing="ij")
+
+        pts = torch.zeros((TJ.numel(), 3), dtype=self.center.dtype)
+        pts[:, i] = self.center[0, i]
+        pts[:, j] = self.center[0, j] + TJ.reshape(-1)
+        pts[:, k] = self.center[0, k] + TK.reshape(-1)
+
+        return pts
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         a = self.boundary[0].in_sample(num_samples // 4, with_boundary=True)
@@ -1834,28 +1842,41 @@ class Square3D(GeometryBase):
 
 
 class Cube3D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, List, Tuple]):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], half: Union[torch.Tensor, List, Tuple],
+                 radius: Union[torch.Tensor, List, Tuple] = None):
         super().__init__(dim=3, intrinsic_dim=3)
+        # backward compatibility
+        if half is None and radius is None:
+            raise ValueError("You must provide `half` (preferred) or `radius` (deprecated)")
+
+        if radius is not None:
+            import warnings
+            warnings.warn(
+                "`radius` is deprecated and will be removed in future versions. Use `half` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            half = radius
         self.center = torch.tensor(center).view(1, -1).to(dtype=self.dtype)
-        self.radius = torch.tensor(radius).view(1, -1).to(dtype=self.dtype)
-        offsets = [[self.radius[0, 0], 0.0, 0.0], [-self.radius[0, 0], 0.0, 0.0], [0.0, self.radius[0, 1], 0.0],
-                   [0.0, -self.radius[0, 1], 0.0], [0.0, 0.0, self.radius[0, 2]], [0.0, 0.0, -self.radius[0, 2]]]
+        self.half = torch.tensor(half).view(1, -1).to(dtype=self.dtype)
+        offsets = [[self.half[0, 0], 0.0, 0.0], [-self.half[0, 0], 0.0, 0.0], [0.0, self.half[0, 1], 0.0],
+                   [0.0, -self.half[0, 1], 0.0], [0.0, 0.0, self.half[0, 2]], [0.0, 0.0, -self.half[0, 2]]]
         self.boundary = [Square3D(self.center + torch.tensor(offset),
-                                  torch.tensor([self.radius[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)])) for
+                                  torch.tensor([self.half[0, i] if offset[i] == 0.0 else 0.0 for i in range(3)])) for
                          offset in offsets]
 
     def sdf(self, p: torch.Tensor):
-        d = torch.abs(p - self.center) - self.radius
+        d = torch.abs(p - self.center) - self.half
         return torch.norm(torch.clamp(d, min=0.0), dim=1, keepdim=True) + torch.clamp(
             torch.max(d, dim=1, keepdim=True).values, max=0.0)
 
     def get_bounding_box(self):
-        x_min = self.center[0, 0] - self.radius[0, 0]
-        x_max = self.center[0, 0] + self.radius[0, 0]
-        y_min = self.center[0, 1] - self.radius[0, 1]
-        y_max = self.center[0, 1] + self.radius[0, 1]
-        z_min = self.center[0, 2] - self.radius[0, 2]
-        z_max = self.center[0, 2] + self.radius[0, 2]
+        x_min = self.center[0, 0] - self.half[0, 0]
+        x_max = self.center[0, 0] + self.half[0, 0]
+        y_min = self.center[0, 1] - self.half[0, 1]
+        y_max = self.center[0, 1] + self.half[0, 1]
+        z_min = self.center[0, 2] - self.half[0, 2]
+        z_max = self.center[0, 2] + self.half[0, 2]
         return [x_min.item(), x_max.item(), y_min.item(), y_max.item(), z_min.item(), z_max.item()]
 
     def in_sample(self, num_samples: Union[int, List[int], Tuple[int, int, int]],
@@ -1867,9 +1888,9 @@ class Cube3D(GeometryBase):
         else:
             raise ValueError("num_samples must be an int or a list/tuple of three integers.")
 
-        x_min, x_max = self.center[0, 0] - self.radius[0, 0], self.center[0, 0] + self.radius[0, 0]
-        y_min, y_max = self.center[0, 1] - self.radius[0, 1], self.center[0, 1] + self.radius[0, 1]
-        z_min, z_max = self.center[0, 2] - self.radius[0, 2], self.center[0, 2] + self.radius[0, 2]
+        x_min, x_max = self.center[0, 0] - self.half[0, 0], self.center[0, 0] + self.half[0, 0]
+        y_min, y_max = self.center[0, 1] - self.half[0, 1], self.center[0, 1] + self.half[0, 1]
+        z_min, z_max = self.center[0, 2] - self.half[0, 2], self.center[0, 2] + self.half[0, 2]
 
         if with_boundary:
             x = torch.linspace(x_min, x_max, num_x)
@@ -1883,16 +1904,25 @@ class Cube3D(GeometryBase):
         X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
         return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
+    def on_sample(self, num_samples: int, with_normal: bool = False):
         samples = []
-        for square in self.boundary:
-            samples.append(square.in_sample(num_samples // 6, with_boundary=True))
+        normals = []
+
+        n_face = max(1, num_samples // 6)  # 每个面给一个“预算”，点数最终由 square.in_sample 决定
+
+        for i, square in enumerate(self.boundary):
+            # 每个面独立采样
+            s = square.in_sample(n_face, with_boundary=True)
+            samples.append(s)
+
+            if with_normal:
+                n = torch.zeros((s.shape[0], 3), dtype=s.dtype, device=s.device)
+                axis = i // 2  # 0:x, 1:y, 2:z
+                sign = 1.0 if (i % 2 == 0) else -1.0
+                n[:, axis] = sign
+                normals.append(n)
+
         if with_normal:
-            normals = []
-            for i in range(6):
-                normal = torch.zeros((num_samples // 6, 3))
-                normal[:, i // 2] = 1.0 if i % 2 == 0 else -1.0
-                normals.append(normal)
             return torch.cat(samples, dim=0), torch.cat(normals, dim=0)
         else:
             return torch.cat(samples, dim=0)
