@@ -1904,11 +1904,137 @@ class Cube3D(GeometryBase):
         X, Y, Z = torch.meshgrid(x, y, z, indexing='ij')
         return torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1), Z.reshape(-1, 1)], dim=1)
 
-    def on_sample(self, num_samples: int, with_normal: bool = False):
+    def on_sample(
+            self,
+            num_samples: int,
+            with_normal: bool = False,
+            separate: bool = False,
+    ):
+        """
+        Sample points on the boundary of a three-dimensional cube.
+
+        This method generates sample points on the six planar boundary faces
+        of a 3D cube (±x, ±y, ±z). Each face is sampled independently via the
+        corresponding `Square3D` object stored in `self.boundary`.
+
+        The function supports both unified and face-wise sampling outputs,
+        controlled by the `separate` flag, and optionally provides outward
+        unit normal vectors associated with each sampled point.
+
+        Parameters
+        ----------
+        num_samples : int
+            Global sampling budget for the cube boundary.
+            The budget is evenly distributed across the six faces as
+
+                n_face = max(1, num_samples // 6).
+
+            The actual number of returned sample points may differ from
+            `num_samples`, depending on the sampling strategy implemented
+            in `Square3D.in_sample`.
+
+        with_normal : bool, optional
+            Whether to return outward unit normal vectors for the sampled
+            boundary points.
+
+            If True, a normal vector is associated with each sampled point.
+            Normals are constant over each face and aligned with the Cartesian
+            coordinate axes.
+
+            Default is False.
+
+        separate : bool, optional
+            Whether to preserve the face-wise separation of boundary samples.
+
+            - If False (default):
+              Sampled points from all faces are concatenated into a single
+              tensor (and normals are concatenated accordingly).
+
+            - If True:
+              Sampled points are returned face by face, preserving the
+              boundary partition. This is particularly useful when different
+              boundary conditions are applied on different faces.
+
+        Returns
+        -------
+        points : torch.Tensor
+            Returned when `separate=False` and `with_normal=False`.
+
+            A tensor of shape (N, 3) containing all sampled boundary points,
+            where N is the total number of sampled points across all faces.
+
+        (points, normals) : tuple of torch.Tensor
+            Returned when `separate=False` and `with_normal=True`.
+
+            - points : torch.Tensor of shape (N, 3)
+              All sampled boundary points.
+            - normals : torch.Tensor of shape (N, 3)
+              Corresponding outward unit normal vectors.
+
+        points_per_face : tuple of torch.Tensor
+            Returned when `separate=True` and `with_normal=False`.
+
+            A tuple of length 6. Each element is a tensor of shape (Ni, 3)
+            containing the sampled points on one boundary face.
+
+        face_data : tuple of (points, normals)
+            Returned when `separate=True` and `with_normal=True`.
+
+            A tuple of length 6. Each element is a pair
+
+                (points_i, normals_i),
+
+            where both tensors have shape (Ni, 3) and correspond to one
+            boundary face.
+
+        Notes
+        -----
+        - The ordering of boundary faces follows the ordering of
+          `self.boundary`:
+
+              0 : +x face
+              1 : -x face
+              2 : +y face
+              3 : -y face
+              4 : +z face
+              5 : -z face
+
+        - This interface is designed to be consistent with lower-dimensional
+          geometries (e.g., 2D squares) and supports boundary-aware numerical
+          methods such as collocation-based solvers, PINNs, and random
+          feature methods.
+
+        - When `separate=True`, the returned structure preserves geometric
+          information at the face level and should be preferred when
+          implementing mixed or face-dependent boundary conditions.
+
+        Examples
+        --------
+        Unified boundary sampling:
+
+        >>> points = cube.on_sample(600)
+
+        Unified sampling with outward normals:
+
+        >>> points, normals = cube.on_sample(600, with_normal=True)
+
+        Face-wise sampling (no normals):
+
+        >>> faces = cube.on_sample(600, separate=True)
+        >>> for face_points in faces:
+        ...     process(face_points)
+
+        Face-wise sampling with normals (recommended for mixed BCs):
+
+        >>> faces = cube.on_sample(600, with_normal=True, separate=True)
+        >>> for face_points, face_normals in faces:
+        ...     apply_boundary_condition(face_points, face_normals)
+        """
+
         samples = []
         normals = []
 
-        n_face = max(1, num_samples // 6)  # 每个面给一个“预算”，点数最终由 square.in_sample 决定
+        n_face = max(1, num_samples // 6)
 
         for i, square in enumerate(self.boundary):
             # 每个面独立采样
@@ -1916,16 +2042,36 @@ class Cube3D(GeometryBase):
             samples.append(s)
 
             if with_normal:
-                n = torch.zeros((s.shape[0], 3), dtype=s.dtype, device=s.device)
+                n = torch.zeros(
+                    (s.shape[0], 3),
+                    dtype=s.dtype,
+                    device=s.device
+                )
                 axis = i // 2  # 0:x, 1:y, 2:z
                 sign = 1.0 if (i % 2 == 0) else -1.0
                 n[:, axis] = sign
                 normals.append(n)
 
-        if with_normal:
-            return torch.cat(samples, dim=0), torch.cat(normals, dim=0)
+        # -------------------------
+        # 对齐 reference 中的 separate 语义
+        # -------------------------
+        if not separate:
+            if with_normal:
+                return (
+                    torch.cat(samples, dim=0),
+                    torch.cat(normals, dim=0)
+                )
+            else:
+                return torch.cat(samples, dim=0)
+
         else:
-            return torch.cat(samples, dim=0)
+            if with_normal:
+                return tuple(
+                    (samples[i], normals[i])
+                    for i in range(len(samples))
+                )
+            else:
+                return tuple(samples)
 
 
 class CircleArc2D(GeometryBase):
