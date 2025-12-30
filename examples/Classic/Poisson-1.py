@@ -28,6 +28,7 @@ with boundary conditions:
 Once an explicit form of u is given, the functions g1, g2, h1, h2, and f can be computed.
 """
 
+
 # mixed-frequency problem
 def func_u(x, frequency="mixed"):
     if frequency == "low":
@@ -42,11 +43,11 @@ def func_u(x, frequency="mixed"):
     else:
         raise ValueError("Invalid frequency")
     return -AA * (1.5 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
-                   2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+                  2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
         (1.5 * torch.cos(torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
          2 * torch.cos(2 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
         BB * (1.5 * torch.cos(2 * torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
-               2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+              2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
         (1.5 * torch.cos(2 * torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
          2 * torch.cos(4 * torch.pi * x[:, [1]] - torch.pi / 5))
 
@@ -65,19 +66,19 @@ def func_f(x, frequency="mixed"):
     else:
         raise ValueError("Invalid frequency")
     return -(-AA * (-1.5 * torch.pi ** 2 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) -
-                     2 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+                    2 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
              (1.5 * torch.cos(torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
               2 * torch.cos(2 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
              AA * (1.5 * torch.cos(torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
-                    2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+                   2 * torch.cos(2 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
              (-1.5 * torch.pi ** 2 * torch.cos(torch.pi * x[:, [1]] + 2 * torch.pi / 5) -
               2 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
              BB * (-1.5 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [0]] + 2 * torch.pi / 5) -
-                    2 * (4 * torch.pi) ** 2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+                   2 * (4 * torch.pi) ** 2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
              (1.5 * torch.cos(2 * torch.pi * x[:, [1]] + 2 * torch.pi / 5) +
               2 * torch.cos(4 * torch.pi * x[:, [1]] - torch.pi / 5)) - \
              BB * (1.5 * torch.cos(2 * torch.pi * x[:, [0]] + 2 * torch.pi / 5) +
-                    2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
+                   2 * torch.cos(4 * torch.pi * x[:, [0]] - torch.pi / 5)) * \
              (-1.5 * (2 * torch.pi) ** 2 * torch.cos(2 * torch.pi * x[:, [1]] + 2 * torch.pi / 5) -
               2 * (4 * torch.pi) ** 2 * torch.cos(4 * torch.pi * x[:, [1]] - torch.pi / 5)))
 
@@ -85,20 +86,23 @@ def func_f(x, frequency="mixed"):
 def func_g(x, frequency="mixed"):
     return func_u(x, frequency)
 
+
 class MultiScaleRFM(pyrfm.RFMBase):
-    def __init__(self, dim, n_hidden, domain, n_subdomains, pou = pyrfm.PsiB,
-                    rf=pyrfm.RFTanH, *args, **kwargs):
-        super().__init__(dim = dim,
-                         n_hidden = n_hidden,
-                         domain = domain,
-                         n_subdomains = n_subdomains,
-                         pou = pou,
-                         rf= rf,
+    def __init__(self, dim, n_hidden, domain, n_subdomains, pou=pyrfm.PsiB,
+                 rf=pyrfm.RFTanH, *args, **kwargs):
+        super().__init__(dim=dim,
+                         n_hidden=n_hidden,
+                         domain=domain,
+                         n_subdomains=n_subdomains,
+                         pou=pou,
+                         rf=rf,
                          *args, **kwargs)
         bounding_box = self.domain.get_bounding_box()
-        center = torch.tensor([(bounding_box[2*i+1] + bounding_box[2*i]) / 2.0 for i in range(dim)], dtype=self.dtype, device=self.device)
-        radius = torch.tensor([(bounding_box[2*i+1] - bounding_box[2*i]) / 2.0 for i in range(dim)], dtype=self.dtype, device=self.device)
-        self.global_model = rf(dim = dim, center = center, radius = radius, n_hidden = n_hidden)
+        center = torch.tensor([(bounding_box[2 * i + 1] + bounding_box[2 * i]) / 2.0 for i in range(dim)],
+                              dtype=self.dtype, device=self.device)
+        radius = torch.tensor([(bounding_box[2 * i + 1] - bounding_box[2 * i]) / 2.0 for i in range(dim)],
+                              dtype=self.dtype, device=self.device)
+        self.global_model = rf(dim=dim, center=center, radius=radius, n_hidden=n_hidden)
 
     def forward(self, x):
         """
@@ -151,13 +155,17 @@ class MultiScaleRFM(pyrfm.RFMBase):
             raise ValueError("The output weight mismatch.")
 
     def features(self, x: torch.Tensor, use_sparse: bool = False) -> Tensor:
-        return torch.cat([super().features(x, use_sparse).cat(dim = 1), self.global_model.forward(x)], dim = 1)
+        return torch.cat([super().features(x, use_sparse).cat(dim=1), self.global_model.forward(x)], dim=1)
 
     def features_derivative(self, x: torch.Tensor, axis: int, use_sparse: bool = False) -> Tensor:
-        return torch.cat([super().features_derivative(x, axis, use_sparse).cat(dim = 1), self.global_model.first_derivative(x, axis)], dim = 1)
+        return torch.cat(
+            [super().features_derivative(x, axis, use_sparse).cat(dim=1), self.global_model.first_derivative(x, axis)],
+            dim=1)
 
     def features_second_derivative(self, x: torch.Tensor, axis1: int, axis2: int, use_sparse: bool = False) -> Tensor:
-        return torch.cat([super().features_second_derivative(x, axis1, axis2, use_sparse).cat(dim = 1), self.global_model.second_derivative(x, axis1, axis2)], dim = 1)
+        return torch.cat([super().features_second_derivative(x, axis1, axis2, use_sparse).cat(dim=1),
+                          self.global_model.second_derivative(x, axis1, axis2)], dim=1)
+
 
 def run_rfm(args):
     print("\n" + "=" * 40)
@@ -170,9 +178,10 @@ def run_rfm(args):
     domain = pyrfm.Square2D([0.5, 0.5], [0.5, 0.5])
 
     if args.multiscale:
-        model = MultiScaleRFM(dim=2, n_hidden=300, domain=domain, n_subdomains=math.isqrt(args.M // 300), pou=pyrfm.PsiB)
+        model = MultiScaleRFM(dim=2, n_hidden=300, domain=domain, n_subdomains=math.isqrt(args.M // 300),
+                              pou=pyrfm.PsiB)
         x_in = domain.in_sample(args.Q, with_boundary=False)
-        x_on = domain.on_sample(int(0.2*args.Q))
+        x_on = domain.on_sample(int(0.2 * args.Q))
 
         A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0)
         A_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1)
@@ -193,9 +202,10 @@ def run_rfm(args):
         error = (u_test - u_pred).norm() / u_test.norm()
 
     else:
-        model = pyrfm.RFMBase(dim=2, n_hidden=300, domain=domain, n_subdomains=math.isqrt(args.M // 300), pou=pyrfm.PsiB)
+        model = pyrfm.RFMBase(dim=2, n_hidden=300, domain=domain, n_subdomains=math.isqrt(args.M // 300),
+                              pou=pyrfm.PsiB)
         x_in = domain.in_sample(args.Q, with_boundary=False)
-        x_on = domain.on_sample(int(0.2*args.Q))
+        x_on = domain.on_sample(int(0.2 * args.Q))
 
         A_in_xx = model.features_second_derivative(x_in, axis1=0, axis2=0).cat(dim=1)
         A_in_yy = model.features_second_derivative(x_in, axis1=1, axis2=1).cat(dim=1)
@@ -214,10 +224,6 @@ def run_rfm(args):
         u_pred = model(x_test)
 
         error = (u_test - u_pred).norm() / u_test.norm()
-
-
-
-
 
     print(f"\nSimulation Results:")
     print(f"--------------------------")
@@ -247,7 +253,6 @@ param_sets = [
     {"Q": 3600, "M": 2700, "frequency": "mixed", "multiscale": True},
     {"Q": 6400, "M": 4800, "frequency": "mixed", "multiscale": True},
 ]
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
