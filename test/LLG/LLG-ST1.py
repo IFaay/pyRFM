@@ -147,9 +147,22 @@ param_sets_groups = [
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
         # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
     ],
+    # case1:
+    # T=1, dim=1
+    # h = 1/2400
+    # \alpha = 0.00001
+    # k = T/120, 130, 140, 150
+    [
+        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 120, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 130, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 140, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 150, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
+    ]
 ]
 
 group_labels = ["Convergence",
+                "Convergence with respect to temporal resolution",
+                "Convergence with respect to spatial resolution"
                 ]
 
 
