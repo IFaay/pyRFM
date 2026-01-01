@@ -140,36 +140,37 @@ def func_g(xt, dim, alpha):
 
 
 param_sets_groups = [
-    [
-        {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
-    ],
+    # [
+    #     {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
+    # ],
     # case1:
     # T=1, dim=1
     # h = 1/2400
     # \alpha = 0.00001
     # k = T/120, 130, 140, 150
     [
-        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 120, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 130, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 140, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 2400, "Qt": 150, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
+        {"Nx": 1, "Nt": 2, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 3, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 4, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 5, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
     ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 50, "Qt": 1000, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 60, "Qt": 1000, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 70, "Qt": 1000, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 80, "Qt": 1000, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 50, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 60, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 70, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 80, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
     ]
 ]
 
-group_labels = ["Convergence",
-                "Convergence with respect to temporal resolution",
-                "Convergence with respect to spatial resolution"
-                ]
+group_labels = [
+    # "Convergence",
+    "Convergence with respect to temporal resolution",
+    "Convergence with respect to spatial resolution"
+]
 
 
 def run_rfm(args):
