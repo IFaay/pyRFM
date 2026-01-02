@@ -142,15 +142,30 @@ def func_g(xt, dim, alpha):
 param_sets_groups = [
     [
         {"Nx": 1, "Nt": 1, "Qx": 300, "Qt": 10, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
+        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
+        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
+        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
+        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
     ],
+    [
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 6, "Jn": 100 * 6, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 8, "Jn": 100 * 8, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 10, "Jn": 100 * 10, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 12, "Jn": 100 * 12, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
+    ],
+    [
+        {"Nx": 1, "Nt": 1, "Qx": 20, "Qt": 100, "Jn": 40 * 2, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 30, "Qt": 100, "Jn": 40 * 3, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 40, "Qt": 100, "Jn": 40 * 4, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 50, "Qt": 100, "Jn": 40 * 5, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+    ]
 ]
 
-group_labels = ["Convergence",
-                ]
+group_labels = [
+    "Convergence",
+    "Convergence with respect to temporal resolution",
+    "Convergence with respect to spatial resolution"
+]
 
 
 def run_rfm(args):
@@ -169,7 +184,7 @@ def run_rfm(args):
                                       st_type=args.type))
 
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
-    x_on, x_on_normal = domain.on_sample(2, with_normal=True)
+    x_on, x_on_normal = domain.on_sample(200, with_normal=True)
 
     for i, model in enumerate(models):
         t0 = torch.tensor(model.time_interval[0]).reshape(-1, 1)
@@ -179,14 +194,16 @@ def run_rfm(args):
 
         x_in_t = model.validate_and_prepare_xt(x=x_in, t=t)
         x_on_t = model.validate_and_prepare_xt(x=x_on, t=t)
+        x_on_normal_t = model.validate_and_prepare_xt(x=x_on_normal, t=t)
 
         u_init = model.features(xt=x_t0).cat(dim=1)
         u_boundary_x = model.features_derivative(xt=x_on_t, axis=0).cat(dim=1)
         u_boundary_y = model.features_derivative(xt=x_on_t, axis=1).cat(dim=1)
         u_boundary_z = model.features_derivative(xt=x_on_t, axis=2).cat(dim=1)
-        u_boundary_x = (u_boundary_x * x_on_normal[:, [0]] +
-                        u_boundary_y * x_on_normal[:, [1]] +
-                        u_boundary_z * x_on_normal[:, [2]])
+
+        u_boundary_x = (u_boundary_x * x_on_normal_t[:, [0]] +
+                        u_boundary_y * x_on_normal_t[:, [1]] +
+                        u_boundary_z * x_on_normal_t[:, [2]])
 
         u_in = model.features(xt=x_in_t).cat(dim=1)
         u_in_t = model.features_derivative(xt=x_in_t, axis=3).cat(dim=1)
@@ -277,22 +294,22 @@ def run_rfm(args):
                                               gtol=tol,
                                               xtol=tol,
                                               method='newton',
-                                              verbose=1)
+                                              verbose=0)
 
         status = result[1]
 
-        if status == 0:
-            print("The maximum number of function evaluations is exceeded.")
-        elif status == 1:
-            print("gtol termination condition is satisfied.")
-        elif status == 2:
-            print("ftol termination condition is satisfied.")
-        elif status == 3:
-            print("xtol termination condition is satisfied.")
-        elif status == 4:
-            print("Both ftol and xtol termination conditions are satisfied.")
-        else:
-            print("Unknown status.")
+        # if status == 0:
+        #     print("The maximum number of function evaluations is exceeded.")
+        # elif status == 1:
+        #     print("gtol termination condition is satisfied.")
+        # elif status == 2:
+        #     print("ftol termination condition is satisfied.")
+        # elif status == 3:
+        #     print("xtol termination condition is satisfied.")
+        # elif status == 4:
+        #     print("Both ftol and xtol termination conditions are satisfied.")
+        # else:
+        #     print("Unknown status.")
 
         model.W = result[0].reshape(3, -1).T
 
@@ -302,6 +319,8 @@ def run_rfm(args):
     m_exact = func_m(xt_test, dim=3)
     error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
     print(f"Error: {error:.4e}")
+
+    return error
 
 
 if __name__ == '__main__':
@@ -320,6 +339,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         for group, label in zip(param_sets_groups, group_labels):
             print(f"\n\n{label}")
+            errors = []
+            params = []
             for param_set in group:
                 args = argparse.Namespace(**param_set)
                 print("\n" + "=" * 40)
@@ -328,11 +349,32 @@ if __name__ == '__main__':
                     f"Nx = {args.Nx}, Nt = {args.Nt}, Qx = {args.Qx}, Qt = {args.Qt}, Jn = {args.Jn}, Nb = {args.Nb}, type = {args.type}")
                 print(f"--------------------------")
                 start_time = time.time()
-                run_rfm(args)
+                errors.append(run_rfm(args))
+                if "temporal" in label.lower():
+                    params.append(args.Qt * args.Nt)
+                elif "spatial" in label.lower():
+                    params.append(args.Qx * args.Nx)
                 print(f"\nSimulation Results:")
                 print(f"--------------------------")
                 print(f"Elapsed Time: {time.time() - start_time:.2f} seconds")
                 print("=" * 40)
+
+            if params and errors:
+                for i in range(len(errors) - 1):
+                    p = torch.log(errors[i] / errors[i + 1]) / torch.log(
+                        torch.tensor(params[i + 1] / params[i], dtype=errors[i].dtype)
+                    )
+                    print(
+                        f"params = {params[i]:>3d} -> {params[i + 1]:>3d}, "
+                        f"order ≈ {p.item():.4f}"
+                    )
+
+                p_global = torch.log(errors[0] / errors[-1]) / torch.log(
+                    torch.tensor(params[-1] / params[0], dtype=errors[0].dtype)
+                )
+
+                print(f"\nGlobal order (overall): ≈ {p_global.item():.4f}")
+
     else:
         args = parser.parse_args()
         run_rfm(args)

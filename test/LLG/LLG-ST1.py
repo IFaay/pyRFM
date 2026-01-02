@@ -153,16 +153,16 @@ param_sets_groups = [
     # \alpha = 0.00001
     # k = T/120, 130, 140, 150
     [
-        {"Nx": 1, "Nt": 2, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 3, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 4, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 5, "Qx": 240, "Qt": 20, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
+        {"Nx": 1, "Nt": 1, "Qx": 240, "Qt": 10, "Jn": 40, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 240, "Qt": 20, "Jn": 40 * 2, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 240, "Qt": 30, "Jn": 40 * 3, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 240, "Qt": 40, "Jn": 40 * 4, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
     ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 50, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 60, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 70, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 80, "Qt": 100, "Jn": 100, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 20, "Qt": 100, "Jn": 40 * 2, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 30, "Qt": 100, "Jn": 40 * 3, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 40, "Qt": 100, "Jn": 40 * 4, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 50, "Qt": 100, "Jn": 40 * 5, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
     ]
 ]
 
@@ -278,7 +278,7 @@ def run_rfm(args):
 
             return torch.cat([jac1, jac2, jac3], dim=0)
 
-        tol = 1e-8
+        tol = 1e-10
         x0 = torch.zeros((3 * u_in.shape[1], 1)) if i == 0 else models[i - 1].W.T.reshape(-1, 1)
         result = pyrfm.nonlinear_least_square(fcn=fcn,
                                               x0=x0,
@@ -312,6 +312,8 @@ def run_rfm(args):
     error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
     print(f"Error: {error:.4e}")
 
+    return error
+
 
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
@@ -329,6 +331,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         for group, label in zip(param_sets_groups, group_labels):
             print(f"\n\n{label}")
+            errors = []
+            params = []
             for param_set in group:
                 args = argparse.Namespace(**param_set)
                 print("\n" + "=" * 40)
@@ -337,11 +341,31 @@ if __name__ == '__main__':
                     f"Nx = {args.Nx}, Nt = {args.Nt}, Qx = {args.Qx}, Qt = {args.Qt}, Jn = {args.Jn}, Nb = {args.Nb}, type = {args.type}")
                 print(f"--------------------------")
                 start_time = time.time()
-                run_rfm(args)
+                errors.append(run_rfm(args))
+                if "temporal" in label.lower():
+                    params.append(args.Qt * args.Nt)
+                elif "spatial" in label.lower():
+                    params.append(args.Qx * args.Nx)
                 print(f"\nSimulation Results:")
                 print(f"--------------------------")
                 print(f"Elapsed Time: {time.time() - start_time:.2f} seconds")
                 print("=" * 40)
+
+            for i in range(len(errors) - 1):
+                p = torch.log(errors[i] / errors[i + 1]) / torch.log(
+                    torch.tensor(params[i + 1] / params[i], dtype=errors[i].dtype)
+                )
+                print(
+                    f"params = {params[i]:>3d} -> {params[i + 1]:>3d}, "
+                    f"order ≈ {p.item():.4f}"
+                )
+
+            p_global = torch.log(errors[0] / errors[-1]) / torch.log(
+                torch.tensor(params[-1] / params[0], dtype=errors[0].dtype)
+            )
+
+            print(f"\nGlobal order (overall): ≈ {p_global.item():.4f}")
+
     else:
         args = parser.parse_args()
         run_rfm(args)
