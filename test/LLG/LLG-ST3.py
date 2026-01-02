@@ -148,16 +148,20 @@ param_sets_groups = [
         #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
     ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 6, "Jn": 100 * 6, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 4, "Jn": 100 * 4, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
         {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 8, "Jn": 100 * 8, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 10, "Jn": 100 * 10, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 12, "Jn": 100 * 12, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 16, "Jn": 100 * 16, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 32, "Jn": 100 * 32, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
     ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 20, "Qt": 100, "Jn": 40 * 2, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 30, "Qt": 100, "Jn": 40 * 3, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 40, "Qt": 100, "Jn": 40 * 4, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 50, "Qt": 100, "Jn": 40 * 5, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 100, "Jn": 40 * 10, "Nb": 1, "type": "STC", "alpha": 0.00001,
+         "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 12 ** 3, "Qt": 100, "Jn": 40 * 12, "Nb": 1, "type": "STC", "alpha": 0.00001,
+         "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 14 ** 3, "Qt": 100, "Jn": 40 * 14, "Nb": 1, "type": "STC", "alpha": 0.00001,
+         "T": 5e-2},
+        {"Nx": 1, "Nt": 1, "Qx": 16 ** 3, "Qt": 100, "Jn": 40 * 16, "Nb": 1, "type": "STC", "alpha": 0.00001,
+         "T": 5e-2},
     ]
 ]
 
@@ -184,7 +188,7 @@ def run_rfm(args):
                                       st_type=args.type))
 
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
-    x_on, x_on_normal = domain.on_sample(200, with_normal=True)
+    x_on, x_on_normal = domain.on_sample(6 * int((args.Qx * args.N) ** (2 / 3)), with_normal=True)
 
     for i, model in enumerate(models):
         t0 = torch.tensor(model.time_interval[0]).reshape(-1, 1)
