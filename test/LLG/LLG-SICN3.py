@@ -148,38 +148,38 @@ def func_g(xt, dim, alpha):
 
 
 param_sets_groups = [
+    # [
+    # {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 10, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1e-2},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
+    # ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 300, "Qt": 10, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
-        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
-        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
-        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
-        #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
-    ],
-    [
-        {"Nx": 1, "Nt": 1, "Qx": 8000, "Qt": 10, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 8000, "Qt": 20, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 8000, "Qt": 40, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
-        {"Nx": 1, "Nt": 1, "Qx": 8000, "Qt": 80, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 20, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 30, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 40, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 50, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
     ],
     [
         {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 100, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001,
-         "T": 5e-2},
+         "T": 1e-1},
         {"Nx": 1, "Nt": 1, "Qx": 12 ** 3, "Qt": 100, "Jn": int(400 * 1.2 ** 3), "Nb": 1, "type": "STC",
          "alpha": 0.00001,
-         "T": 5e-2},
+         "T": 1e-1},
         {"Nx": 1, "Nt": 1, "Qx": 14 ** 3, "Qt": 100, "Jn": int(400 * 1.4 ** 3), "Nb": 1, "type": "STC",
          "alpha": 0.00001,
-         "T": 5e-2},
+         "T": 1e-1},
         {"Nx": 1, "Nt": 1, "Qx": 16 ** 3, "Qt": 100, "Jn": int(400 * 1.6 ** 3), "Nb": 1, "type": "STC",
          "alpha": 0.00001,
-         "T": 5e-2},
+         "T": 1e-1},
     ]
 ]
 
 group_labels = [
-    "Convergence",
+    # "Convergence",
     "Convergence with respect to temporal resolution",
-    "Convergence with respect to spatial resolution"
+    # "Convergence with respect to spatial resolution"
 ]
 
 
@@ -188,9 +188,9 @@ def run_rfm(args):
     time_stamp = torch.linspace(0, t_end, args.Nb + 1)
     domain = pyrfm.Cube3D(center=(0.5, 0.5, 0.5), half=(0.5, 0.5, 0.5))
 
-    x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
-    x_test = domain.in_sample(args.Qx * args.Nx, with_boundary=True)
-    x_on, x_on_normal = domain.on_sample(6 * int((args.Qx * args.Nx) ** (2 / 3)), with_normal=True)
+    x_in = domain.in_sample(args.Qx * args.Nx ** 3, with_boundary=False)
+    x_test = domain.in_sample(args.Qx * args.Nx ** 3, with_boundary=True)
+    x_on, x_on_normal = domain.on_sample(6 * int((args.Qx * args.Nx ** 3) ** (2 / 3)), with_normal=True)
 
     # print(x_on.shape, x_on_normal.shape)
 
@@ -201,7 +201,7 @@ def run_rfm(args):
     def cross(a0, a1, a2, b0, b1, b2):
         return a1 * b2 - a2 * b1, a2 * b0 - a0 * b2, a0 * b1 - a1 * b0
 
-    model = pyrfm.RFMBase(dim=3, n_hidden=args.Jn, domain=domain)
+    model = pyrfm.RFMBase(dim=3, n_hidden=args.Jn, domain=domain, n_subdomains=args.Nx)
 
     u_test = model.features(x_test).cat(dim=1)
 
@@ -233,7 +233,7 @@ def run_rfm(args):
             A_test = pyrfm.concat_blocks([[u_test, torch.zeros_like(v_test), torch.zeros_like(w_test)],
                                           [torch.zeros_like(u_test), v_test, torch.zeros_like(w_test)],
                                           [torch.zeros_like(u_test), torch.zeros_like(v_test), w_test]])
-            m0 = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=1)
+            m0 = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             b = torch.cat([m0[:, [0]], m0[:, [1]], m0[:, [2]]], dim=0)
             model.compute(A_test.clone(), verbose=False).solve(b, verbose=False)
             m_pred = model(x_test)
@@ -532,7 +532,7 @@ if __name__ == '__main__':
 
             if params and errors:
                 if "spatial" in label.lower():
-                    params = [p ** (1 / 3) for p in params]
+                    params = [int(p ** (1 / 3)) for p in params]
                 for i in range(len(errors) - 1):
                     p = torch.log(errors[i] / errors[i + 1]) / torch.log(
                         torch.tensor(params[i + 1] / params[i], dtype=errors[i].dtype)
