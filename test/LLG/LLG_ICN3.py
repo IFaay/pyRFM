@@ -149,17 +149,39 @@ def func_g(xt, dim, alpha):
 
 
 param_sets_groups = [
+    # [
+    # {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 10, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1e-2},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
+    #     # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
+    # ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 2000, "Qt": 20, "Jn": 200, "Nb": 1, "type": "STC", "alpha": 0.1, "T": 1.0},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 2, "type": "STC", "alpha": 0.1, "T": 1.0},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 3, "type": "STC"},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 4, "type": "STC"},
-        # {"Nx": 2, "Nt": 2, "Qx": 20, "Qt": 20, "Jn": 100, "Nb": 5, "type": "STC"}
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 20, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 30, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 40, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0},
+        {"Nx": 1, "Nt": 1, "Qx": 20 ** 3, "Qt": 50, "Jn": 300, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
     ],
+    [
+        {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 100, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001,
+         "T": 1e-1},
+        {"Nx": 1, "Nt": 1, "Qx": 12 ** 3, "Qt": 100, "Jn": int(400 * 1.2 ** 3), "Nb": 1, "type": "STC",
+         "alpha": 0.00001,
+         "T": 1e-1},
+        {"Nx": 1, "Nt": 1, "Qx": 14 ** 3, "Qt": 100, "Jn": int(400 * 1.4 ** 3), "Nb": 1, "type": "STC",
+         "alpha": 0.00001,
+         "T": 1e-1},
+        {"Nx": 1, "Nt": 1, "Qx": 16 ** 3, "Qt": 100, "Jn": int(400 * 1.6 ** 3), "Nb": 1, "type": "STC",
+         "alpha": 0.00001,
+         "T": 1e-1},
+    ]
 ]
 
-group_labels = ["Convergence",
-                ]
+group_labels = [
+    # "Convergence",
+    "Convergence with respect to temporal resolution",
+    "Convergence with respect to spatial resolution"
+]
 
 
 def run_rfm(args):
@@ -167,14 +189,15 @@ def run_rfm(args):
     time_stamp = torch.linspace(0, t_end, args.Nb + 1)
     domain = pyrfm.Cube3D(center=[0.5, 0.5, 0.5], half=[0.5, 0.5, 0.5])
 
-    x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
-    x_test = domain.in_sample(args.Qx * args.Nx, with_boundary=True)
-    x_on, x_on_normal = domain.on_sample(400, with_normal=True)
-    print(x_on)
+    x_in = domain.in_sample(args.Qx * args.Nx ** 3, with_boundary=False)
+    x_test = domain.in_sample(args.Qx * args.Nx ** 3, with_boundary=True)
+    x_on, x_on_normal = domain.on_sample(6 * int((args.Qx * args.Nx ** 3) ** (2 / 3)), with_normal=True)
+
+    # print(x_on)
 
     t0 = 0.0
-    dt = 1e-2
-    n_steps = round(args.T / dt)
+    dt = args.T / (args.Nt * args.Qt)
+    n_steps = args.Nt * args.Qt
 
     def cross(a0, a1, a2, b0, b1, b2):
         return a1 * b2 - a2 * b1, a2 * b0 - a0 * b2, a0 * b1 - a1 * b0
@@ -212,12 +235,12 @@ def run_rfm(args):
                                           [torch.zeros_like(u_test), torch.zeros_like(v_test), w_test]])
             m0 = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             b = torch.cat([m0[:, [0]], m0[:, [1]], m0[:, [2]]], dim=0)
-            model.compute(A_test.clone()).solve(b)
+            model.compute(A_test.clone(), verbose=False).solve(b, verbose=False)
             m_pred = model(x_test)
             m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
             m_exact = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
-            print(f"Step {k}/{n_steps}, Time {t0 + k * dt:.4f}, Error: {error:.4e}")
+            # print(f"Step {k}/{n_steps}, Time {t0 + k * dt:.4f}, Error: {error:.4e}")
 
             # plot m_pred[:, [0]], m_pred[:, [1]], m_pred[:, [2]]
             # import matplotlib.pyplot as plt
@@ -305,7 +328,7 @@ def run_rfm(args):
         else:
             w_k_minus_1 = model.W.clone()
             xt_in = torch.cat([x_in, (t0 + (k - 0.5) * dt) * torch.ones((x_in.shape[0], 1))], dim=1)
-            g_in = func_g(xt_in, dim=1, alpha=args.alpha)
+            g_in = func_g(xt_in, dim=3, alpha=args.alpha)
 
             m_k_minus_1 = u_in @ w_k_minus_1
             m_k_xx_minus_1 = u_in_xx @ w_k_minus_1
@@ -396,7 +419,7 @@ def run_rfm(args):
 
                 return pyrfm.concat_blocks([[jac1], [jac2]])
 
-            tol = 1e-8
+            tol = 1e-10
             x0 = torch.zeros((3 * u_in.shape[1], 1)) if k == 0 else model.W.T.reshape(-1, 1)
             result = pyrfm.nonlinear_least_square(fcn=fcn,
                                                   x0=x0,
@@ -405,36 +428,36 @@ def run_rfm(args):
                                                   gtol=tol,
                                                   xtol=tol,
                                                   method='newton',
-                                                  verbose=1)
+                                                  verbose=0)
 
             status = result[1]
 
-            if status == 0:
-                print("The maximum number of function evaluations is exceeded.")
-            elif status == 1:
-                print("gtol termination condition is satisfied.")
-            elif status == 2:
-                print("ftol termination condition is satisfied.")
-            elif status == 3:
-                print("xtol termination condition is satisfied.")
-            elif status == 4:
-                print("Both ftol and xtol termination conditions are satisfied.")
-            else:
-                print("Unknown status.")
+            # if status == 0:
+            #     print("The maximum number of function evaluations is exceeded.")
+            # elif status == 1:
+            #     print("gtol termination condition is satisfied.")
+            # elif status == 2:
+            #     print("ftol termination condition is satisfied.")
+            # elif status == 3:
+            #     print("xtol termination condition is satisfied.")
+            # elif status == 4:
+            #     print("Both ftol and xtol termination conditions are satisfied.")
+            # else:
+            #     print("Unknown status.")
 
             model.W = result[0].reshape(3, -1).T
 
             m_pred = model(x_test)
-            m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
-            model.compute(A_test.clone()).solve(torch.cat([m_pred[:, [0]], m_pred[:, [1]], m_pred[:, [2]]], dim=0))
+            # m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
+            # model.compute(A_test.clone()).solve(torch.cat([m_pred[:, [0]], m_pred[:, [1]], m_pred[:, [2]]], dim=0))
 
             # m_pred /= torch.linalg.norm(m_pred, dim=1, keepdim=True)
             m_exact = func_m(torch.cat([x_test, (t0 + k * dt) * torch.ones((x_test.shape[0], 1))], dim=1), dim=3)
             error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
-            print(f"Step {k}/{n_steps}, Time {t0 + k * dt:.4f}, Error: {error:.4e}")
+            # print(f"Step {k}/{n_steps}, Time {t0 + k * dt:.4f}, Error: {error:.4e}")
 
             norm_check = torch.linalg.norm(m_pred, dim=1)
-            print(f"  |m_pred| min: {norm_check.min():.6f}, max: {norm_check.max():.6f}")
+            # print(f"  |m_pred| min: {norm_check.min():.6f}, max: {norm_check.max():.6f}")
 
             # plot m_pred[:, [0]], m_pred[:, [1]], m_pred[:, [2]]
             # import matplotlib.pyplot as plt
@@ -526,6 +549,8 @@ def run_rfm(args):
     error = torch.norm(m_pred - m_exact) / torch.norm(m_exact)
     print(f"Error: {error:.4e}")
 
+    return error
+
 
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
@@ -543,6 +568,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         for group, label in zip(param_sets_groups, group_labels):
             print(f"\n\n{label}")
+            errors = []
+            params = []
             for param_set in group:
                 args = argparse.Namespace(**param_set)
                 print("\n" + "=" * 40)
@@ -551,11 +578,34 @@ if __name__ == '__main__':
                     f"Nx = {args.Nx}, Nt = {args.Nt}, Qx = {args.Qx}, Qt = {args.Qt}, Jn = {args.Jn}, Nb = {args.Nb}, type = {args.type}")
                 print(f"--------------------------")
                 start_time = time.time()
-                run_rfm(args)
+                errors.append(run_rfm(args))
+                if "temporal" in label.lower():
+                    params.append(args.Qt * args.Nt)
+                elif "spatial" in label.lower():
+                    params.append(args.Qx * args.Nx)
                 print(f"\nSimulation Results:")
                 print(f"--------------------------")
                 print(f"Elapsed Time: {time.time() - start_time:.2f} seconds")
                 print("=" * 40)
+
+            if params and errors:
+                if "spatial" in label.lower():
+                    params = [int(p ** (1 / 3)) for p in params]
+                for i in range(len(errors) - 1):
+                    p = torch.log(errors[i] / errors[i + 1]) / torch.log(
+                        torch.tensor(params[i + 1] / params[i], dtype=errors[i].dtype)
+                    )
+                    print(
+                        f"params = {params[i]:>3d} -> {params[i + 1]:>3d}, "
+                        f"order ≈ {p.item():.4f}"
+                    )
+
+                p_global = torch.log(errors[0] / errors[-1]) / torch.log(
+                    torch.tensor(params[-1] / params[0], dtype=errors[0].dtype)
+                )
+
+                print(f"\nGlobal order (overall): ≈ {p_global.item():.4f}")
+
     else:
         args = parser.parse_args()
         run_rfm(args)

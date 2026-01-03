@@ -179,7 +179,7 @@ param_sets_groups = [
 group_labels = [
     # "Convergence",
     "Convergence with respect to temporal resolution",
-    # "Convergence with respect to spatial resolution"
+    "Convergence with respect to spatial resolution"
 ]
 
 
