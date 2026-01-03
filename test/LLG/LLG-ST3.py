@@ -154,13 +154,16 @@ param_sets_groups = [
         {"Nx": 1, "Nt": 1, "Qx": 1000, "Qt": 32, "Jn": 100 * 32, "Nb": 1, "type": "STC", "alpha": 0.00001, "T": 1.0}
     ],
     [
-        {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 100, "Jn": 40 * 10, "Nb": 1, "type": "STC", "alpha": 0.00001,
+        {"Nx": 1, "Nt": 1, "Qx": 10 ** 3, "Qt": 100, "Jn": 400, "Nb": 1, "type": "STC", "alpha": 0.00001,
          "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 12 ** 3, "Qt": 100, "Jn": 40 * 12, "Nb": 1, "type": "STC", "alpha": 0.00001,
+        {"Nx": 1, "Nt": 1, "Qx": 12 ** 3, "Qt": 100, "Jn": int(400 * 1.2 ** 3), "Nb": 1, "type": "STC",
+         "alpha": 0.00001,
          "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 14 ** 3, "Qt": 100, "Jn": 40 * 14, "Nb": 1, "type": "STC", "alpha": 0.00001,
+        {"Nx": 1, "Nt": 1, "Qx": 14 ** 3, "Qt": 100, "Jn": int(400 * 1.4 ** 3), "Nb": 1, "type": "STC",
+         "alpha": 0.00001,
          "T": 5e-2},
-        {"Nx": 1, "Nt": 1, "Qx": 16 ** 3, "Qt": 100, "Jn": 40 * 16, "Nb": 1, "type": "STC", "alpha": 0.00001,
+        {"Nx": 1, "Nt": 1, "Qx": 16 ** 3, "Qt": 100, "Jn": int(400 * 1.6 ** 3), "Nb": 1, "type": "STC",
+         "alpha": 0.00001,
          "T": 5e-2},
     ]
 ]
@@ -188,7 +191,7 @@ def run_rfm(args):
                                       st_type=args.type))
 
     x_in = domain.in_sample(args.Qx * args.Nx, with_boundary=False)
-    x_on, x_on_normal = domain.on_sample(6 * int((args.Qx * args.N) ** (2 / 3)), with_normal=True)
+    x_on, x_on_normal = domain.on_sample(6 * int((args.Qx * args.Nx) ** (2 / 3)), with_normal=True)
 
     for i, model in enumerate(models):
         t0 = torch.tensor(model.time_interval[0]).reshape(-1, 1)
@@ -364,6 +367,8 @@ if __name__ == '__main__':
                 print("=" * 40)
 
             if params and errors:
+                if "spatial" in label.lower():
+                    params = [p ** (1 / 3) for p in params]
                 for i in range(len(errors) - 1):
                     p = torch.log(errors[i] / errors[i + 1]) / torch.log(
                         torch.tensor(params[i + 1] / params[i], dtype=errors[i].dtype)
