@@ -1119,7 +1119,7 @@ class RFMBase(ABC):
         new_obj = copy.deepcopy(self) if deep else copy.copy(self)
         return new_obj
 
-    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False):
+    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False, verbose=True):
         """
         Compute the QR decomposition of matrix A.
 
@@ -1139,7 +1139,8 @@ class RFMBase(ABC):
             A = torch.cat(
                 [A, damp * torch.eye(A.shape[1], dtype=self.dtype, device=self.device)],
                 dim=0)
-        print("Decomposing the problem size of A: ", A.shape, "with solver QR")
+        if verbose:
+            print("Decomposing the problem size of A: ", A.shape, "with solver QR")
 
         try:
             self.A, self.tau = torch.geqrf(A)
@@ -1208,8 +1209,8 @@ class RFMBase(ABC):
 
         except RuntimeError as e:
             # Add support for minium norm solution
-            logger.warning(e)
-            logger.warning("Switching to torch.linalg.lstsq solver.")
+            logger.warn(str(e))
+            logger.warn("Switching to torch.linalg.lstsq solver.")
             self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
             b = b_backup.to(dtype=self.dtype, device=self.device)
             self.W = torch.linalg.lstsq(self.A, b,
@@ -1917,7 +1918,7 @@ class STRFMBase(ABC):
                     for i in range(0, xt.shape[0], batch_size):
                         xt_batch = xt[i:i + batch_size]
                         feat = self.features_derivative(xt=xt_batch, axis=d).cat(dim=1)
-                        outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                        outputs.append(torch.matmul(feat, self.W))
                     return torch.cat(outputs, dim=0)
 
                 elif ord_sum == 2:
@@ -1931,7 +1932,7 @@ class STRFMBase(ABC):
                         for i in range(0, xt.shape[0], batch_size):
                             xt_batch = xt[i:i + batch_size]
                             feat = self.features_second_derivative(xt=xt_batch, axis1=d, axis2=d).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            outputs.append(torch.matmul(feat, self.W))
                         return torch.cat(outputs, dim=0)
 
                     elif len(idx2) == 0 and len(idx1) == 2:
@@ -1940,7 +1941,7 @@ class STRFMBase(ABC):
                         for i in range(0, xt.shape[0], batch_size):
                             xt_batch = xt[i:i + batch_size]
                             feat = self.features_second_derivative(xt=xt_batch, axis1=d1, axis2=d2).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            outputs.append(torch.matmul(feat, self.W))
                         return torch.cat(outputs, dim=0)
 
                     else:
