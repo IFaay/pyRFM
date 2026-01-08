@@ -4,9 +4,11 @@ Created on 2024/12/15
 
 @author: Yifei Sun
 """
+from distutils.dep_util import newer_group
 from typing import Any
 
 import torch
+from OCP.Select3D import Select3D_SensitiveGroup
 from torch import Tensor
 
 from .utils import *
@@ -914,7 +916,7 @@ class IntersectionGeometry(GeometryBase):
                     NB, with_normal=True, separate=False
                 )
                 samples = torch.cat([a_pts, b_pts], dim=0)
-                normals = torch.cat([a_nrms, b_nrms], dim=0)
+                normals = torch.cat([a_nrms, b_nrms], dim=0) if not is_comp_B else torch.cat([a_nrms, -b_nrms], dim=0)
             else:
                 samples = torch.cat(
                     [
@@ -960,6 +962,13 @@ class IntersectionGeometry(GeometryBase):
         if with_normal:
             groups_A = self.geomA.on_sample(NA, True, True)
             groups_B = self.geomB.on_sample(NB, True, True)
+
+            if is_comp_B:
+                new_group = []
+                for group in groups_B:
+                    new_group.append((group[0], -group[1]))
+                groups_B = new_group
+
             all_groups = list(groups_A) + list(groups_B)
 
             if not all_groups:
