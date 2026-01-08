@@ -1016,10 +1016,10 @@ class RFMBase(ABC):
                     indices2 = [slice(None)] * self.dim
                     indices2[d] = slice(k + 1, k + 2, 1)
 
-                    centers1 = self.centers[indices1].view(-1, self.dim)
-                    radii1 = self.radii[indices1].view(-1, self.dim)
-                    centers2 = self.centers[indices2].view(-1, self.dim)
-                    radii2 = self.radii[indices2].view(-1, self.dim)
+                    centers1 = self.centers[tuple(indices1)].view(-1, self.dim)
+                    radii1 = self.radii[tuple(indices1)].view(-1, self.dim)
+                    centers2 = self.centers[tuple(indices2)].view(-1, self.dim)
+                    radii2 = self.radii[tuple(indices2)].view(-1, self.dim)
 
                     indices1 = ravel_multi_index(indices1, n_subdomains)
                     indices2 = ravel_multi_index(indices2, n_subdomains)
