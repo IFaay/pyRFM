@@ -71,8 +71,8 @@ def run_rfm(args):
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
     start_time = time.time()
 
-    domain = pyrfm.Square2D(center=(0.5, 0.5), radius=(0.5, 0.5)) - pyrfm.Circle2D(center=(0.5, 0.2),
-                                                                                   radius=0.1) - pyrfm.Circle2D(
+    domain = pyrfm.Square2D(center=(0.5, 0.5), half=(0.5, 0.5)) - pyrfm.Circle2D(center=(0.5, 0.2),
+                                                                                 radius=0.1) - pyrfm.Circle2D(
         center=(0.2, 0.8), radius=0.1) - pyrfm.Circle2D(center=(0.8, 0.8), radius=0.1)
 
     model = pyrfm.RFMBase(dim=2, n_hidden=args.M, domain=domain, n_subdomains=1)
@@ -117,9 +117,10 @@ def run_rfm(args):
     visualizer = pyrfm.RFMVisualizer2D(model, component_idx=2)
     visualizer.plot()
     visualizer.show()
-    visualizer.savefig('stokes_flow_p.png', dpi=600)
+    # visualizer.savefig('stokes_flow_p.png', dpi=600)
 
     uvp = model.forward(x_in)
+    uvp_x = model.dForward(x_in, order=(1, 0))
     u, v, p = uvp[:, [0]], uvp[:, [1]], uvp[:, [2]]
     u_exact, v_exact = func_u(x_in), func_v(x_in)
     p_exact = func_p(x_in)

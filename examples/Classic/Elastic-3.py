@@ -57,7 +57,7 @@ def func_f(x, args):
 
 
 def run_rfm(args):
-    domain = pyrfm.Square2D(center=[0.0, 0.0], radius=[1.0, 0.5]) + pyrfm.Circle2D(center=[1.0, 0.0], radius=0.5) \
+    domain = pyrfm.Square2D(center=[0.0, 0.0], half=[1.0, 0.5]) + pyrfm.Circle2D(center=[1.0, 0.0], radius=0.5) \
              - (pyrfm.Circle2D(center=[1.2, 0.0], radius=0.2) + pyrfm.Circle2D(center=[-0.5, 0.0], radius=0.2))
 
     x_in = domain.in_sample(args.Q, with_boundary=False)
