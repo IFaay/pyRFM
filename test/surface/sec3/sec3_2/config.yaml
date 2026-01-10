@@ -1,11 +1,11 @@
 # --------- 基础输入 ----------
 #ply_path: "bottle.ply"     # 你的数据路径
-pth_path: "../../data/ellipsoid_in.pth"
+pth_path: "../../data/airfoil_in.pth"
 
 # --------- 训练超参 ----------
 batch_size: 64
 num_epochs: 2000
-activation_cfg: [ "ReLU", "TanH" ]
+activation_cfg: [ "TanH", "TanH" ]
 
 model:
   inner_dim: 512

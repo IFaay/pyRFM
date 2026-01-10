@@ -8,7 +8,6 @@ from distutils.dep_util import newer_group
 from typing import Any
 
 import torch
-from OCP.Select3D import Select3D_SensitiveGroup
 from torch import Tensor
 
 from .utils import *
