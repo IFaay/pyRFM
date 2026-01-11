@@ -158,15 +158,15 @@ def extract_airfoil_points_numpy(shape):
     while face_exp.More():
         face = topods.Face(face_exp.Current())
 
-        pts = sample_face(face, 40, 40)
+        if face_id not in (10, 11):
+            pts = sample_face(face, 30, 400)
+        else:
+            pts = sample_face(face, 100, 100)
+
         if pts.size == 0:
             face_id += 1
             face_exp.Next()
             continue
-
-        # Refine sampling for non-section faces
-        if face_id not in (10, 11):
-            pts = sample_face(face, 30, 400)
 
         P_all_faces.append(pts)
 
@@ -259,6 +259,29 @@ def plot_airfoil_points(P_wing, P_section, P_wing_boundary, subsample=5):
     plt.tight_layout()
     plt.show()
 
+def plot_airfoil_all(Pw, subsample=5):
+    Pw = Pw[::subsample].cpu().numpy()
+
+
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    ax.scatter(Pw[:, 0], Pw[:, 1], Pw[:, 2], s=1, alpha=0.6, label="ALL")
+    # equal aspect ratio
+    max_range = np.array([Pw[:, 0].max() - Pw[:, 0].min(),
+                          Pw[:, 1].max() - Pw[:, 1].min(),
+                          Pw[:, 2].max() - Pw[:, 2].min()]).max() / 2.0
+    mid_x = (Pw[:, 0].max() + Pw[:, 0].min()) * 0.5
+    mid_y = (Pw[:, 1].max() + Pw[:, 1].min()) * 0.5
+    mid_z = (Pw[:, 2].max() + Pw[:, 2].min()) * 0.5
+    ax.set_xlim(mid_x - max_range, mid_x + max_range)
+    ax.set_ylim(mid_y - max_range, mid_y + max_range)
+    ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
 
 # =========================================================
 # Entry
@@ -317,5 +340,6 @@ if __name__ == "__main__":
 
     print(x_trim_in.shape, x_trim_out.shape, x_trim_boundary.shape)
 
-    # # Optional: sanity check / visualization
-    # plot_airfoil_points(P_wing, P_section, P_boundary)
+    # # Optional: check / visualization
+    plot_airfoil_points(P_wing, P_section, P_boundary)
+    plot_airfoil_all(P_all)
