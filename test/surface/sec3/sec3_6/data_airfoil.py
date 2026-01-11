@@ -82,7 +82,7 @@ def sample_face(face, nu=80, nv=80, tol=1e-7):
 
             # strict inside test on the face
             classifier.Perform(face, p, tol)
-            if classifier.State() not in (TopAbs_IN,):
+            if classifier.State() not in (TopAbs_IN, TopAbs_ON):
                 continue
 
             props = GeomLProp_SLProps(geom_surf, u, v, 2, tol)
