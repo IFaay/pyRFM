@@ -29,6 +29,7 @@ from OCC.Core.TopAbs import (
     TopAbs_EDGE,
     TopAbs_IN,
     TopAbs_ON,
+    TopAbs_REVERSED
 )
 
 from OCC.Core.TopoDS import topods
@@ -89,6 +90,9 @@ def sample_face(face, nu=80, nv=80, tol=1e-7):
                 continue
 
             n = props.Normal()
+            if face.Orientation() == TopAbs_REVERSED:
+                n.Reverse()
+
             H = props.MeanCurvature()
 
             data.append([
