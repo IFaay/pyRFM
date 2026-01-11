@@ -81,7 +81,7 @@ def sample_face(face, nu=80, nv=80, tol=1e-7):
 
             # strict inside test on the face
             classifier.Perform(face, p, tol)
-            if classifier.State() not in (TopAbs_IN, TopAbs_ON):
+            if classifier.State() not in (TopAbs_IN,):
                 continue
 
             props = GeomLProp_SLProps(geom_surf, u, v, 2, tol)
@@ -259,9 +259,9 @@ def plot_airfoil_points(P_wing, P_section, P_wing_boundary, subsample=5):
     plt.tight_layout()
     plt.show()
 
+
 def plot_airfoil_all(Pw, subsample=5):
     Pw = Pw[::subsample].cpu().numpy()
-
 
     fig = plt.figure(figsize=(10, 6))
     ax = fig.add_subplot(111, projection="3d")
