@@ -118,7 +118,7 @@ class RFMVisualizer2D(RFMVisualizer):
         if self.sdf is not None:
             sdf_values = self.sdf(grid_points).detach().cpu().numpy().reshape(X.shape)
             Z[sdf_values > 0] = np.nan
-        Z = Z.T[::-1]
+        Z = Z.T
 
         self.ax.imshow(Z, extent=self.bounding_box, origin='lower', cmap=cmap, aspect='auto', **kwargs)
         self.ax.set_xlabel('X-axis')
