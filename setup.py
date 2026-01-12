@@ -5,7 +5,7 @@ ROOT = Path(__file__).parent
 
 setup(
     name="pyrfm",
-    version="0.3.2",
+    version="0.3.4",
     description="Random Feature Method (RFM) tools in Python",
     long_description=(ROOT / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
@@ -15,7 +15,7 @@ setup(
     packages=find_packages(exclude=["tests*", "docs*"]),
     python_requires=">=3.10",
     install_requires=[
-        "torch>=2.1.0,<2.9",
+        "torch>=2.1.0",
         "numpy>=1.23",  # 建议加下限以确保与 torch 兼容
         "pandas>=1.5",
         "matplotlib>=3.5",
