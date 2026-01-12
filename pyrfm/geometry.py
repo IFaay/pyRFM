@@ -8,7 +8,6 @@ from distutils.dep_util import newer_group
 from typing import Any
 
 import torch
-from OCP.Select3D import Select3D_SensitiveGroup
 from torch import Tensor
 
 from .utils import *
@@ -1476,653 +1475,129 @@ class ExtrudeBody(GeometryBase):
 
 
 class ImplicitFunctionBase(GeometryBase):
-    """
-    Base class for geometries defined by implicit functions.
-
-    Subclasses must implement a scalar-valued shape function f(p) whose
-    zero level set defines the geometry boundary. This class provides
-    utilities to evaluate normalized signed distance functions (SDFs),
-    normals, and mean curvature, with optional acceleration via a model
-    that supports directional derivatives (`dForward`).
-    """
-
     @abstractmethod
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
-        """
-        Evaluate the implicit shape function.
-
-        Args:
-            p (torch.Tensor): Query points.
-
-        Shape:
-            - p: (N, 3)
-            - return: (N,) or (N, 1)
-
-        Returns:
-            torch.Tensor: Values of the implicit function f(p).
-        """
         pass
 
-    # ------------------------------------------------------------------ #
-    # Utilities for locating a model that supports directional derivatives
-    # ------------------------------------------------------------------ #
-    def _get_model_for_dforward(self):
+    def sdf(self, p: torch.Tensor, with_normal=False, with_curvature=False) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
-        Return a model object that provides `dForward`, if available.
-
-        Subclasses may override this method to explicitly return a model
-        instance with directional derivative support.
-
-        Returns:
-            Any or None: An object exposing `dForward`, or None if unavailable.
-        """
-        cand = getattr(self, "model", None)
-        return cand if (cand is not None and hasattr(cand, "dForward")) else None
-
-    def _has_dforward(self) -> bool:
-        """
-        Check whether directional derivatives are available.
-
-        Returns:
-            bool: True if a compatible `dForward` implementation is found.
-        """
-        return self._get_model_for_dforward() is not None
-
-    # ------------------------------------------------------------------ #
-    # Gradient evaluation
-    # ------------------------------------------------------------------ #
-    @torch.no_grad()
-    def _eval_grad_dforward(self, p: torch.Tensor) -> torch.Tensor:
-        """
-        Evaluate the gradient using directional derivatives.
+        Memory-efficient computation of the normalized signed distance function (SDF),
+        with optional normal and mean curvature computation.
 
         Args:
-            p (torch.Tensor): Query points.
-
-        Returns:
-            torch.Tensor: Gradient tensor of shape (N, 3).
-        """
-        model = self._get_model_for_dforward()
-        nx = model.dForward(p, (1, 0, 0)).squeeze(-1)
-        ny = model.dForward(p, (0, 1, 0)).squeeze(-1)
-        nz = model.dForward(p, (0, 0, 1)).squeeze(-1)
-        return torch.stack([nx, ny, nz], dim=-1)
-
-    def _eval_grad(self, p: torch.Tensor) -> torch.Tensor:
-        """
-        Evaluate the gradient of the implicit function.
-
-        Directional derivatives are used if available; otherwise, PyTorch
-        autograd is used as a fallback.
-
-        Args:
-            p (torch.Tensor): Query points.
-
-        Returns:
-            torch.Tensor: Gradient tensor of shape (N, 3).
-        """
-        if self._has_dforward():
-            return self._eval_grad_dforward(p)
-
-        # Fallback: autograd
-        p_req = p.detach().clone().requires_grad_(True)
-        f = self.shape_func(p_req)
-        if f.ndim == 2 and f.size(-1) == 1:
-            f = f.squeeze(-1)
-
-        g = torch.autograd.grad(
-            f,
-            p_req,
-            grad_outputs=torch.ones_like(f),
-            create_graph=False,
-            retain_graph=False,
-        )[0]
-        return g
-
-    # ------------------------------------------------------------------ #
-    # Hessian and Laplacian (directional-derivative path)
-    # ------------------------------------------------------------------ #
-    @torch.no_grad()
-    def _eval_hessian_dforward(
-            self, p: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Evaluate the Hessian matrix and Laplacian using directional derivatives.
-
-        This requires the underlying model to support second-order
-        multi-index derivatives via `dForward`.
-
-        Args:
-            p (torch.Tensor): Query points.
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - H: Hessian tensor of shape (N, 3, 3)
-                - lap: Laplacian values of shape (N,)
-        """
-        model = self._get_model_for_dforward()
-
-        f_xx = model.dForward(p, (2, 0, 0)).squeeze(-1)
-        f_yy = model.dForward(p, (0, 2, 0)).squeeze(-1)
-        f_zz = model.dForward(p, (0, 0, 2)).squeeze(-1)
-        f_xy = model.dForward(p, (1, 1, 0)).squeeze(-1)
-        f_xz = model.dForward(p, (1, 0, 1)).squeeze(-1)
-        f_yz = model.dForward(p, (0, 1, 1)).squeeze(-1)
-
-        H = torch.zeros(
-            p.shape[0], 3, 3, device=p.device, dtype=p.dtype
-        )
-        H[:, 0, 0] = f_xx
-        H[:, 1, 1] = f_yy
-        H[:, 2, 2] = f_zz
-        H[:, 0, 1] = H[:, 1, 0] = f_xy
-        H[:, 0, 2] = H[:, 2, 0] = f_xz
-        H[:, 1, 2] = H[:, 2, 1] = f_yz
-
-        lap = f_xx + f_yy + f_zz
-        return H, lap
-
-    # ------------------------------------------------------------------ #
-    # Normalized SDF, normals, and curvature
-    # ------------------------------------------------------------------ #
-    def sdf(
-            self,
-            p: torch.Tensor,
-            with_normal: bool = False,
-            with_curvature: bool = False,
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
-        """
-        Evaluate the normalized signed distance function (SDF).
-
-        The normalized SDF is defined as:
-            sdf(p) = f(p) / ||∇f(p)||
-
-        Optionally, this method can also return unit normals and mean
-        curvature:
-            H = 0.5 * div(n),   n = ∇f / ||∇f||
-
-        Args:
-            p (torch.Tensor): Query points.
-            with_normal (bool): If True, also return unit normals.
+            p (torch.Tensor): Input point cloud of shape (N, 3)
+            with_normal (bool): If True, also return normal vectors.
             with_curvature (bool): If True, also return mean curvature.
 
         Returns:
-            If with_normal=False and with_curvature=False:
-                - sdf: Tensor of shape (N, 1)
-
-            If with_normal=True and with_curvature=False:
-                - sdf: (N, 1)
-                - normals: (N, 3)
-
-            If with_curvature=True:
-                - sdf: (N, 1)
-                - normals: (N, 3)
-                - mean_curvature: (N, 1)
-
-        Notes:
-            - Directional derivatives (`dForward`) are preferred when available.
-            - No assumption is made that ||∇f|| ≈ 1.
+            Union of tensors depending on flags:
+                - sdf
+                - (sdf, normal)
+                - (sdf, normal, mean_curvature)
         """
-        eps = torch.finfo(p.dtype).eps
-
-        # Evaluate implicit function
+        p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
         f = self.shape_func(p)
-        if f.ndim == 2 and f.size(-1) == 1:
-            f = f.squeeze(-1)
 
-        sdf = f.unsqueeze(-1)
+        # Compute gradient (∇f)
+        grad = torch.autograd.grad(outputs=f, inputs=p, grad_outputs=torch.ones_like(f), create_graph=with_curvature,
+                                   # Need graph for second-order derivative
+                                   retain_graph=with_curvature, only_inputs=True)[0]
+
+        grad_norm = torch.norm(grad, dim=-1, keepdim=True)
+        sdf = f / grad_norm
+        normal = grad / grad_norm
+
         if not (with_normal or with_curvature):
             return sdf.detach()
+        elif with_normal and (not with_curvature):
+            return sdf.detach(), normal.detach()
+        else:
+            divergence = 0.0
+            for i in range(p.shape[-1]):  # Loop over x, y, z
+                dni = torch.autograd.grad(outputs=normal[:, i], inputs=p, grad_outputs=torch.ones_like(normal[:, i]),
+                                          create_graph=False, retain_graph=True, only_inputs=True)[0][:, [i]]
+                divergence += dni
 
-        # Evaluate gradient
-        g = self._eval_grad(p)
-        gnorm = g.norm(dim=-1, keepdim=True).clamp_min(1e-12)
-        n = g / gnorm
-
-        if with_normal and not with_curvature:
-            return sdf.detach(), n.detach()
-
-        # --------------------------------------------------
-        # Mean curvature: div(n)
-        # --------------------------------------------------
-        if self._has_dforward():
-            # Closed-form expression:
-            # div(n) = (||g||^2 * tr(H) - g^T H g) / ||g||^3
-            H, lap = self._eval_hessian_dforward(p)
-
-            g_col = g.unsqueeze(-1)
-            Hg = torch.matmul(H, g_col)
-            gT_H_g = torch.matmul(
-                g_col.transpose(1, 2), Hg
-            ).squeeze(-1).squeeze(-1)
-
-            g2 = gnorm.squeeze(-1) ** 2
-            div_n = (g2 * lap - gT_H_g) / (gnorm.squeeze(-1) ** 3 + eps)
-
-            mean_curv = 0.5 * div_n
-            return (
-                sdf.detach(),
-                n.detach(),
-                mean_curv.detach().unsqueeze(-1),
-            )
-
-        # Fallback: autograd-based divergence of n
-        p_req = p.detach().clone().requires_grad_(True)
-        f2 = self.shape_func(p_req)
-        if f2.ndim == 2 and f2.size(-1) == 1:
-            f2 = f2.squeeze(-1)
-
-        g2 = torch.autograd.grad(
-            f2,
-            p_req,
-            grad_outputs=torch.ones_like(f2),
-            create_graph=True,
-            retain_graph=True,
-        )[0]
-
-        g2n = g2.norm(dim=-1, keepdim=True).clamp_min(1e-12)
-        n2 = g2 / g2n
-
-        div = 0.0
-        for i in range(3):
-            di = torch.autograd.grad(
-                n2[:, i],
-                p_req,
-                grad_outputs=torch.ones_like(n2[:, i]),
-                create_graph=False,
-                retain_graph=True,
-            )[0][:, i]
-            div = div + di
-
-        mean_curv = 0.5 * div
-
-        return (
-            sdf.detach(),
-            n.detach(),
-            mean_curv.detach().unsqueeze(-1),
-        )
+            mean_curvature = 0.5 * divergence  # H = ½ ∇·n
+            return sdf.detach(), normal.detach(), mean_curvature.detach()
 
 
 class ImplicitSurfaceBase(ImplicitFunctionBase):
-    """
-    Base class for implicitly defined 2D surfaces embedded in 3D.
-
-    An implicit surface is defined as the zero level set of a scalar
-    function f(p):
-        S = { p ∈ R³ | f(p) = 0 }
-
-    This class provides a robust surface sampling implementation based
-    on:
-        - volumetric evaluation on a regular grid
-        - zero-crossing detection (Marching Cubes or voxel fallback)
-        - normal-based Newton projection onto the surface
-
-    Subclasses must implement `shape_func`.
-    """
-
     def __init__(self):
-        """
-        Initialize an implicit surface.
-
-        Notes:
-            - Ambient dimension is 3.
-            - Intrinsic (manifold) dimension is 2.
-        """
         super().__init__(dim=3, intrinsic_dim=2)
 
     @abstractmethod
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
-        """
-        Evaluate the implicit surface function.
-
-        Args:
-            p (torch.Tensor): Query points.
-
-        Shape:
-            - p: (N, 3)
-            - return: (N,) or (N, 1)
-
-        Returns:
-            torch.Tensor: Values of the implicit function f(p).
-        """
         pass
 
-    # ================================================================== #
-    # Interior sampling (surface points) via Marching Cubes + projection
-    # ================================================================== #
-    @torch.no_grad()
     def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
         """
-        Sample points on the implicit surface f(p) = 0.
-
-        This method generates initial surface points using a volumetric
-        grid and then projects them onto the zero level set using a
-        normal-based Newton iteration.
-
-        Pipeline:
-            1. Build a regular grid over the bounding box
-            2. Evaluate f on the grid in blocks (to avoid OOM)
-            3. Extract zero-crossing candidates:
-                - Marching Cubes (if available), or
-                - voxel-based zero-crossing fallback
-            4. Project candidates onto the surface using
-               p_{k+1} = p_k - f(p_k)/||∇f(p_k)|| · n̂
-            5. Filter invalid / duplicate / out-of-tolerance points
-            6. Subsample or augment to match `num_samples`
+        Sample near-surface points by rejection and iterative projection.
 
         Args:
-            num_samples (int): Target number of surface points.
+            num_samples (int): Number of samples to generate.
             with_boundary (bool): Ignored for implicit surfaces.
 
         Returns:
-            torch.Tensor: Surface points of shape (num_samples, 3).
-
-        Notes:
-            - No assumption is made that ||∇f|| ≈ 1.
-            - Computation is automatically chunked to control memory usage.
-            - If surface extraction fails, a rejection-sampling fallback
-              is used.
-        """
-        if num_samples <= 0:
-            return torch.empty(
-                0, self.dim, dtype=self.dtype, device=self.device
-            )
-
-        # --------------------------------------------------------------
-        # 1) Bounding box and grid resolution estimation
-        # --------------------------------------------------------------
-        x_min, x_max, y_min, y_max, z_min, z_max = self.get_bounding_box()
-
-        # Expand bounding box slightly to avoid clipping
-        margin = 0.1 * max(
-            (x_max - x_min), (y_max - y_min), (z_max - z_min)
-        )
-        x_min -= margin
-        x_max += margin
-        y_min -= margin
-        y_max += margin
-        z_min -= margin
-        z_max += margin
-
-        # Heuristic grid resolution: O(num_samples)
-        c = 2.0
-        n_per_axis = int(
-            max(128, min(320, round(c * (num_samples ** (1.0 / 3.0)))))
-        )
-        nx = ny = nz = n_per_axis
-
-        def _linspace(a, b, n):
-            return torch.linspace(
-                a, b, steps=n, device=self.device, dtype=self.dtype
-            )
-
-        xs = _linspace(x_min, x_max, nx)
-        ys = _linspace(y_min, y_max, ny)
-        zs = _linspace(z_min, z_max, nz)
-
-        # --------------------------------------------------------------
-        # 2) Evaluate implicit function on the grid (block-wise)
-        # --------------------------------------------------------------
-        def _eval_grid():
-            sdf_grid = torch.empty(
-                (nx, ny, nz), dtype=self.dtype, device=self.device
-            )
-            bz = max(8, min(nz, 64))
-            for z0 in range(0, nz, bz):
-                z1 = min(nz, z0 + bz)
-                Z = zs[z0:z1]
-                X, Y, Zm = torch.meshgrid(xs, ys, Z, indexing="ij")
-                pts = torch.stack([X, Y, Zm], dim=-1).reshape(-1, 3)
-
-                f = self.shape_func(pts)
-                if f.ndim == 2 and f.size(-1) == 1:
-                    f = f.squeeze(-1)
-
-                sdf_grid[:, :, z0:z1] = f.reshape(nx, ny, z1 - z0)
-                del X, Y, Zm, pts, f
-            return sdf_grid
-
-        sdf_grid = _eval_grid()
-
-        # --------------------------------------------------------------
-        # 3) Initial surface candidates (voxel fallback)
-        # --------------------------------------------------------------
-        init_pts = self._fallback_voxel_zerocross(
-            xs, ys, zs, sdf_grid, k=max(num_samples * 2, 512)
-        )
-
-        # --------------------------------------------------------------
-        # 4) Project candidates to f(p)=0
-        # --------------------------------------------------------------
-        proj = self._project_to_surface(init_pts, max_iter=60)
-
-        # --------------------------------------------------------------
-        # 5) Cleanup and subsampling
-        # --------------------------------------------------------------
-        f_proj = self.shape_func(proj)
-        if f_proj.ndim == 2 and f_proj.size(-1) == 1:
-            f_proj = f_proj.squeeze(-1)
-
-        tol = torch.finfo(self.dtype).eps * 100
-        mask = torch.isfinite(f_proj) & (f_proj.abs() < tol)
-        proj = proj[mask]
-
-        if proj.numel() == 0:
-            return self._fallback_rejection_projection(num_samples)
-
-        if proj.shape[0] >= num_samples:
-            idx = torch.randperm(
-                proj.shape[0], device=proj.device, generator=self.gen
-            )
-            return proj[idx[:num_samples]].contiguous()
-
-        need = num_samples - proj.shape[0]
-        extra = self._fallback_rejection_projection(need)
-        return torch.cat([proj, extra], dim=0)[:num_samples].contiguous()
-
-    # ================================================================== #
-    # Normal-based Newton projection
-    # ================================================================== #
-    @torch.no_grad()
-    def _project_to_surface(
-            self, points: torch.Tensor, max_iter: int = 10
-    ) -> torch.Tensor:
-        """
-        Project points onto the implicit surface using Newton iterations.
-
-        Update rule:
-            p_{k+1} = p_k - f(p_k)/||∇f(p_k)|| · n̂
-
-        Args:
-            points (torch.Tensor): Initial points, shape (N, 3).
-            max_iter (int): Maximum number of projection iterations.
-
-        Returns:
-            torch.Tensor: Projected surface points.
-        """
-        pts = points.clone()
-        B = max(2048, min(32768, points.shape[0]))
-
-        for _ in range(max_iter):
-            for i in range(0, pts.shape[0], B):
-                sl = slice(i, i + B)
-                p = pts[sl]
-
-                f = self.shape_func(p)
-                if f.ndim == 2 and f.size(-1) == 1:
-                    f = f.squeeze(-1)
-
-                g = self._eval_grad(p)
-                n_hat = g / g.norm(dim=1, keepdim=True)
-
-                pts[sl] = p - f.unsqueeze(-1) * n_hat
-
-        return pts
-
-    # ================================================================== #
-    # Fallback: voxel zero-crossing approximation
-    # ================================================================== #
-    @torch.no_grad()
-    def _fallback_voxel_zerocross(
-            self, xs, ys, zs, sdf_grid, k: int
-    ) -> torch.Tensor:
-        """
-        Approximate surface points via voxel sign changes.
-
-        This method detects sign changes of f between neighboring voxels
-        and uses face centers as initial surface candidates.
-
-        Args:
-            xs, ys, zs (torch.Tensor): Grid coordinates.
-            sdf_grid (torch.Tensor): Evaluated implicit function on the grid.
-            k (int): Target number of initial points.
-
-        Returns:
-            torch.Tensor: Approximate surface points.
-        """
-        nx, ny, nz = sdf_grid.shape
-        pts = []
-
-        sign_x = torch.signbit(sdf_grid[1:, :, :]) != torch.signbit(
-            sdf_grid[:-1, :, :]
-        )
-        ix, iy, iz = torch.where(sign_x)
-        if ix.numel():
-            pts.append(
-                torch.stack(
-                    [(xs[ix] + xs[ix + 1]) / 2, ys[iy], zs[iz]], dim=1
-                )
-            )
-
-        sign_y = torch.signbit(sdf_grid[:, 1:, :]) != torch.signbit(
-            sdf_grid[:, :-1, :]
-        )
-        ix, iy, iz = torch.where(sign_y)
-        if iy.numel():
-            pts.append(
-                torch.stack(
-                    [xs[ix], (ys[iy] + ys[iy + 1]) / 2, zs[iz]], dim=1
-                )
-            )
-
-        sign_z = torch.signbit(sdf_grid[:, :, 1:]) != torch.signbit(
-            sdf_grid[:, :, :-1]
-        )
-        ix, iy, iz = torch.where(sign_z)
-        if iz.numel():
-            pts.append(
-                torch.stack(
-                    [xs[ix], ys[iy], (zs[iz] + zs[iz + 1]) / 2], dim=1
-                )
-            )
-
-        if not pts:
-            return self._fallback_rejection_projection(k)
-
-        P = torch.cat(pts, dim=0).to(self.device, self.dtype)
-        if P.shape[0] > 3 * k:
-            sel = torch.randperm(P.shape[0], device=self.device)[:3 * k]
-            P = P[sel]
-        return P
-
-    # ================================================================== #
-    # Fallback: rejection sampling + projection
-    # ================================================================== #
-    @torch.no_grad()
-    def _fallback_rejection_projection(
-            self, num_samples: int
-    ) -> torch.Tensor:
-        """
-        Fallback surface sampling using rejection sampling and projection.
-
-        This method randomly samples points in an expanded bounding box,
-        keeps points close to the surface, and projects them onto f(p)=0.
-
-        Args:
-            num_samples (int): Number of surface points requested.
-
-        Returns:
-            torch.Tensor: Surface points.
+            torch.Tensor: Sampled points projected onto the surface.
         """
         x_min, x_max, y_min, y_max, z_min, z_max = self.get_bounding_box()
         volume = (x_max - x_min) * (y_max - y_min) * (z_max - z_min)
-        resolution = (volume / max(num_samples, 1)) ** (1 / self.dim)
-        eps_band = resolution
+        resolution = (volume / num_samples) ** (1 / self.dim)
+        eps = 2 * resolution
 
         collected = []
+        max_iter = 10
         oversample = int(num_samples * 1.5)
 
         while sum(c.shape[0] for c in collected) < num_samples:
-            rand = torch.rand(
-                oversample,
-                self.dim,
-                device=self.device,
-                dtype=self.dtype,
-                generator=self.gen,
-            )
-
-            p = torch.empty(
-                oversample, self.dim, dtype=self.dtype, device=self.device
-            )
-            p[:, 0] = (x_min - 4 * eps_band) + rand[:, 0] * (
-                    (x_max + 4 * eps_band) - (x_min - 4 * eps_band)
-            )
-            p[:, 1] = (y_min - 4 * eps_band) + rand[:, 1] * (
-                    (y_max + 4 * eps_band) - (y_min - 4 * eps_band)
-            )
-            p[:, 2] = (z_min - 4 * eps_band) + rand[:, 2] * (
-                    (z_max + 4 * eps_band) - (z_min - 4 * eps_band)
-            )
-
+            rand = torch.rand(oversample, self.dim, device=self.device, generator=self.gen)
+            p = torch.empty(oversample, self.dim, dtype=self.dtype, device=self.device)
+            p[:, 0] = (x_min - eps) + rand[:, 0] * ((x_max + eps) - (x_min - eps))
+            p[:, 1] = (y_min - eps) + rand[:, 1] * ((y_max + eps) - (y_min - eps))
+            p[:, 2] = (z_min - eps) + rand[:, 2] * ((z_max + eps) - (z_min - eps))
+            p.requires_grad_(True)
             f = self.shape_func(p)
-            if f.ndim == 2 and f.size(-1) == 1:
-                f = f.squeeze(-1)
+            grad = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
+            grad_norm = grad.norm(dim=1, keepdim=True)
+            normal = grad / grad_norm
+            sdf = f / grad_norm
+            near_mask = (sdf.abs() < eps).squeeze()
+            near_points = p[near_mask]
+            near_normals = normal[near_mask]
+            near_sdf = sdf[near_mask]
 
-            g = self._eval_grad(p)
-            n_hat = g / g.norm(dim=1, keepdim=True)
-
-            near = f.abs() < eps_band
-            near_p = p[near]
-            near_n = n_hat[near]
-            near_f = f[near]
-
-            for _ in range(10):
-                if near_p.shape[0] == 0:
+            for _ in range(max_iter):
+                if near_points.shape[0] == 0:
                     break
-                near_p = near_p - near_f.unsqueeze(-1) * near_n
+                near_points = near_points - near_sdf * near_normals
+                near_points.requires_grad_(True)
+                f_proj = self.shape_func(near_points)
+                grad_proj = torch.autograd.grad(f_proj, near_points, torch.ones_like(f_proj), create_graph=False)[0]
+                grad_norm_proj = grad_proj.norm(dim=1, keepdim=True)
+                near_normals = grad_proj / grad_norm_proj
+                near_sdf = f_proj / grad_norm_proj
+                if near_sdf.abs().max().item() < torch.finfo(self.dtype).eps * resolution:
+                    break
 
-                f2 = self.shape_func(near_p)
-                if f2.ndim == 2 and f2.size(-1) == 1:
-                    f2 = f2.squeeze(-1)
-
-                g2 = self._eval_grad(near_p)
-                near_n = g2 / g2.norm(dim=1, keepdim=True)
-                near_f = f2
-
-            mask = torch.isfinite(near_f) & (
-                    near_f.abs()
-                    < torch.finfo(self.dtype).eps * resolution
-            )
-            collected.append(near_p[mask])
+            collected.append(near_points.detach())
 
         return torch.cat(collected, dim=0)[:num_samples]
 
-    def on_sample(
-            self, num_samples: int, with_normal: bool = False, separate: bool = False,
-    ) -> Union[
-        torch.Tensor,
-        Tuple[torch.Tensor, ...],
-        Tuple[Tuple[torch.Tensor, torch.Tensor], ...],
-    ]:
+    def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
-        Explicit boundary sampling is not defined for implicit surfaces.
+        Implicit surfaces do not explicitly provide boundary samples.
+        This method returns an empty tensor compatible with Boolean ops.
+
+        Args:
+            num_samples (int): Number of samples (ignored).
+            with_normal (bool): Whether to include normals.
 
         Returns:
-            Empty tensors (and normals if requested).
+            torch.Tensor or Tuple[torch.Tensor, torch.Tensor]: Empty tensor(s).
         """
-        empty = torch.empty(
-            (0, self.dim), dtype=self.dtype, device=self.device
-        )
+        empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
         if with_normal:
             return empty, empty
         return empty
