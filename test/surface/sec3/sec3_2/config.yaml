@@ -53,7 +53,7 @@ viz:
   iso_view: "top"              # 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom'
 
 # --------- 产出/存储 ----------
-resume: true                   # 断点恢复
+resume: false                   # 断点恢复
 load_best_for_plot: false
 out:
   checkpoints_dir: "checkpoints"

@@ -1,242 +1,241 @@
 # -*- coding: utf-8 -*-
 """
-Dense sampling of NACA airfoil STEP surfaces with:
-- strict face-inside test
-- exact surface normal
-- exact mean curvature
-- final torch.tensor conversion
+Gmsh-based sampling of NACA0012 STEP:
 
-Each surface sample:
-[x, y, z, nx, ny, nz, H]
+- Use Gmsh to:
+    * import Naca0012.STEP
+    * generate a surface mesh (2D on CAD surfaces)
+    * extract nodes, normals, and mean curvature on each surface
 
-We organize the point sets as:
-- x               : all points on the STEP surface (Γ')       (geometry + normal + H stored in airfoil_in.pth)
-- x_trim_in       : points on the target trimmed surface Γ    (wing faces, interior of Γ)
-- x_trim_out      : points on Γ' but not in Γ                 (here: section faces)
-- x_trim_boundary : boundary points ∂Γ (geometry only, from section edges)
+- Organize point sets:
+    x               : all points on Γ'            (all surfaces)
+    x_trim_in       : points on Γ                (wing surfaces)
+    x_trim_out      : points on Γ' \ Γ           (section surfaces)
+    x_trim_boundary : points on ∂Γ               (intersection of Γ and section)
+
+Saved files:
+    ../../data/airfoil_in.pth         -> (x, normal, mean_curvature)
+    ../../data/airfoil_trim_sets.pth  -> (x_trim_in, x_trim_out, x_trim_boundary)
 """
+
+from pathlib import Path
+from typing import Iterable, Tuple, Dict
 
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from OCC.Core.STEPControl import STEPControl_Reader
-from OCC.Core.IFSelect import IFSelect_RetDone
-
-from OCC.Core.TopExp import TopExp_Explorer
-from OCC.Core.TopAbs import (
-    TopAbs_FACE,
-    TopAbs_EDGE,
-    TopAbs_IN,
-    TopAbs_ON,
-    TopAbs_REVERSED
-)
-
-from OCC.Core.TopoDS import topods
-from OCC.Core.BRepAdaptor import BRepAdaptor_Surface, BRepAdaptor_Curve
-from OCC.Core.BRepTools import breptools
-from OCC.Core.BRepClass import BRepClass_FaceClassifier
-from OCC.Core.GeomLProp import GeomLProp_SLProps
+import gmsh
 
 
 # =========================================================
-# STEP loader
+# Gmsh sampling helpers
 # =========================================================
 
-def load_step(filename):
-    reader = STEPControl_Reader()
-    if reader.ReadFile(filename) != IFSelect_RetDone:
-        raise RuntimeError(f"Failed to read STEP file: {filename}")
-    reader.TransferRoots()
-    return reader.Shape()
-
-
-# =========================================================
-# Dense sampling on a face
-# =========================================================
-
-def sample_face(face, nu=80, nv=80, tol=1e-7):
+def generate_surface_mesh_with_gmsh(
+        step_file: str | Path,
+        mesh_size: float = 10.0,
+) -> None:
     """
-    Dense sampling on a single face.
+    Use Gmsh to import STEP and generate a 2D surface mesh.
 
-    Returns
-    -------
-    np.ndarray of shape (N, 7):
-        [x, y, z, nx, ny, nz, H]
+    After this call, the current Gmsh model contains:
+        - imported CAD geometry
+        - a 2D mesh on all surfaces
     """
-    umin, umax, vmin, vmax = breptools.UVBounds(face)
+    step_file = Path(step_file)
+    if not step_file.exists():
+        raise FileNotFoundError(step_file)
 
-    surf_adaptor = BRepAdaptor_Surface(face, True)
-    geom_surf = surf_adaptor.Surface().Surface()
+    gmsh.initialize()
+    gmsh.option.setNumber("General.Terminal", 1)
 
-    classifier = BRepClass_FaceClassifier()
+    gmsh.model.add("NACA0012")
+    gmsh.model.occ.importShapes(str(step_file))
+    gmsh.model.occ.synchronize()
 
-    us = np.linspace(umin, umax, nu)
-    vs = np.linspace(vmin, vmax, nv)
+    # Report surfaces for debugging / tag inspection
+    surfaces = gmsh.model.getEntities(dim=2)
+    print(f"[INFO] Surfaces (dim=2): {surfaces}")
 
-    data = []
+    # Uniform mesh size (coarse/medium, adjust as needed)
+    gmsh.option.setNumber("Mesh.MeshSizeMax", mesh_size)
+    # gmsh.option.setNumber("Mesh.MeshSizeMin", mesh_size)
 
-    for u in us:
-        for v in vs:
-            p = surf_adaptor.Value(u, v)
-
-            # strict inside test on the face
-            classifier.Perform(face, p, tol)
-            if classifier.State() not in (TopAbs_IN, TopAbs_ON):
-                continue
-
-            props = GeomLProp_SLProps(geom_surf, u, v, 2, tol)
-            if not props.IsNormalDefined():
-                continue
-
-            n = props.Normal()
-            if face.Orientation() == TopAbs_REVERSED:
-                n.Reverse()
-
-            H = props.MeanCurvature()
-
-            data.append([
-                p.X(), p.Y(), p.Z(),
-                n.X(), n.Y(), n.Z(),
-                H
-            ])
-
-    return np.asarray(data, dtype=np.float64)
+    print("[INFO] Generating 2D surface mesh...")
+    gmsh.model.mesh.generate(2)
+    print("[INFO] Mesh generation done.")
 
 
-# =========================================================
-# Dense sampling on an edge (geometry only)
-# =========================================================
-
-def sample_edge(edge, n=300):
+def _accumulate_node_data_from_surface(
+        surf_tag: int,
+        section_surface_tags: Iterable[int],
+        all_pos: Dict[int, np.ndarray],
+        all_normal: Dict[int, np.ndarray],
+        all_H: Dict[int, float],
+        all_tags: set[int],
+        wing_tags: set[int],
+        section_tags: set[int],
+) -> None:
     """
-    Dense sampling on a single edge (geometry only).
-
-    Returns
-    -------
-    np.ndarray of shape (N, 3):
-        [x, y, z]
+    For a single surface (dim=2, tag=surf_tag), collect all nodes, normals, and
+    mean curvature, and update:
+        - global maps: all_pos, all_normal, all_H
+        - global tag sets: all_tags, wing_tags, section_tags
     """
-    curve = BRepAdaptor_Curve(edge)
-    umin = curve.FirstParameter()
-    umax = curve.LastParameter()
-
-    us = np.linspace(umin, umax, n)
-    pts = []
-    for u in us:
-        p = curve.Value(u)
-        pts.append([p.X(), p.Y(), p.Z()])
-
-    return np.asarray(pts, dtype=np.float64)
-
-
-# =========================================================
-# Main extraction logic (NumPy level)
-# =========================================================
-
-def extract_airfoil_points_numpy(shape):
-    """
-    Extract dense samples from the STEP shape.
-
-    Returns
-    -------
-    P_all_faces : (N, 7)
-        All sampled points on all faces (Γ'), with [x, y, z, nx, ny, nz, H].
-    P_wing      : (Nw, 7)
-        Points on wing faces (interpreted as trimmed surface Γ).
-    P_section   : (Ns, 7)
-        Points on section faces (here interpreted as Γ' \ Γ).
-    P_bnd       : (Nb, 3)
-        Boundary points ∂Γ sampled on edges of section faces (geometry only).
-    """
-
-    face_exp = TopExp_Explorer(shape, TopAbs_FACE)
-
-    P_all_faces = []
-    P_wing = []
-    P_section = []
-
-    section_faces = []
-
-    face_id = 1
-    while face_exp.More():
-        face = topods.Face(face_exp.Current())
-
-        if face_id not in (10, 11):
-            pts = sample_face(face, 30, 400)
-        else:
-            pts = sample_face(face, 100, 100)
-
-        if pts.size == 0:
-            face_id += 1
-            face_exp.Next()
-            continue
-
-        P_all_faces.append(pts)
-
-        # Face 10, 11: section faces
-        if face_id in (10, 11):
-            P_section.append(pts)
-            section_faces.append(face)
-        else:
-            P_wing.append(pts)
-
-        face_id += 1
-        face_exp.Next()
-
-    P_wing_boundary = []
-    for face in section_faces:
-        edge_exp = TopExp_Explorer(face, TopAbs_EDGE)
-        while edge_exp.More():
-            edge = topods.Edge(edge_exp.Current())
-            pts = sample_edge(edge)
-            if pts.size > 0:
-                P_wing_boundary.append(pts)
-            edge_exp.Next()
-
-    return (
-        np.vstack(P_all_faces),
-        np.vstack(P_wing),
-        np.vstack(P_section),
-        np.vstack(P_wing_boundary),
+    # Get nodes on this surface, including boundary nodes, with parametric coords
+    nodeTags, coord, param = gmsh.model.mesh.getNodes(
+        dim=2, tag=surf_tag, includeBoundary=True, returnParametricCoord=True
     )
 
+    if len(nodeTags) == 0:
+        return
 
-# =========================================================
-# Torch wrapper (recommended entry)
-# =========================================================
+    coord = np.asarray(coord, dtype=np.float64).reshape(-1, 3)
 
-def extract_airfoil_points_torch(
-        shape,
-        device="cpu",
+    # param is [u1, v1, u2, v2, ...]
+    param = np.asarray(param, dtype=np.float64)
+    if param.size != 2 * coord.shape[0]:
+        # Fallback: if no param coords are available (discrete surface),
+        # we skip normals/curvature and set zeros.
+        print(f"[WARN] Surface {surf_tag}: parametric coords missing/inconsistent.")
+        normals = np.zeros_like(coord)
+        H = np.zeros(coord.shape[0], dtype=np.float64)
+    else:
+        # Get normals from CAD
+        normals = gmsh.model.getNormal(surf_tag, param.tolist())
+        normals = np.asarray(normals, dtype=np.float64).reshape(-1, 3)
+
+        # Principal curvatures -> mean curvature H = (k_max + k_min)/2
+        k_max, k_min, dir_max, dir_min = gmsh.model.getPrincipalCurvatures(
+            surf_tag, param.tolist()
+        )
+        k_max = np.asarray(k_max, dtype=np.float64).ravel()
+        k_min = np.asarray(k_min, dtype=np.float64).ravel()
+        H = 0.5 * (k_max + k_min)
+
+    # Update maps and sets
+    is_section = surf_tag in section_surface_tags
+
+    for i, tag in enumerate(nodeTags):
+        tag = int(tag)
+
+        # Global unique storage for node position/normal/curvature
+        if tag not in all_pos:
+            all_pos[tag] = coord[i]
+            all_normal[tag] = normals[i]
+            all_H[tag] = float(H[i])
+
+        all_tags.add(tag)
+        if is_section:
+            section_tags.add(tag)
+        else:
+            wing_tags.add(tag)
+
+
+def extract_airfoil_points_from_gmsh(
+        section_surface_tags: Iterable[int] = (10, 11),
+        device: str = "cpu",
         dtype=torch.float64,
-):
+) -> Tuple[
+    torch.Tensor,  # x  (all)
+    torch.Tensor,  # normal
+    torch.Tensor,  # mean curvature
+    torch.Tensor,  # x_trim_in
+    torch.Tensor,  # x_trim_out
+    torch.Tensor,  # x_trim_boundary
+]:
     """
-    Torch wrapper for airfoil point extraction.
+    From the current Gmsh model (must already contain a 2D surface mesh),
+    build the point sets:
 
-    Returns
-    -------
-    P_all      : torch.Tensor, (N, 7)
-    P_wing     : torch.Tensor, (Nw, 7)
-    P_section  : torch.Tensor, (Ns, 7)
-    P_bnd      : torch.Tensor, (Nb, 3)
+        x               : all points on Γ'
+        normal          : unit normals on Γ'
+        mean_curvature  : mean curvature on Γ'
+        x_trim_in       : points on Γ         (wing surfaces)
+        x_trim_out      : points on Γ'\Γ      (section surfaces)
+        x_trim_boundary : intersection ∂Γ     (nodes shared by wing & section)
+
+    section_surface_tags:
+        Surface tags to be treated as "section faces" (like face 10, 11 before).
+        All other surfaces are treated as "wing faces".
     """
+    section_surface_tags = set(int(t) for t in section_surface_tags)
 
-    P_all, P_wing, P_sec, P_bnd = extract_airfoil_points_numpy(shape)
+    # Global maps: nodeTag -> data
+    all_pos: Dict[int, np.ndarray] = {}
+    all_normal: Dict[int, np.ndarray] = {}
+    all_H: Dict[int, float] = {}
 
-    return (
-        torch.as_tensor(P_all, device=device, dtype=dtype),
-        torch.as_tensor(P_wing, device=device, dtype=dtype),
-        torch.as_tensor(P_sec, device=device, dtype=dtype),
-        torch.as_tensor(P_bnd, device=device, dtype=dtype),
-    )
+    # Global tag sets
+    all_tags: set[int] = set()
+    wing_tags: set[int] = set()
+    section_tags: set[int] = set()
+
+    # Traverse all 2D entities (surfaces)
+    surfaces = gmsh.model.getEntities(dim=2)
+    print(f"[INFO] Found {len(surfaces)} surfaces for sampling.")
+
+    for dim, sTag in surfaces:
+        assert dim == 2
+        print(f"[INFO] Sampling surface tag = {sTag} "
+              f"{'(section)' if sTag in section_surface_tags else '(wing/other)'}")
+        _accumulate_node_data_from_surface(
+            surf_tag=sTag,
+            section_surface_tags=section_surface_tags,
+            all_pos=all_pos,
+            all_normal=all_normal,
+            all_H=all_H,
+            all_tags=all_tags,
+            wing_tags=wing_tags,
+            section_tags=section_tags,
+        )
+
+    # Set operations for trim sets
+    boundary_tags = wing_tags & section_tags
+    trim_in_tags = wing_tags - boundary_tags
+    trim_out_tags = section_tags - boundary_tags
+
+    print(f"[INFO] #all nodes       = {len(all_tags)}")
+    print(f"[INFO] #wing nodes      = {len(wing_tags)}")
+    print(f"[INFO] #section nodes   = {len(section_tags)}")
+    print(f"[INFO] #boundary nodes  = {len(boundary_tags)}")
+    print(f"[INFO] #trim_in nodes   = {len(trim_in_tags)}")
+    print(f"[INFO] #trim_out nodes  = {len(trim_out_tags)}")
+
+    # Helper to pack tags -> torch tensor
+    def pack_positions(tags: Iterable[int]) -> torch.Tensor:
+        tags_sorted = sorted(tags)
+        P = np.array([all_pos[t] for t in tags_sorted], dtype=np.float64)
+        return torch.as_tensor(P, device=device, dtype=dtype)
+
+    def pack_all() -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        tags_sorted = sorted(all_tags)
+        P = np.array([all_pos[t] for t in tags_sorted], dtype=np.float64)
+        N = np.array([all_normal[t] for t in tags_sorted], dtype=np.float64)
+        H = np.array([[all_H[t]] for t in tags_sorted], dtype=np.float64)
+        return (
+            torch.as_tensor(P, device=device, dtype=dtype),
+            torch.as_tensor(N, device=device, dtype=dtype),
+            torch.as_tensor(H, device=device, dtype=dtype),
+        )
+
+    x, normal, mean_curvature = pack_all()
+    x_trim_in = pack_positions(trim_in_tags)
+    x_trim_out = pack_positions(trim_out_tags)
+    x_trim_boundary = pack_positions(boundary_tags)
+
+    return x, normal, mean_curvature, x_trim_in, x_trim_out, x_trim_boundary
 
 
 # =========================================================
-# Visualization (optional)
+# Visualization (optional, same接口)
 # =========================================================
 
-def plot_airfoil_points(P_wing, P_section, P_wing_boundary, subsample=5):
+def plot_airfoil_points(P_wing: torch.Tensor,
+                        P_section: torch.Tensor,
+                        P_wing_boundary: torch.Tensor,
+                        subsample: int = 5) -> None:
     Pw = P_wing[::subsample].cpu().numpy()
     Ps = P_section[::subsample].cpu().numpy()
     Pb = P_wing_boundary[::max(1, subsample // 2)].cpu().numpy()
@@ -249,9 +248,11 @@ def plot_airfoil_points(P_wing, P_section, P_wing_boundary, subsample=5):
     ax.scatter(Pb[:, 0], Pb[:, 1], Pb[:, 2], s=6, c="k", label="Boundary (∂Γ)")
 
     # equal aspect ratio
-    max_range = np.array([Pw[:, 0].max() - Pw[:, 0].min(),
-                          Pw[:, 1].max() - Pw[:, 1].min(),
-                          Pw[:, 2].max() - Pw[:, 2].min()]).max() / 2.0
+    max_range = np.array([
+        Pw[:, 0].max() - Pw[:, 0].min(),
+        Pw[:, 1].max() - Pw[:, 1].min(),
+        Pw[:, 2].max() - Pw[:, 2].min()
+    ]).max() / 2.0
     mid_x = (Pw[:, 0].max() + Pw[:, 0].min()) * 0.5
     mid_y = (Pw[:, 1].max() + Pw[:, 1].min()) * 0.5
     mid_z = (Pw[:, 2].max() + Pw[:, 2].min()) * 0.5
@@ -264,17 +265,19 @@ def plot_airfoil_points(P_wing, P_section, P_wing_boundary, subsample=5):
     plt.show()
 
 
-def plot_airfoil_all(Pw, subsample=5):
+def plot_airfoil_all(Pw: torch.Tensor, subsample: int = 5) -> None:
     Pw = Pw[::subsample].cpu().numpy()
 
     fig = plt.figure(figsize=(10, 6))
     ax = fig.add_subplot(111, projection="3d")
 
     ax.scatter(Pw[:, 0], Pw[:, 1], Pw[:, 2], s=1, alpha=0.6, label="ALL")
-    # equal aspect ratio
-    max_range = np.array([Pw[:, 0].max() - Pw[:, 0].min(),
-                          Pw[:, 1].max() - Pw[:, 1].min(),
-                          Pw[:, 2].max() - Pw[:, 2].min()]).max() / 2.0
+
+    max_range = np.array([
+        Pw[:, 0].max() - Pw[:, 0].min(),
+        Pw[:, 1].max() - Pw[:, 1].min(),
+        Pw[:, 2].max() - Pw[:, 2].min()
+    ]).max() / 2.0
     mid_x = (Pw[:, 0].max() + Pw[:, 0].min()) * 0.5
     mid_y = (Pw[:, 1].max() + Pw[:, 1].min()) * 0.5
     mid_z = (Pw[:, 2].max() + Pw[:, 2].min()) * 0.5
@@ -292,58 +295,52 @@ def plot_airfoil_all(Pw, subsample=5):
 # =========================================================
 
 if __name__ == "__main__":
-    # Default device setup
-    torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
+    step_path = "Naca0012.STEP"
+    mesh_size = 5.0
 
-    shape = load_step("Naca0012.STEP")
+    # Default device
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    torch.set_default_device(device)
 
-    P_all, P_wing, P_section, P_boundary = extract_airfoil_points_torch(
-        shape,
-        device="cpu",  # or "cuda"
-        dtype=torch.float64,
-    )
+    # 1) 用 Gmsh 生成表面网格
+    generate_surface_mesh_with_gmsh(step_path, mesh_size=mesh_size)
 
-    # ------------------------------------------------------------------
-    # 1) Untrimmed surface Γ': all faces, kept as before
-    # ------------------------------------------------------------------
-    x = P_all[:, :3]  # (N, 3)
-    normal = P_all[:, 3:6]  # (N, 3)
-    mean_curvature = P_all[:, 6:]  # (N, 1)
+    try:
+        # 2) 从 Gmsh 提取点集 + 法向 + 曲率
+        (
+            x,
+            normal,
+            mean_curvature,
+            x_trim_in,
+            x_trim_out,
+            x_trim_boundary,
+        ) = extract_airfoil_points_from_gmsh(
+            section_surface_tags=(10, 11),  # 如有需要可改
+            device=device,
+            dtype=torch.float64,
+        )
 
-    # This file keeps the original convention: all points on Γ'
-    torch.save((x, normal, mean_curvature), '../../data/airfoil_in.pth')
+        # 3) 保存与之前保持兼容
+        torch.save((x, normal, mean_curvature), "../../data/airfoil_in.pth")
+        torch.save(
+            (x_trim_in, x_trim_out, x_trim_boundary),
+            "../../data/airfoil_trim_sets.pth",
+        )
 
-    x, normal, mean_curvature = torch.load(
-        '../../data/airfoil_in.pth',
-        map_location=torch.tensor(0.).device
-    )
+        print("[INFO] Saved ../../data/airfoil_in.pth")
+        print("[INFO] Saved ../../data/airfoil_trim_sets.pth")
+        print(x.shape, normal.shape, mean_curvature.shape,
+              x.dtype, x.device)
+        print(x_trim_in.shape, x_trim_out.shape, x_trim_boundary.shape)
 
-    print(x.shape, normal.shape, mean_curvature.shape, x.dtype, x.device)
+        # 可选可视化：用几何分组而不是直接 x_trim_*，
+        # 这里简单地用 trim 集合重构 P_wing/P_section/P_boundary
+        P_wing = x_trim_in
+        P_section = x_trim_out
+        P_boundary = x_trim_boundary
 
-    # ------------------------------------------------------------------
-    # 2) Trimmed sets for Γ, Γ'\Γ, and ∂Γ (geometry only)
-    #    These use the naming:
-    #       x_trim_in       : points on Γ        (wing faces)
-    #       x_trim_out      : points on Γ'\Γ    (section faces)
-    #       x_trim_boundary : points on ∂Γ      (boundary edges)
-    # ------------------------------------------------------------------
-    x_trim_in = P_wing[:, :3]  # (N_in, 3)
-    x_trim_out = P_section[:, :3]  # (N_out, 3)
-    x_trim_boundary = P_boundary  # (N_bnd, 3), already geometry only
+        plot_airfoil_points(P_wing, P_section, P_boundary)
+        plot_airfoil_all(x)
 
-    # 如需要，可以单独保存 trim 相关集合：
-    torch.save(
-        (x_trim_in, x_trim_out, x_trim_boundary),
-        '../../data/airfoil_trim_sets.pth'
-    )
-
-    x_trim_in, x_trim_out, x_trim_boundary = torch.load(
-        '../../data/airfoil_trim_sets.pth',
-        map_location=torch.tensor(0.).device
-    )
-
-    print(x_trim_in.shape, x_trim_out.shape, x_trim_boundary.shape)
-
-    # # Optional: check / visualization
-    plot_airfoil_points(P_wing, P_section, P_boundary)
-    plot_airfoil_all(P_all)
+    finally:
+        gmsh.finalize()
