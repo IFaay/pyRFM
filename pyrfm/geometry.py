@@ -1499,10 +1499,20 @@ class ImplicitFunctionBase(GeometryBase):
         p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
         f = self.shape_func(p)
 
+        if not f.requires_grad:
+            # === 域外 / POU=0 / 常函数退化 ===
+            sdf = torch.nan_to_num(f, nan=0.0)
+            if not (with_normal or with_curvature):
+                return sdf.detach()
+            elif with_normal and not with_curvature:
+                return sdf.detach(), torch.zeros_like(p)
+            else:
+                return sdf.detach(), torch.zeros_like(p), torch.zeros_like(f)
+
         # Compute gradient (∇f)
         grad = torch.autograd.grad(outputs=f, inputs=p, grad_outputs=torch.ones_like(f), create_graph=with_curvature,
                                    # Need graph for second-order derivative
-                                   retain_graph=with_curvature, only_inputs=True)[0]
+                                   retain_graph=True)[0]
 
         grad_norm = torch.norm(grad, dim=-1, keepdim=True)
         sdf = f / grad_norm
@@ -1516,7 +1526,7 @@ class ImplicitFunctionBase(GeometryBase):
             divergence = 0.0
             for i in range(p.shape[-1]):  # Loop over x, y, z
                 dni = torch.autograd.grad(outputs=normal[:, i], inputs=p, grad_outputs=torch.ones_like(normal[:, i]),
-                                          create_graph=False, retain_graph=True, only_inputs=True)[0][:, [i]]
+                                          create_graph=False, retain_graph=True)[0][:, [i]]
                 divergence += dni
 
             mean_curvature = 0.5 * divergence  # H = ½ ∇·n
