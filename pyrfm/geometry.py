@@ -1499,10 +1499,20 @@ class ImplicitFunctionBase(GeometryBase):
         p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
         f = self.shape_func(p)
 
+        if not f.requires_grad:
+            # === 域外 / POU=0 / 常函数退化 ===
+            sdf = torch.nan_to_num(f, nan=0.0)
+            if not (with_normal or with_curvature):
+                return sdf.detach()
+            elif with_normal and not with_curvature:
+                return sdf.detach(), torch.zeros_like(p)
+            else:
+                return sdf.detach(), torch.zeros_like(p), torch.zeros_like(f)
+
         # Compute gradient (∇f)
         grad = torch.autograd.grad(outputs=f, inputs=p, grad_outputs=torch.ones_like(f), create_graph=with_curvature,
                                    # Need graph for second-order derivative
-                                   retain_graph=with_curvature, only_inputs=True)[0]
+                                   retain_graph=True)[0]
 
         grad_norm = torch.norm(grad, dim=-1, keepdim=True)
         sdf = f / grad_norm
@@ -1516,7 +1526,7 @@ class ImplicitFunctionBase(GeometryBase):
             divergence = 0.0
             for i in range(p.shape[-1]):  # Loop over x, y, z
                 dni = torch.autograd.grad(outputs=normal[:, i], inputs=p, grad_outputs=torch.ones_like(normal[:, i]),
-                                          create_graph=False, retain_graph=True, only_inputs=True)[0][:, [i]]
+                                          create_graph=False, retain_graph=True)[0][:, [i]]
                 divergence += dni
 
             mean_curvature = 0.5 * divergence  # H = ½ ∇·n
@@ -1581,26 +1591,257 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
                 if near_sdf.abs().max().item() < torch.finfo(self.dtype).eps * resolution:
                     break
 
-            collected.append(near_points.detach())
+            near_points = near_points.detach()
+            if hasattr(self, 'trim_func'):
+                trim_mask = (
+                    self.trim_func(near_points) <= 0 if with_boundary else self.trim_func(near_points) < 0).squeeze()
+                near_points = near_points[trim_mask]
+            collected.append(near_points)
 
         return torch.cat(collected, dim=0)[:num_samples]
 
     def on_sample(self, num_samples: int, with_normal: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
-        Implicit surfaces do not explicitly provide boundary samples.
-        This method returns an empty tensor compatible with Boolean ops.
+        Sample boundary points where shape_func == 0 and trim_func == 0.
+
+        Strategy:
+        1) Random points in bbox.
+        2) First project onto shape surface using shape_func gradient (like in_sample).
+        3) Then, on the surface, move along the surface tangent direction induced by trim_func
+           to enforce trim_func ~= 0.
 
         Args:
-            num_samples (int): Number of samples (ignored).
-            with_normal (bool): Whether to include normals.
+            num_samples (int): Number of boundary samples to generate.
+            with_normal (bool): If True, also return surface normals at boundary points
+                                (normals of shape_func).
 
         Returns:
-            torch.Tensor or Tuple[torch.Tensor, torch.Tensor]: Empty tensor(s).
+            torch.Tensor or (torch.Tensor, torch.Tensor):
+                - points: (M, 3) boundary points (M >= num_samples)
+                - normals: (M, 3) surface normals (if with_normal is True)
         """
-        empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
-        if with_normal:
-            return empty, empty
-        return empty
+        if not hasattr(self, 'trim_func'):
+            print("Warning: on_sample called on implicit surface without trim_func; returning empty samples.")
+            empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
+            if with_normal:
+                return empty, empty
+            return empty
+
+        # ------------------------------------------------------------
+        # BBox & resolution, same style as in_sample
+        # ------------------------------------------------------------
+        x_min, x_max, y_min, y_max, z_min, z_max = self.get_bounding_box()
+        volume = (x_max - x_min) * (y_max - y_min) * (z_max - z_min)
+        resolution = (volume / num_samples) ** (1 / self.dim)
+        eps_band = 2 * resolution  # band width for near-surface & near-trim selection
+
+        # 收敛容差：参考 in_sample 的写法，用 machine eps * resolution
+        tol = torch.finfo(self.dtype).eps * resolution
+
+        collected = []
+        # 边界维度比面低，oversample 稍微放大一点
+        oversample = int(num_samples * 3)
+
+        max_iter_surface = 10  # 投影到 shape_func=0 的最大迭代步数
+        max_iter_boundary = 10  # 在曲面上调整 trim_func=0 的最大迭代步数
+
+        device = self.device
+        dtype = self.dtype
+
+        while sum(c.shape[0] for c in collected) < num_samples:
+            # --------------------------------------------------------
+            # 1. 在 bbox 内随机采样
+            # --------------------------------------------------------
+            rand = torch.rand(oversample, self.dim, device=device, generator=self.gen)
+            p = torch.empty(oversample, self.dim, dtype=dtype, device=device)
+            p[:, 0] = x_min + rand[:, 0] * (x_max - x_min)
+            p[:, 1] = y_min + rand[:, 1] * (y_max - y_min)
+            p[:, 2] = z_min + rand[:, 2] * (z_max - z_min)
+
+            # 第一次：为 shape 投影做一次前向/反向
+            p = p.detach().requires_grad_(True)
+            f = self.shape_func(p)
+            if f.ndim == 1:
+                f = f.unsqueeze(1)
+
+            grad_f = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
+            grad_f_norm = grad_f.norm(dim=1, keepdim=True)
+
+            # 防止 grad 为零
+            valid_mask = (grad_f_norm.squeeze() > 0)
+            if not valid_mask.any():
+                continue
+
+            p = p[valid_mask].detach()
+            f = f[valid_mask].detach()
+            grad_f = grad_f[valid_mask].detach()
+            grad_f_norm = grad_f_norm[valid_mask].detach()
+
+            # 近似到曲面的距离 sdf = f / ||grad f||
+            sdf = f / grad_f_norm
+
+            # trim_func，用于筛选靠近修剪界的点
+            g = self.trim_func(p)
+            if g.ndim == 1:
+                g = g.unsqueeze(1)
+
+            # 初筛：靠近曲面 + 靠近 trim 的 0 等值
+            near_mask = (sdf.abs() < eps_band) & (g.abs() < 2 * eps_band)
+            near_mask = near_mask.squeeze()
+
+            if not near_mask.any():
+                continue
+
+            p = p[near_mask].detach()
+            f = f[near_mask].detach()
+            sdf = sdf[near_mask].detach()
+            grad_f = grad_f[near_mask].detach()
+            grad_f_norm = grad_f_norm[near_mask].detach()
+
+            if p.shape[0] == 0:
+                continue
+
+            # --------------------------------------------------------
+            # 2. Stage 1: 沿 shape_func 的法向投影到曲面 (f=0)
+            #    和 in_sample 一致：p <- p - sdf * n
+            # --------------------------------------------------------
+            normals = grad_f / (grad_f_norm + 1e-12)
+
+            for _ in range(max_iter_surface):
+                # 每一轮重新构建计算图，避免多次 backward 复用旧图
+                p = p.detach().requires_grad_(True)
+                # 使用上一次的近似 sdf 和 normal 进行一步投影
+                p = p - sdf * normals
+
+                f = self.shape_func(p)
+                if f.ndim == 1:
+                    f = f.unsqueeze(1)
+
+                grad_f = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
+                grad_f_norm = grad_f.norm(dim=1, keepdim=True) + 1e-12
+                normals = grad_f / grad_f_norm
+                sdf = f / grad_f_norm
+
+                # 收敛判据参考 in_sample：基于近似距离的极大值
+                if sdf.abs().max().item() < tol:
+                    break
+
+                # 下一轮循环前将 p 从图中 detach 出来
+                p = p.detach()
+                f = f.detach()
+                sdf = sdf.detach()
+                grad_f = grad_f.detach()
+                grad_f_norm = grad_f_norm.detach()
+                normals = normals.detach()
+
+            # Stage1 结束后，完全切断旧图
+            p = p.detach()
+
+            if p.shape[0] == 0:
+                continue
+
+            # --------------------------------------------------------
+            # 3. Stage 2: 在曲面上调整 trim_func -> 0
+            #    思路：保持在曲面上（沿切向方向移动），利用 trim_func 的梯度做“切向牛顿步”
+            #
+            #    n      : shape_func 的法向 (曲面法向)
+            #    grad_g : trim_func 的梯度
+            #    grad_g_tan = grad_g - (grad_g·n) n  (投影到切平面)
+            #    s = -g / ||grad_g_tan||^2
+            #    Δp = s * grad_g_tan
+            # --------------------------------------------------------
+            for _ in range(max_iter_boundary):
+                # 每次循环都重新作为 leaf 构建计算图
+                p = p.detach().requires_grad_(True)
+
+                f = self.shape_func(p)
+                g = self.trim_func(p)
+                if f.ndim == 1:
+                    f = f.unsqueeze(1)
+                if g.ndim == 1:
+                    g = g.unsqueeze(1)
+
+                ones_f = torch.ones_like(f)
+                ones_g = torch.ones_like(g)
+
+                grad_f = torch.autograd.grad(
+                    f, p, ones_f, retain_graph=True, create_graph=False
+                )[0]
+                grad_g = torch.autograd.grad(
+                    g, p, ones_g, create_graph=False
+                )[0]
+
+                grad_f_norm = grad_f.norm(dim=1, keepdim=True) + 1e-12
+                n = grad_f / grad_f_norm  # surface normal
+
+                # trim_func 梯度在切平面上的分量
+                proj = (grad_g * n).sum(dim=1, keepdim=True)
+                grad_g_tan = grad_g - proj * n
+
+                denom = grad_g_tan.norm(dim=1, keepdim=True) ** 2 + 1e-12
+                # 标量牛顿步长
+                step = -g / denom
+                delta = step * grad_g_tan
+
+                # 沿切向修正点的位置
+                p = (p + delta).detach()
+
+                # 收敛：shape_func 和 trim_func 同时接近 0
+                with torch.no_grad():
+                    f_val = self.shape_func(p)
+                    g_val = self.trim_func(p)
+                    if f_val.ndim == 1:
+                        f_val = f_val.unsqueeze(1)
+                    if g_val.ndim == 1:
+                        g_val = g_val.unsqueeze(1)
+                    res = torch.max(f_val.abs(), g_val.abs())
+                    if res.max().item() < tol:
+                        break
+
+            # 最终的候选边界点
+            boundary_points = p.detach()
+
+            # 再做一道 trim_func 的近 0 筛选，确保边界性
+            f_final = self.shape_func(boundary_points)
+            if f_final.ndim == 1:
+                f_final = f_final.unsqueeze(1)
+            g_final = self.trim_func(boundary_points)
+            if g_final.ndim == 1:
+                g_final = g_final.unsqueeze(1)
+            boundary_mask = (g_final.abs().squeeze() + f_final.abs().squeeze()) < (2 * tol + eps_band * 1e-3)
+
+            boundary_points = boundary_points[boundary_mask]
+            if boundary_points.shape[0] > 0:
+                collected.append(boundary_points)
+
+        if len(collected) == 0:
+            print("Warning: on_sample could not find boundary points; returning empty samples.")
+            empty = torch.empty((0, self.dim), dtype=self.dtype, device=self.device)
+            if with_normal:
+                return empty, empty
+            return empty
+
+        points = torch.cat(collected, dim=0)
+        if points.shape[0] > num_samples:
+            # 简单截断即可
+            points = points[:num_samples]
+
+        if not with_normal:
+            return points
+
+        # ------------------------------------------------------------
+        # 4. 若需要法向，使用 shape_func 的梯度在最终点上计算
+        # ------------------------------------------------------------
+        points_req = points.detach().clone().requires_grad_(True)
+        f_final = self.shape_func(points_req)
+        if f_final.ndim == 1:
+            f_final = f_final.unsqueeze(1)
+        grad_final = torch.autograd.grad(
+            f_final, points_req, torch.ones_like(f_final), create_graph=False
+        )[0]
+        n_final = grad_final / (grad_final.norm(dim=1, keepdim=True) + 1e-12)
+
+        return points.detach(), n_final.detach()
 
 
 class Point1D(GeometryBase):
