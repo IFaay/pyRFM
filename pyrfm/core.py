@@ -946,7 +946,7 @@ class RFMBase(ABC):
             elif self.centers.shape[:-1] != self.radii.shape[:-1]:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
-                logger.warn("Assigned centers are not inside the domain.")
+                logger.warning("Assigned centers are not inside the domain.")
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_subdomains)
 
@@ -993,7 +993,7 @@ class RFMBase(ABC):
         :return: feature Tensor
         """
         if not isinstance(self.pou_functions[0], PsiA):
-            logger.warn("The POU function is not PsiA, the continuity condition may not be Appropriate.")
+            logger.warning("The POU function is not PsiA, the continuity condition may not be Appropriate.")
 
         if order < 0:
             raise ValueError("Order must be non-negative.")
@@ -1209,8 +1209,8 @@ class RFMBase(ABC):
 
         except RuntimeError as e:
             # Add support for minium norm solution
-            logger.warn(str(e))
-            logger.warn("Switching to torch.linalg.lstsq solver.")
+            logger.warning(str(e))
+            logger.warning("Switching to torch.linalg.lstsq solver.")
             self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
             b = b_backup.to(dtype=self.dtype, device=self.device)
             self.W = torch.linalg.lstsq(self.A, b,
@@ -1671,7 +1671,7 @@ class STRFMBase(ABC):
             elif self.centers.shape[:-1] != self.radii.shape[:-1]:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
-                logger.warn("Assigned centers are not inside the domain.")
+                logger.warning("Assigned centers are not inside the domain.")
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_spatial_subdomains)
 
