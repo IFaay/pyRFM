@@ -7,10 +7,20 @@ Created on 2024/12/15
 
 import math
 
-import spdlog
+import logging
+import sys
 
-logger = spdlog.ConsoleLogger('rfm_logger')
-logger.set_level(spdlog.LogLevel.DEBUG)
+logger = logging.getLogger("rfm_logger")
+logger.setLevel(logging.DEBUG)
+
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter(
+        "[%(asctime)s][%(levelname)s]"
+        "[%(name)s:%(lineno)d] %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 import numpy as np
 

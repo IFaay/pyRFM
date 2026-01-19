@@ -136,7 +136,9 @@ class RFMVisualizer3D(RFMVisualizer):
                      'bottom': {'view_dir': torch.tensor([0.0, 0.0, -1.0]), 'up': torch.tensor([0.0, 1.0, 0.0])},
                      'iso': {'view_dir': torch.tensor([-1.0, -1.0, 1.25]), 'up': torch.tensor([0.5, 0.5, 1 / 1.25])},
                      'front-right': {'view_dir': torch.tensor([0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
-                     'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])}, }
+                     'front-left': {'view_dir': torch.tensor([-0.5, -1.0, 0.0]), 'up': torch.tensor([0.0, 0.0, 1.0])},
+                     'iso2': {'view_dir': torch.tensor([2.0, 1.25, -4.0]),
+                              'up': torch.tensor([-0.25, 1 / 1.25, 0.0])}, }
 
     def __init__(self, model: RFMBase, t=0.0, resolution=(1920, 1080), component_idx=0, view='iso', ref=None):
         super().__init__(model, t, resolution, component_idx, ref)
