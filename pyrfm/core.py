@@ -772,7 +772,8 @@ class POUBase(ABC):
 
 class PsiA(POUBase):
     def set_func(self):
-        self.func = lambda x: torch.where(x < -1.0, 0.0, torch.where(x > 1.0, 0.0, 1.0))
+        eps = 10 * torch.finfo(self.dtype).eps
+        self.func = lambda x: torch.where((x >= -1.0 - eps) & (x <= 1.0 + eps), torch.ones_like(x), torch.zeros_like(x))
         self.d_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
         self.d2_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
 
