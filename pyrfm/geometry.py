@@ -3439,7 +3439,7 @@ class Polygon2D(GeometryBase):
         super().__init__(dim=2, intrinsic_dim=2)
         if vertices.ndim != 2 or vertices.shape[1] != 2:
             raise ValueError("Vertices must be a tensor of shape (N, 2).")
-        self.vertices = vertices
+        self.vertices = vertices.to(self.dtype)
         for i in range(vertices.shape[0]):
             self.boundary.append(Line2D(vertices[i, 0], vertices[i, 1], vertices[(i + 1) % vertices.shape[0], 0],
                                         vertices[(i + 1) % vertices.shape[0], 1]))
@@ -3545,7 +3545,7 @@ class Polygon3D(GeometryBase):
         super().__init__(dim=3, intrinsic_dim=2)
         if vertices.ndim != 2 or vertices.shape[1] != 3:
             raise ValueError("Vertices must be a tensor of shape (N, 3).")
-        self.vertices = vertices
+        self.vertices = vertices.to(self.dtype)
         self.boundary = [
             Line3D(vertices[i, 0], vertices[i, 1], vertices[i, 2], vertices[(i + 1) % vertices.shape[0], 0],
                    vertices[(i + 1) % vertices.shape[0], 1], vertices[(i + 1) % vertices.shape[0], 2]) for i in
