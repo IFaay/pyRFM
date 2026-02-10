@@ -5,6 +5,7 @@ Created on 2025/8/15
 """
 import torch
 import pyrfm
+from typing import Union, List, Tuple
 
 # ---------------------------
 # 材料参数
@@ -18,7 +19,7 @@ mu = E / (2 * (1 + nu))
 # ---------------------------
 # 可视化（von Mises）
 # ---------------------------
-class CustomVisulizer(pyrfm.RFMVisualizer3D):
+class CustomVisualizer(pyrfm.RFMVisualizer3D):
     def __init__(self, model: pyrfm.RFMBase, t=0.0, resolution=(1920, 1080), component_idx=0, view='iso', ref=None):
         super().__init__(model, t, resolution, component_idx, view, ref)
 
@@ -52,6 +53,89 @@ class CustomVisulizer(pyrfm.RFMVisualizer3D):
             0.5 * ((sxx - syy) ** 2 + (syy - szz) ** 2 + (szz - sxx) ** 2) + 3 * (sxy ** 2 + sxz ** 2 + syz ** 2)
         )
         return vonmises.detach().cpu().numpy()
+
+
+class SectionVisualizer(pyrfm.RFMVisualizer2D):
+    # a 2D section from the 3D model visualizer
+    def __init__(self, model: Union[pyrfm.RFMBase, pyrfm.STRFMBase], t=0.0, resolution=(1920, 1080), component_idx=0,
+                 ref=None,
+                 section_idx=0, section_value=0.0):
+        super().__init__(model, t, resolution, component_idx, ref)
+        self.section_idx = section_idx  # the axis index for the section (0 for x, 1 for y, 2 for z)
+        self.section_value = section_value  # the value along the section axis to visualize
+
+        class SectionGeometry(pyrfm.GeometryBase):
+            def __init__(self, geometry_3d, section_idx, section_value):
+                super().__init__(dim=2, intrinsic_dim=2)
+                self.geometry_3d = geometry_3d
+                self.section_idx = section_idx
+                self.section_value = section_value
+
+            def sdf(self, p: torch.Tensor) -> torch.Tensor:
+                # p is (N, 2) in the section's intrinsic coordinates
+                # we need to map it to 3D and query the original geometry's sdf
+                N = p.shape[0]
+                p_3d = torch.zeros(N, 3, device=p.device)
+                idxs = [0, 1, 2]
+                idxs.remove(self.section_idx)
+                p_3d[:, idxs[0]] = p[:, 0]  # first intrinsic coordinate
+                p_3d[:, idxs[1]] = p[:, 1]  # second intrinsic coordinate
+                p_3d[:, self.section_idx] = self.section_value  # fixed section value
+                return self.geometry_3d.sdf(p_3d)
+
+            def get_bounding_box(self) -> List[float]:
+                # Get the bounding box of the original geometry and project it to 2D
+                bbox_3d = self.geometry_3d.get_bounding_box()  # [xmin, xmax, ymin, ymax, zmin, zmax]
+                idxs = [0, 1, 2]
+                idxs.remove(self.section_idx)
+                return [bbox_3d[idxs[0] * 2], bbox_3d[idxs[0] * 2 + 1], bbox_3d[idxs[1] * 2], bbox_3d[idxs[1] * 2 + 1]]
+
+            def in_sample(self, num_samples: int, with_boundary: bool = False) -> torch.Tensor:
+                pass
+
+            def on_sample(
+                    self,
+                    num_samples: int,
+                    with_normal: bool = False,
+                    separate: bool = False,
+            ) -> Union[
+                torch.Tensor,
+                Tuple[torch.Tensor, ...],
+                Tuple[Tuple[torch.Tensor, torch.Tensor], ...],
+            ]:
+                pass
+
+        section = SectionGeometry(model.domain, self.section_idx, self.section_value)
+
+        self.sdf = section.sdf if hasattr(section, "sdf") else None
+        self.bounding_box = section.get_bounding_box() if hasattr(section, "get_bounding_box") else None
+
+    def compute_field_vals(self, grid_points):
+        N = grid_points.shape[0]
+
+        grid_points_3d = torch.zeros(N, 3, device=grid_points.device)
+        idxs = [0, 1, 2]
+        idxs.remove(self.section_idx)
+        grid_points_3d[:, idxs[0]] = grid_points[:, 0]  # first intrinsic coordinate
+        grid_points_3d[:, idxs[1]] = grid_points[:, 1]  # second intrinsic coordinate
+        grid_points_3d[:, self.section_idx] = self.section_value
+
+        if isinstance(self.model, pyrfm.RFMBase):
+            if self.ref is not None:
+                Z = (self.model(grid_points_3d) - self.ref(grid_points_3d)).abs().detach().cpu().numpy()
+            else:
+                Z = self.model(grid_points_3d).detach().cpu().numpy()
+        elif isinstance(self.model, pyrfm.STRFMBase):
+            xt = self.model.validate_and_prepare_xt(x=grid_points_3d, t=torch.tensor([[self.t]]))
+            if self.ref is not None:
+                Z = (self.model.forward(xt=xt) - self.ref(xt=xt)).abs().detach().cpu().numpy()
+            else:
+                Z = self.model.forward(xt=xt).detach().cpu().numpy()
+
+        else:
+            raise NotImplementedError
+
+        return Z
 
 
 # ---------------------------
@@ -123,6 +207,7 @@ if __name__ == "__main__":
     base2d = pyrfm.IntersectionGeometry(base, region1 + region2 + region3) - (cut1 + cut2 + cut3 + cut4)
 
     domain = pyrfm.ExtrudeBody(base2d=base2d, direction=(1.0, 0.0, 0.0))
+
     del base2d
 
     # 采样
@@ -228,7 +313,12 @@ if __name__ == "__main__":
     # ---------------------------
     # 可视化
     # ---------------------------
-    vis = CustomVisulizer(model, view="iso")
+    vis = CustomVisualizer(model, view="iso")
     vis.plot()
     vis.show()
     vis.savefig("elasticity3d_vonmises.png", dpi=600)
+
+    sec_viz = SectionVisualizer(model, section_idx=0, section_value=0.0)
+    sec_viz.plot()
+    sec_viz.show()
+    vis.savefig("elasticity3d_section.png", dpi=600)
