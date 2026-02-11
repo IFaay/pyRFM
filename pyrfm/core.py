@@ -5,6 +5,7 @@ Created on 2024/12/13
 @author: Yifei Sun
 """
 import time
+import warnings
 
 import torch
 
@@ -1318,7 +1319,8 @@ class RFMBase(ABC):
             n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
             self.W = self.W.view(n_out, -1).T
         else:
-            raise ValueError("The output weight mismatch.")
+            warnings.warn("The output weight size is not a multiple of the expected size. Keeping W as a flat tensor.")
+            return self.W
 
         return self.W
 
@@ -1917,7 +1919,8 @@ class STRFMBase(ABC):
             n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
             self.W = self.W.view(n_out, -1).T
         else:
-            raise ValueError("The output weight mismatch.")
+            warnings.warn("The output weight size is not a multiple of the expected size. Keeping W as a flat tensor.")
+            return self.W
 
     def _compute_centers_and_radii(self, n_spatial_subdomains: Union[int, Tuple, List]):
         """
