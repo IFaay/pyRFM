@@ -1899,7 +1899,7 @@ class Cube3D(GeometryBase):
 
 
 class CircleArc2D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: torch.float64):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, float]):
         super().__init__(dim=2, intrinsic_dim=1)
         self.center = torch.tensor(center).view(1, -1) if not isinstance(center, torch.Tensor) else center
         self.radius = radius
@@ -1933,7 +1933,7 @@ class CircleArc2D(GeometryBase):
 
 
 class Circle2D(GeometryBase):
-    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: torch.float64):
+    def __init__(self, center: Union[torch.Tensor, List, Tuple], radius: Union[torch.Tensor, float]):
         super().__init__(dim=2, intrinsic_dim=2)
         self.center = torch.tensor(center).view(1, -1) if not isinstance(center, torch.Tensor) else center
         self.radius = radius
