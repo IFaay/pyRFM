@@ -85,7 +85,7 @@ def stress_tau_xy(x):
 
 if __name__ == '__main__':
     torch.set_default_device('cuda') if torch.cuda.is_available() else torch.set_default_device('cpu')
-    domain = pyrfm.Square2D(center=[L / 2, 0], radius=[L / 2, D / 2])
+    domain = pyrfm.Square2D(center=[L / 2, 0], half=[L / 2, D / 2])
     model = pyrfm.RFMBase(dim=2, n_hidden=400, domain=domain, n_subdomains=2)
 
     x_in = domain.in_sample(6000, with_boundary=False)

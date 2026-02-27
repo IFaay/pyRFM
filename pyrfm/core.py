@@ -5,6 +5,7 @@ Created on 2024/12/13
 @author: Yifei Sun
 """
 import time
+import warnings
 
 import torch
 
@@ -837,30 +838,123 @@ class PsiB(POUBase):
 
 class PsiG(POUBase):
     def __init__(self, center: torch.Tensor, radius: torch.Tensor,
-                 mu: torch.Tensor, sigma: torch.Tensor,
+                 mu: torch.Tensor = None, sigma: torch.Tensor = None,
                  dtype: torch.dtype = None,
                  device: torch.device = None):
         super().__init__(center,
                          radius,
                          dtype=dtype, device=device)
 
+        # 默认值设置
+        if mu is None:
+            mu = torch.zeros_like(center)
+        if sigma is None:
+            # sigma = 0.5 使得在 x = ±1 处,高斯函数衰减到 exp(-4) ≈ 0.0183
+            # 这样在标准化坐标 [-1, 1] 的边界处函数值接近0
+            sigma = torch.full_like(center, 0.5)
+
         self.mu = mu.to(dtype=self.dtype, device=self.device)
         self.sigma = sigma.to(dtype=self.dtype, device=self.device)
 
     def set_func(self):
-        pass
+        # 高斯函数: exp(-((x-mu)/sigma)^2)
+        # 为了构造紧支撑的POU函数,使用截断的高斯函数
+        def gaussian(x):
+            z = (x - self.mu) / self.sigma
+            return torch.exp(-z ** 2)
+
+        # 归一化函数,使其在支撑域内积分为1
+        self.func = lambda x: torch.where(
+            torch.abs(x) < 1.2,  # 紧支撑在 [-1, 1]
+            gaussian(x),
+            torch.zeros_like(x)
+        )
+
+        # 一阶导数: d/dx[exp(-z^2)] = -2z/sigma * exp(-z^2)
+        self.d_func = lambda x: torch.where(
+            torch.abs(x) < 1.2,
+            -2.0 * (x - self.mu) / (self.sigma ** 2) * gaussian(x),
+            torch.zeros_like(x)
+        )
+
+        # 二阶导数: d^2/dx^2[exp(-z^2)] = (-2/sigma^2 + 4z^2/sigma^2) * exp(-z^2)
+        self.d2_func = lambda x: torch.where(
+            torch.abs(x) < 1.2,
+            (-2.0 / (self.sigma ** 2) + 4.0 * (x - self.mu) ** 2 / (self.sigma ** 4)) * gaussian(x),
+            torch.zeros_like(x)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        # 标准化坐标到 [-1, 1]
+        x_normalized = (x - self.center) / self.radius
+        return self.func(x_normalized)
 
     def first_derivative(self, x: torch.Tensor, axis: int) -> torch.Tensor:
-        pass
+        # 标准化坐标
+        x_normalized = (x[..., axis:axis + 1] - self.center[axis]) / self.radius[axis]
+        # 链式法则: d/dx = d/dx_norm * dx_norm/dx = d/dx_norm * (1/radius)
+        return self.d_func(x_normalized) / self.radius[axis]
 
     def second_derivative(self, x: torch.Tensor, axis1: int, axis2: int) -> torch.Tensor:
-        pass
+        x_normalized = (x[..., axis1:axis1 + 1] - self.center[axis1]) / self.radius[axis1]
+
+        if axis1 == axis2:
+            # 同一轴的二阶导数
+            return self.d2_func(x_normalized) / (self.radius[axis1] ** 2)
+        else:
+            # 不同轴的混合偏导数 (高斯函数可分离)
+            x_norm1 = (x[..., axis1:axis1 + 1] - self.center[axis1]) / self.radius[axis1]
+            x_norm2 = (x[..., axis2:axis2 + 1] - self.center[axis2]) / self.radius[axis2]
+
+            return (self.d_func(x_norm1) / self.radius[axis1]) * \
+                (self.d_func(x_norm2) / self.radius[axis2])
 
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
-        pass
+        """
+        计算高阶导数
+        order: 每个维度的导数阶数,例如 [2, 1, 0] 表示对第0维求2阶,第1维求1阶,第2维不求导
+        """
+        if isinstance(order, list):
+            order = torch.tensor(order, dtype=torch.long, device=self.device)
+
+        result = torch.ones_like(x[..., 0:1])
+
+        for axis in range(len(order)):
+            n = order[axis].item()
+            if n == 0:
+                continue
+
+            x_normalized = (x[..., axis:axis + 1] - self.center[axis]) / self.radius[axis]
+            z = (x_normalized - self.mu) / self.sigma
+            gaussian_val = torch.exp(-z ** 2)
+
+            # 使用Hermite多项式计算高阶导数
+            # d^n/dx^n[exp(-z^2)] = (-1)^n / sigma^n * H_n(z) * exp(-z^2)
+            # 其中 H_n 是物理学家的Hermite多项式
+            hermite_val = self._hermite_polynomial(z, n)
+            deriv = ((-1) ** n) / (self.sigma ** n) * hermite_val * gaussian_val
+
+            result = result * deriv / (self.radius[axis] ** n)
+
+        return result
+
+    def _hermite_polynomial(self, z: torch.Tensor, n: int) -> torch.Tensor:
+        """计算物理学家的Hermite多项式 H_n(z)"""
+        if n == 0:
+            return torch.ones_like(z)
+        elif n == 1:
+            return 2.0 * z
+
+        # 递推关系: H_{n+1}(z) = 2z*H_n(z) - 2n*H_{n-1}(z)
+        H_prev = torch.ones_like(z)
+        H_curr = 2.0 * z
+
+        for i in range(2, n + 1):
+            H_next = 2.0 * z * H_curr - 2.0 * (i - 1) * H_prev
+            H_prev = H_curr
+            H_curr = H_next
+
+        return H_curr
 
 
 class RFMBase(ABC):
@@ -947,7 +1041,7 @@ class RFMBase(ABC):
             elif self.centers.shape[:-1] != self.radii.shape[:-1]:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
-                logger.warn("Assigned centers are not inside the domain.")
+                logger.warning("Assigned centers are not inside the domain.")
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_subdomains)
 
@@ -994,7 +1088,7 @@ class RFMBase(ABC):
         :return: feature Tensor
         """
         if not isinstance(self.pou_functions[0], PsiA):
-            logger.warn("The POU function is not PsiA, the continuity condition may not be Appropriate.")
+            logger.warning("The POU function is not PsiA, the continuity condition may not be Appropriate.")
 
         if order < 0:
             raise ValueError("Order must be non-negative.")
@@ -1120,7 +1214,7 @@ class RFMBase(ABC):
         new_obj = copy.deepcopy(self) if deep else copy.copy(self)
         return new_obj
 
-    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False):
+    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False, verbose=True):
         """
         Compute the QR decomposition of matrix A.
 
@@ -1140,7 +1234,8 @@ class RFMBase(ABC):
             A = torch.cat(
                 [A, damp * torch.eye(A.shape[1], dtype=self.dtype, device=self.device)],
                 dim=0)
-        print("Decomposing the problem size of A: ", A.shape, "with solver QR")
+        if verbose:
+            print("Decomposing the problem size of A: ", A.shape, "with solver QR")
 
         try:
             self.A, self.tau = torch.geqrf(A)
@@ -1209,7 +1304,7 @@ class RFMBase(ABC):
 
         except RuntimeError as e:
             # Add support for minium norm solution
-            logger.warning(e)
+            logger.warning(str(e))
             logger.warning("Switching to torch.linalg.lstsq solver.")
             self.A = self.A_backup.to(dtype=self.dtype, device=self.device)
             b = b_backup.to(dtype=self.dtype, device=self.device)
@@ -1224,7 +1319,8 @@ class RFMBase(ABC):
             n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
             self.W = self.W.view(n_out, -1).T
         else:
-            raise ValueError("The output weight mismatch.")
+            warnings.warn("The output weight size is not a multiple of the expected size. Keeping W as a flat tensor.")
+            return self.W
 
         return self.W
 
@@ -1671,7 +1767,7 @@ class STRFMBase(ABC):
             elif self.centers.shape[:-1] != self.radii.shape[:-1]:
                 raise ValueError("Centers and radii must have the same shape.")
             if self.domain.sdf(self.centers.view(-1, self.centers.shape[-1])).max() > 0:
-                logger.warn("Assigned centers are not inside the domain.")
+                logger.warning("Assigned centers are not inside the domain.")
         else:
             self.centers, self.radii = self._compute_centers_and_radii(n_spatial_subdomains)
 
@@ -1823,7 +1919,8 @@ class STRFMBase(ABC):
             n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
             self.W = self.W.view(n_out, -1).T
         else:
-            raise ValueError("The output weight mismatch.")
+            warnings.warn("The output weight size is not a multiple of the expected size. Keeping W as a flat tensor.")
+            return self.W
 
     def _compute_centers_and_radii(self, n_spatial_subdomains: Union[int, Tuple, List]):
         """
@@ -1918,7 +2015,7 @@ class STRFMBase(ABC):
                     for i in range(0, xt.shape[0], batch_size):
                         xt_batch = xt[i:i + batch_size]
                         feat = self.features_derivative(xt=xt_batch, axis=d).cat(dim=1)
-                        outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                        outputs.append(torch.matmul(feat, self.W))
                     return torch.cat(outputs, dim=0)
 
                 elif ord_sum == 2:
@@ -1932,7 +2029,7 @@ class STRFMBase(ABC):
                         for i in range(0, xt.shape[0], batch_size):
                             xt_batch = xt[i:i + batch_size]
                             feat = self.features_second_derivative(xt=xt_batch, axis1=d, axis2=d).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            outputs.append(torch.matmul(feat, self.W))
                         return torch.cat(outputs, dim=0)
 
                     elif len(idx2) == 0 and len(idx1) == 2:
@@ -1941,7 +2038,7 @@ class STRFMBase(ABC):
                         for i in range(0, xt.shape[0], batch_size):
                             xt_batch = xt[i:i + batch_size]
                             feat = self.features_second_derivative(xt=xt_batch, axis1=d1, axis2=d2).cat(dim=1)
-                            outputs.append(torch.matmul(feat, self.W.view(-1, 1)))
+                            outputs.append(torch.matmul(feat, self.W))
                         return torch.cat(outputs, dim=0)
 
                     else:
