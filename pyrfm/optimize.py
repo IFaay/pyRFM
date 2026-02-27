@@ -21,6 +21,7 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                            ftol: float = 1e-08,
                            xtol: float = 1e-08,
                            gtol: float = 1e-08,
+                           damp: float = 0.0,
                            verbose: int = 0,
                            ):
     """
@@ -35,6 +36,7 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
         ftol (float, optional): Tolerance for function value change. Defaults to 1e-08.
         xtol (float, optional): Tolerance for parameter updates. Defaults to 1e-08.
         gtol (float, optional): Tolerance for gradient norm. Defaults to 1e-08.
+        damp (float, optional): Damping factor. Defaults to 0.0.
         verbose (int, optional): Verbosity level.
             0: No output.
             1: Output at each iteration.
@@ -60,7 +62,6 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
             w = torch.tensor(w, dtype=dtype, device=device).reshape(-1, 1)
             return jac(w).cpu().numpy()
 
-        # Output problem size once (n_vars, n_residuals, jac_shape)
         if verbose >= 1:
             _x_probe = x0.detach()
             _f_probe = fcn(_x_probe)
@@ -86,7 +87,6 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
         if maxfev is None:
             maxfev = 100 * x0.numel()
 
-        # Output problem size once (n_vars, n_residuals, jac_shape)
         _printed_size = False
 
         while True:
@@ -97,14 +97,21 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                 print(f"[NLS size] n_vars={x.numel()}, n_residuals={F_vec.numel()}, jac_shape={tuple(F_jac.shape)}")
                 _printed_size = True
 
-            cost = 0.5 * torch.sum(F_vec ** 2).item()
+            # merit function: 0.5 * (||F||^2 + damp^2 * ||x||^2)
+            cost = 0.5 * (torch.sum(F_vec ** 2) + damp ** 2 * torch.sum(x ** 2)).item()
             grad = F_jac.T @ F_vec
+            if abs(damp) > 0.0:
+                grad = grad + damp ** 2 * x  # gradient of the augmented merit
             grad_norm = torch.linalg.norm(grad, float('inf')).item()
 
             scale_inv = torch.linalg.norm(F_jac, dim=0, keepdim=True)
             scale_inv[scale_inv == 0] = 1.0
 
-            solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
+            if abs(damp) > 0.0:
+                solver = torch.linalg.lstsq(torch.cat([F_jac / scale_inv, damp * torch.eye(F_jac.shape[1])], dim=0),
+                                            torch.cat([-F_vec, torch.zeros((F_jac.shape[1], 1))], dim=0), driver='gels')
+            else:
+                solver = torch.linalg.lstsq(F_jac / scale_inv, -F_vec, driver='gels')
             p = solver.solution / scale_inv.T
             step_norm = torch.linalg.norm(alpha * p).item()
 
@@ -129,8 +136,15 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                 status = 0
                 break
 
+            # line search on augmented merit: ||F(x + α·p)||^2 + damp^2·||x + α·p||^2
             def phi(step_size):
-                return torch.linalg.norm(fcn(x + step_size * p))
+                x_new = x + step_size * p
+                F_new = fcn(x_new)
+                if abs(damp) > 0.0:
+                    augmented = torch.cat([F_new, damp * x_new], dim=0)
+                else:
+                    augmented = F_new
+                return torch.linalg.norm(augmented)
 
             alpha, maxfev = line_search(phi, 0.0, 1.0, maxfev, ftol)
             x = x + alpha * p
@@ -159,8 +173,11 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
     """
     Performs a golden-section line search to find the step size that minimizes the function.
 
+    The caller is responsible for passing a `fn` that already incorporates any
+    damping or regularization term, so this function stays generic.
+
     Args:
-        fn (Callable[[float], float]): Function to minimize.
+        fn (Callable[[float], float]): Function to minimize (e.g. augmented residual norm).
         a (float): Lower bound of the search interval.
         b (float): Upper bound of the search interval.
         maxfev (int): Maximum function evaluations.
@@ -202,6 +219,7 @@ def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
             if a == 0.0:
                 return 0.0, maxfev
             return (a + b) / 2, maxfev
+
     return (a + b) / 2, maxfev
 
 
