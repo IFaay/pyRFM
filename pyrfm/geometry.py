@@ -2506,7 +2506,7 @@ class Square2D(GeometryBase):
         self.half = torch.tensor(half).view(1, -1)
         self.radius = self.half  # backward-compatibility alias
 
-        # Boundary edges (counter-clockwise)
+        # Boundary edges (counter-clockwise, bottom, right, top, left)
         self.boundary = [
             Line2D(
                 self.center[0, 0] - self.half[0, 0],

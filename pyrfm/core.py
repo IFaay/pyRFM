@@ -138,35 +138,62 @@ class RFTanH(RFBase):
                     self.weights[[axis2], :] / self.radius[0, axis2])
 
     def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
-        if isinstance(order, List):
-            order = torch.tensor(order, dtype=self.dtype, device=self.device)
+        if isinstance(order, list):
+            order = torch.tensor(order, dtype=torch.int, device=self.device)
         if x.shape[1] != self.dim:
             raise ValueError('Input dimension mismatch')
-
         if order.shape[0] != self.dim:
             raise ValueError('Order dimension mismatch')
 
-        n_order = order.sum()
+        n_order = int(order.sum())
         if n_order <= 0:
             raise ValueError('Order must be positive')
+
         if (self.x_buff_ is not None and self.use_cache) and (self.x_buff_ is x or torch.equal(self.x_buff_, x)):
             t = self.features_buff_
         else:
             t = torch.tanh(
                 torch.matmul((x - self.center) / self.radius, self.weights) + self.biases)
-        p_n_minus_1 = 1 - t ** 2
-        p_n_minus_2 = t
-        p_n = 1
-        for n in range(2, n_order + 1):
-            p_n = -(2 * n - 1) * t * p_n_minus_1 - (1 - t ** 2) * p_n_minus_2
-            p_n_minus_2 = p_n_minus_1
-            p_n_minus_1 = p_n
 
+        # 用多项式系数追踪 P_n(t)
+        # P_1(t) = 1 - t^2, 系数: c[0]=1, c[1]=0, c[2]=-1
+        # 索引 k 对应 t^k
+        max_deg = n_order + 1
+        c = torch.zeros(max_deg + 1, dtype=self.dtype if hasattr(self, 'dtype') else t.dtype,
+                        device=self.device)
+        # P_1: 1 - t^2
+        c[0] = 1.0
+        c[2] = -1.0
+
+        for _ in range(1, n_order):
+            # Step1: 对 c 求导 -> dc[k] = (k+1)*c[k+1]
+            dc = torch.zeros_like(c)
+            for k in range(max_deg):
+                dc[k] = (k + 1) * c[k + 1]
+            # Step2: 乘以 (1-t^2) -> new_c[k] = dc[k] - dc[k-2]
+            new_c = dc.clone()
+            new_c[2:] -= dc[:-2]
+            c = new_c
+
+        # 用 Horner 方法计算 P_n(t) 的值
+        # t shape: (batch, n_hidden)
+        result = torch.zeros_like(t)
+        for k in range(max_deg, -1, -1):
+            result = result * t + c[max_deg - k] if False else None  # 需要正向Horner
+
+        # 正向 Horner: P = c[d]*t^d + ... + c[0]
+        deg = max_deg
+        result = torch.full_like(t, c[deg].item())
+        for k in range(deg - 1, -1, -1):
+            result = result * t + c[k]
+
+        # 乘以链式法则权重
+        weight_factor = torch.ones(1, self.weights.shape[1], dtype=t.dtype, device=self.device)
         for i in range(order.shape[0]):
-            for _ in range(order[i]):
-                p_n *= (self.weights[[i], :] / self.radius[0, i])
+            for _ in range(int(order[i])):
+                weight_factor = weight_factor * (self.weights[[i], :] / self.radius[0, i])
 
-        return p_n
+        return result * weight_factor
 
 
 class RFTanH2(RFBase):
@@ -778,6 +805,9 @@ class PsiA(POUBase):
         self.d_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
         self.d2_func = lambda x: torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
 
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        return torch.zeros((x.shape[0], 1), dtype=self.dtype, device=self.device)
+
 
 class PsiBW(POUBase):
     # A wider partition of unity function of Type B
@@ -834,6 +864,46 @@ class PsiB(POUBase):
                                                                                  2 * torch.pi ** 2 * torch.sin(
                                                                                      2 * torch.pi * x), 0.0)))
                                              )
+
+    def _nth_derivative_1d(self, xd: torch.Tensor, n: int) -> torch.Tensor:
+        """
+        1D n-th derivative of PsiB w.r.t. normalized coordinate xd.
+        n must be >= 1.
+        """
+        phase = n * torch.pi / 2.0
+        factor = (2.0 * torch.pi) ** n / 2.0
+        sin_term = factor * torch.sin(2.0 * torch.pi * xd + phase)
+
+        return torch.where(xd < -1.25, torch.zeros_like(xd),
+                           torch.where(xd < -0.75, sin_term,
+                                       torch.where(xd <= 0.75, torch.zeros_like(xd),
+                                                   torch.where(xd <= 1.25, -sin_term,
+                                                               torch.zeros_like(xd)))))
+
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        if isinstance(order, list):
+            order = torch.tensor(order, dtype=torch.long, device=self.device)
+        if x.shape[1] != self.center.shape[1]:
+            raise ValueError('Input dimension mismatch')
+        if order.numel() != x.shape[1]:
+            raise ValueError('Order dimension mismatch')
+
+        x_ = (x - self.center) / self.radius
+        prod = torch.ones((x_.shape[0], 1), dtype=self.dtype, device=self.device)
+
+        for d in range(x_.shape[1]):
+            n = int(order[d].item())
+            xd = x_[:, [d]]
+            if n == 0:
+                prod *= self.func(xd)
+            elif n == 1:
+                prod *= self.d_func(xd) / self.radius[0, d]
+            elif n == 2:
+                prod *= self.d2_func(xd) / self.radius[0, d] ** 2
+            else:
+                prod *= self._nth_derivative_1d(xd, n) / self.radius[0, d] ** n
+
+        return prod
 
 
 class PsiG(POUBase):
@@ -957,11 +1027,135 @@ class PsiG(POUBase):
         return H_curr
 
 
+class PsiBump(POUBase):
+    """
+    C^∞ bump with compact support in normalized coordinate [-r, r], r=1.25:
+
+        b(x) = exp( -1 / (1 - (x/r)^2) ),  |x| < r
+             = 0                           otherwise
+
+    POUBase builds ND as product over dimensions.
+    """
+
+    def __init__(self, center: torch.Tensor, radius: torch.Tensor,
+                 r: float = 1.2,
+                 dtype: torch.dtype = None,
+                 device: torch.device = None):
+        self.r_value = float(r)
+        super().__init__(center, radius, dtype=dtype, device=device)
+
+    def set_func(self):
+        r = torch.tensor(self.r_value, dtype=self.dtype, device=self.device)
+
+        def _bump_inside(x):
+            z = x / r
+            t = torch.clamp(1.0 - z * z, min=1e-10)  # 防止边界处 t->0 时梯度爆炸
+            return torch.exp(-1.0 / t)
+
+        # C∞ bump (piecewise)
+        def bump(x):
+            return torch.where(torch.abs(x) < r, _bump_inside(x), torch.zeros_like(x))
+
+        # keep these for POUBase first/second derivative usage (closed-form 1st/2nd)
+        def dbump(x):
+            z = x / r
+            t = 1.0 - z * z
+            b = torch.exp(-1.0 / t)
+            val = b * (-2.0 * x) / (r * r * t * t)
+            return torch.where(torch.abs(x) < r, val, torch.zeros_like(x))
+
+        def d2bump(x):
+            z = x / r
+            t = 1.0 - z * z
+            b = torch.exp(-1.0 / t)
+
+            r2 = r * r
+            r4 = r2 * r2
+            t2 = t * t
+            t3 = t2 * t
+            t4 = t2 * t2
+
+            term1 = (-2.0) / (r2 * t2)
+            term2 = (-8.0 * x * x) / (r4 * t3)
+            term3 = (4.0 * x * x) / (r4 * t4)
+            val = b * (term1 + term2 + term3)
+            return torch.where(torch.abs(x) < r, val, torch.zeros_like(x))
+
+        self.func = bump
+        self.d_func = dbump
+        self.d2_func = d2bump
+
+    # ---------- helper: 1D n-th derivative in normalized coordinate ----------
+    def _nth_derivative_1d(self, x1d: torch.Tensor, n: int) -> torch.Tensor:
+        """
+        Compute d^n/dx^n self.func(x) for 1D input x1d (shape [N,1]) using autograd recursion.
+        Note: This differentiates the *normalized-coordinate* bump (already compactly supported).
+        """
+        if n == 0:
+            return self.func(x1d)
+
+        # Ensure a leaf with grad
+        x = x1d.clone().detach().requires_grad_(True)
+
+        y = self.func(x)
+        for _ in range(n):
+            # grad_outputs must match y
+            g = torch.autograd.grad(
+                outputs=y,
+                inputs=x,
+                grad_outputs=torch.ones_like(y),
+                create_graph=True,
+                retain_graph=True,
+                only_inputs=True
+            )[0]
+            y = g
+        return y
+
+    # ---------- ND higher-order derivative (multi-index) ----------
+    def higher_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List]) -> torch.Tensor:
+        """
+        Multi-index derivative:
+            order = [n0, n1, ..., n_{D-1}]
+        returns:
+            Π_d  ( d^{n_d}/dx_d^{n_d}  φ_d( (x_d-c_d)/R_d ) )
+        where chain rule gives division by R_d^{n_d}.
+        """
+        if isinstance(order, list):
+            order = torch.tensor(order, dtype=torch.long, device=self.device)
+        else:
+            order = order.to(dtype=torch.long, device=self.device)
+
+        if x.shape[1] != self.center.shape[1] or x.shape[1] != self.radius.shape[1]:
+            raise ValueError('Input dimension mismatch')
+        if order.numel() != x.shape[1]:
+            raise ValueError('Order dimension mismatch')
+
+        x_ = (x - self.center) / self.radius  # normalized coords, shape [N, D]
+
+        prod = torch.ones((x_.shape[0], 1), dtype=self.dtype, device=self.device)
+
+        for d in range(x_.shape[1]):
+            n = int(order[d].item())
+            xd = x_[:, [d]]
+
+            # n-th derivative w.r.t normalized coordinate
+            deriv_nd = self._nth_derivative_1d(xd, n)
+
+            # chain rule: d^n/dx_d^n = (1/R_d^n) * d^n/dx_norm^n
+            if n > 0:
+                deriv_nd = deriv_nd / (self.radius[0, d] ** n)
+
+            prod = prod * deriv_nd
+
+        return prod.detach()
+
+
 class RFMBase(ABC):
 
     def __init__(self, dim: int,
                  n_hidden: int,
-                 domain: Union[Tuple, List, GeometryBase], n_subdomains: Union[int, Tuple, List] = 1,
+                 domain: Union[Tuple, List, GeometryBase],
+                 n_subdomains: Union[int, Tuple, List] = 1,
                  overlap: torch.float64 = 0.0,
                  rf=RFTanH,
                  pou=PsiB,
@@ -1296,7 +1490,8 @@ class RFMBase(ABC):
             # residual = torch.norm(b_) / torch.norm(b)
 
             if check_condition and torch.linalg.cond(self.A_backup) > 1.0 / torch.finfo(self.dtype).eps:
-                logger.info(f"The condition number exceeds 1/eps; switching to SVD.")
+                logger.info(
+                    f"The condition number {torch.linalg.cond(self.A_backup):.4e} exceeds 1/eps; switching to SVD.")
                 self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
                                                                                           device=self.device)
                 residual = torch.norm(
@@ -1512,6 +1707,93 @@ class RFMBase(ABC):
                 )
         return Tensor(features_second_derivative, shape=self.submodels.shape)
 
+    def features_high_order_derivative(self, x: torch.Tensor, order: Union[torch.Tensor, List],
+                                       use_sparse: bool = False) -> Tensor:
+        """
+        Compute the high-order feature derivative for the given input.
+
+        :param x: Input tensor.
+        :param order: Multi-index order as list/tensor, e.g. [2,1] means d^3/dx0^2 dx1.
+        :param use_sparse: Whether to use sparse tensors.
+        :return: High-order feature derivative Tensor.
+        """
+        order = list(order) if not isinstance(order, list) else order
+        assert len(order) == self.dim, "order length must match input dimension."
+
+        from itertools import product as iproduct
+        from math import comb
+        from functools import reduce
+
+        alpha = tuple(order)
+
+        def iter_sub_multiindices(alpha):
+            ranges = [range(int(a) + 1) for a in alpha]
+            for beta in iproduct(*ranges):
+                yield beta
+
+        def multinomial_coeff(alpha, beta):
+            return reduce(lambda acc, ab: acc * comb(int(ab[0]), int(ab[1])), zip(alpha, beta), 1)
+
+        def call_submodel_derivative(submodel, x, beta):
+            """Call the appropriate derivative method on submodel given multi-index beta."""
+            total = sum(beta)
+            if total == 0:
+                return submodel(x)
+            elif total == 1:
+                axis = beta.index(1)
+                return submodel.first_derivative(x, axis)
+            elif total == 2:
+                axes = [i for i, b in enumerate(beta) for _ in range(b)]
+                return submodel.second_derivative(x, axes[0], axes[1])
+            else:
+                return submodel.higher_order_derivative(x, list(beta))
+
+        # Pre-compute all needed pou derivatives D^beta(phi_i) for beta <= alpha
+        pou_derivative_cache = {}  # beta -> Tensor of pou derivatives
+        zero = tuple([0] * self.dim)
+
+        for beta in iter_sub_multiindices(alpha):
+            total = sum(beta)
+            if total == 0:
+                pou_derivative_cache[beta] = self.pou_coefficients(x)
+            elif total == 1:
+                axis = list(beta).index(1)
+                pou_derivative_cache[beta] = self.pou_derivative(x, axis)
+            elif total == 2:
+                axes = [i for i, b in enumerate(beta) for _ in range(b)]
+                pou_derivative_cache[beta] = self.pou_second_derivative(x, axes[0], axes[1])
+            else:
+                pou_derivative_cache[beta] = self.pou_higher_order_derivative(x, list(beta))
+
+        # Apply Leibniz rule: D^alpha(f_i * phi_i) = sum_{beta<=alpha} C(alpha,beta) * D^beta(f_i) * D^{alpha-beta}(phi_i)
+        features_hod = []
+
+        for i, submodel in enumerate(self.submodels.flat_data):
+            result = torch.zeros(x.shape[0], submodel.output_dim if hasattr(submodel, 'output_dim') else 1,
+                                 dtype=self.dtype, device=self.device)
+
+            for beta in iter_sub_multiindices(alpha):
+                coeff = multinomial_coeff(alpha, beta)
+                if coeff == 0:
+                    continue
+
+                beta_minus = tuple(a - b for a, b in zip(alpha, beta))
+
+                # D^beta(f_i)
+                df = call_submodel_derivative(submodel, x, list(beta))
+
+                # D^{alpha-beta}(phi_i)
+                dphi = pou_derivative_cache[beta_minus].flat_data[i]
+
+                result = result + coeff * df * dphi
+
+            if use_sparse:
+                features_hod.append(result.to_sparse())
+            else:
+                features_hod.append(result)
+
+        return Tensor(features_hod, shape=self.submodels.shape)
+
     def _compute_centers_and_radii(self, n_subdomains: Union[int, Tuple, List]):
         """
         Compute the centers and radii for subdomains.
@@ -1664,14 +1946,116 @@ class RFMBase(ABC):
         Compute the POU higher-order derivative for the given input.
 
         :param x: Input tensor.
-        :param order: Order of the derivative as a tensor or list.
+        :param order: Order of the derivative as a multi-index list/tensor, e.g. [2,1,0] means
+                      d^3/dx0^2 dx1^1 for a 3D input.
         :return: POU higher-order derivative Tensor.
         """
         if x.shape[1] != self.dim:
             raise ValueError("Input dimension mismatch.")
-        pass
 
-        return Tensor()
+        order = list(order) if not isinstance(order, list) else order
+        assert len(order) == self.dim, "order length must match input dimension."
+
+        # Build list of (axis, repeat) derivative calls from multi-index
+        # e.g. order=[2,1] -> axes_sequence = [0,0,1]
+        axes_sequence = []
+        for axis, cnt in enumerate(order):
+            axes_sequence.extend([axis] * int(cnt))
+        total_order = len(axes_sequence)
+
+        if total_order == 0:
+            return self.pou_coefficients(x)
+
+        # ---------------------------------------------------------------
+        # We use the recursive formula based on the quotient rule:
+        #   D^alpha(psi_i / S) = (1/S) * [D^alpha(psi_i) - sum_{0<beta<=alpha} C(alpha,beta)*D^beta(S)*D^{alpha-beta}(phi_i)]
+        #
+        # Strategy: iterate over all sub-multiindices of `order` in
+        # increasing total order, caching D^beta(phi_i) and D^beta(S).
+        # ---------------------------------------------------------------
+
+        from itertools import product as iproduct
+        from math import comb, prod
+        from functools import reduce
+
+        def multiindex_leq(a, b):
+            return all(ai <= bi for ai, bi in zip(a, b))
+
+        def iter_sub_multiindices(alpha):
+            ranges = [range(int(a) + 1) for a in alpha]
+            for beta in iproduct(*ranges):
+                yield beta
+
+        def multinomial_coeff(alpha, beta):
+            return reduce(lambda acc, ab: acc * comb(int(ab[0]), int(ab[1])), zip(alpha, beta), 1)
+
+        alpha = tuple(order)
+
+        # Cache D^beta(S) for all sub-multiindices 0 < beta <= alpha
+        # Cache D^beta(phi_i) for 0 <= beta < alpha (strict)
+        n = x.shape[0]
+        zero = tuple([0] * self.dim)
+
+        # First, gather raw psi_i and their mixed derivatives D^beta(psi_i)
+        # We need D^beta(psi_i) for all beta <= alpha via pou_function.higher_order_derivative
+        psi_cache = {}  # beta -> sum over i (i.e. D^beta S), and per-function list
+        psi_per_func = {}  # beta -> list of D^beta(psi_i)
+
+        all_betas = list(iter_sub_multiindices(alpha))
+
+        for beta in all_betas:
+            vals = []
+            s = torch.zeros(n, 1, dtype=self.dtype, device=self.device)
+            for pou_function in self.pou_functions.flat_data:
+                total = sum(beta)
+                if total == 0:
+                    v = pou_function(x)
+                elif total == 1:
+                    axis = beta.index(1)
+                    v = pou_function.first_derivative(x, axis)
+                elif total == 2:
+                    ones = [i for i, b in enumerate(beta) for _ in range(b)]
+                    v = pou_function.second_derivative(x, ones[0], ones[1])
+                else:
+                    # Assume pou_function has higher_order_derivative(x, order_list)
+                    v = pou_function.higher_order_derivative(x, list(beta))
+                vals.append(v)
+                s += v
+            psi_per_func[beta] = vals
+            psi_cache[beta] = s  # D^beta(S)
+
+        S = psi_cache[zero]  # S(x), shape (n,1)
+
+        # Recursively compute D^beta(phi_i) for increasing |beta|
+        # phi_cache[beta] -> list of D^beta(phi_i) for each i
+        phi_cache = {}
+
+        # Sort all_betas by total order
+        all_betas_sorted = sorted(all_betas, key=lambda b: sum(b))
+
+        for beta in all_betas_sorted:
+            phi_vals = []
+            total_beta = sum(beta)
+
+            for i, _ in enumerate(self.pou_functions.flat_data):
+                # Compute sum over 0 < gamma <= beta of C(beta,gamma)*D^gamma(S)*D^{beta-gamma}(phi_i)
+                correction = torch.zeros(n, 1, dtype=self.dtype, device=self.device)
+                for gamma in iter_sub_multiindices(beta):
+                    if gamma == beta:
+                        continue  # 只跳过 gamma=beta，不跳过 gamma=0
+                    beta_minus_gamma = tuple(b - g for b, g in zip(beta, gamma))
+                    coeff = multinomial_coeff(beta, gamma)
+                    d_alpha_minus_gamma_S = psi_cache[beta_minus_gamma]  # 修正：用 D^{beta-gamma}(S)
+                    d_gamma_phi = phi_cache[gamma][i]  # 修正：用 D^gamma(phi_i)
+                    correction += coeff * d_gamma_phi * d_alpha_minus_gamma_S
+
+                phi_i_beta = (psi_per_func[beta][i] - correction) / S
+                phi_vals.append(phi_i_beta)
+
+            phi_cache[beta] = phi_vals
+
+        result = phi_cache[alpha]
+        return Tensor(result, shape=self.submodels.shape)
 
 
 class STRFMBase(ABC):
