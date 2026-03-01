@@ -11,6 +11,7 @@ import torch
 from torch import Tensor
 
 from .utils import *
+from .quad import QuadratureRule
 
 
 # SDF Reference : https://iquilezles.org/articles/distfunctions2d/ , https://iquilezles.org/articles/distfunctions/
@@ -34,6 +35,11 @@ class State(Enum):
     isOut = 1
     isOn = 2
     isUnknown = 3
+
+
+class CompositeGeometry:
+    """Marker class for composite geometries."""
+    pass
 
 
 class GeometryBase(ABC):
@@ -79,6 +85,8 @@ class GeometryBase(ABC):
         self.gen.manual_seed(seed)
 
         self.boundary: List = []
+
+        self.quad_rule: Optional[QuadratureRule] = None
 
     def __eq__(self, other):
         """
@@ -201,6 +209,49 @@ class GeometryBase(ABC):
             multiple boundary components may be returned when `separate=True`.
         """
         pass
+
+    def quad(
+            self,
+            order: int = 8,
+            kind: str = "volume",
+    ) -> QuadratureRule:
+        """
+        Build and return an implicit quadrature rule over this geometry.
+
+        Args:
+            order (int):
+                1D Gauss quadrature order.
+            kind (str):
+                One of:
+                - ``"volume"``: integrate over interior ``{sdf <= 0}``
+                - ``"surface"``: integrate over interface ``{sdf = 0}``
+
+        Returns:
+            QuadratureRule:
+                Weighted quadrature nodes.
+        """
+        if self.dim != self.intrinsic_dim:
+            raise NotImplementedError(
+                "Quadrature is not supported in this implementation."
+            )
+
+        if isinstance(self, CompositeGeometry):
+            print("Creating quadrature rule for complex geometry, might be a bit slow...")
+
+        from .quad import ImplicitQuadrature
+
+        iq = ImplicitQuadrature(
+            geometry=self,
+            qo=order,
+        )
+
+        if kind == "volume":
+            self.quad_rule = iq.volume_rule()
+        elif kind == "surface":
+            self.quad_rule = iq.surface_rule()
+        else:
+            raise ValueError("kind must be one of: 'volume', 'surface'.")
+        return self.quad_rule
 
     def __and__(self, other: "GeometryBase") -> "GeometryBase":
         """
@@ -428,7 +479,7 @@ class EmptyGeometry(GeometryBase):
         return ComplementGeometry(self)
 
 
-class UnionGeometry(GeometryBase):
+class UnionGeometry(GeometryBase, CompositeGeometry):
     """
     Geometry representing the union of two geometries.
 
@@ -709,7 +760,7 @@ class UnionGeometry(GeometryBase):
             return filtered_groups
 
 
-class IntersectionGeometry(GeometryBase):
+class IntersectionGeometry(GeometryBase, CompositeGeometry):
     """
     Geometry representing the intersection of two geometries.
 
@@ -1047,7 +1098,7 @@ class IntersectionGeometry(GeometryBase):
             return filtered
 
 
-class ComplementGeometry(GeometryBase):
+class ComplementGeometry(GeometryBase, CompositeGeometry):
     """
     Geometry representing the complement of a given geometry.
 
@@ -1156,7 +1207,7 @@ class ComplementGeometry(GeometryBase):
         return self.geom.on_sample(num_samples, with_normal, separate)
 
 
-class ExtrudeBody(GeometryBase):
+class ExtrudeBody(GeometryBase, CompositeGeometry):
     """
     Geometry representing a 3D solid obtained by extruding a 2D geometry.
 

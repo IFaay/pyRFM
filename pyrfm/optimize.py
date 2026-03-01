@@ -141,7 +141,7 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
                 x_new = x + step_size * p
                 F_new = fcn(x_new)
                 if abs(damp) > 0.0:
-                    augmented = torch.cat([F_new, damp * x_new], dim=0)
+                    augmented = torch.cat([F_new, damp * x_new * scale_inv.T], dim=0)
                 else:
                     augmented = F_new
                 return torch.linalg.norm(augmented)
@@ -169,58 +169,38 @@ def nonlinear_least_square(fcn: Callable[[torch.Tensor], torch.Tensor],
         return x, status
 
 
-def line_search(fn: Callable[[float], float], a, b, maxfev, ftol=1e-8):
-    """
-    Performs a golden-section line search to find the step size that minimizes the function.
-
-    The caller is responsible for passing a `fn` that already incorporates any
-    damping or regularization term, so this function stays generic.
-
-    Args:
-        fn (Callable[[float], float]): Function to minimize (e.g. augmented residual norm).
-        a (float): Lower bound of the search interval.
-        b (float): Upper bound of the search interval.
-        maxfev (int): Maximum function evaluations.
-        ftol (float, optional): Function tolerance for convergence. Defaults to 1e-08.
-
-    Returns:
-        float: Optimal step size.
-        int: Updated maxfev count.
-    """
+def line_search(fn, a, b, maxfev, ftol=1e-8):
     f0, f1 = fn(0.0), fn(1.0)
     maxfev -= 2
-    ratio = (1.0 + 5 ** 0.5) / 2
-    c, d = b - (b - a) / ratio, a + (b - a) / ratio
-    fnc, fnd = fn(c), fn(d)
 
-    while maxfev > 0:
+    ratio = (3.0 - 5 ** 0.5) / 2
+    c = a + ratio * (b - a)
+    d = b - ratio * (b - a)
+    fc, fd = fn(c), fn(d)
+    maxfev -= 2
+
+    while maxfev > 0 and (b - a) > ftol:
         maxfev -= 2
-
-        if fnc < fnd:
-            if fnc < f1:
-                a, b = a, d
-                c, d = b - (b - a) / ratio, a + (b - a) / ratio
-                fnc, fnd = fn(c), fn(d)
-            else:
-                a, b = c, 1.0
-                c, d = b - (b - a) / ratio, a + (b - a) / ratio
-                fnc, fnd = fn(c), fn(d)
+        if fc < fd:
+            b, d, fd = d, c, fc
+            c = a + ratio * (b - a)
+            fc = fn(c)
         else:
-            if fnd < f0:
-                a, b = c, b
-                c, d = b - (b - a) / ratio, a + (b - a) / ratio
-                fnc, fnd = fn(c), fn(d)
-            else:
-                a, b = 0.0, d
-                c, d = b - (b - a) / ratio, a + (b - a) / ratio
-                fnc, fnd = fn(c), fn(d)
+            a, c, fc = c, d, fd
+            d = b - ratio * (b - a)
+            fd = fn(d)
 
-        if abs(fnc - fnd) < 0.5 * ftol * (abs(fnc) + abs(fnd)):
-            if a == 0.0:
-                return 0.0, maxfev
-            return (a + b) / 2, maxfev
+    best_interior = (a + b) / 2
+    f_interior = fn(best_interior)
+    maxfev -= 1
 
-    return (a + b) / 2, maxfev
+    # 和端点比，返回最好的
+    if f_interior <= f0 and f_interior <= f1:
+        return best_interior, maxfev
+    elif f0 <= f1:
+        return 0.0, maxfev  # 不更新，触发提前终止
+    else:
+        return 1.0, maxfev
 
 
 class GivensRotation:

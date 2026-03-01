@@ -9,6 +9,7 @@ __version__ = "0.1.3"
 from .core import *
 from .utils import *
 from .geometry import *
+from .quad import *
 from .voronoi import *
 from .optimize import *
 from .visualizer import RFMVisualizer2D, RFMVisualizer3D, RFMVisualizer3DMC

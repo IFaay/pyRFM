@@ -4,6 +4,10 @@ pyrfm/__pycache__/
 *.pyc
 build/
 dist/
-test/
 *.egg-info/
-
+*.pt
+*.pth
+*.ply
+*.ckpt
+*.npz
+*.pkl
