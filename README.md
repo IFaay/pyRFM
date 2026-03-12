@@ -41,3 +41,22 @@ Mathematics, vol. 13, no. 3, pp. 435–463, 2023, doi: 10.4208/eajam.2023-065.05
 
 [3] J. Chen, W. E, and Y. Sun, “Optimization of Random Feature Method in the High-Precision Regime,” Com Appl Math
 Comput, Mar. 2024, doi: 10.1007/s42967-024-00389-8.
+
+You can cite this package as:
+
+[4] J. Chen and Y. Sun, “pyRFM: A High-Performance Python Implementation of the Random Feature Method with
+Applications,” Journal on Numerical Methods and Computer Applications, vol. 47, no. 2, Jun. 2026, doi:
+10.12288/szjs.j2025-1045.
+
+```bibtex
+@article{chen_pyrfm_2026,
+  title = {{{pyRFM}}: {{A High-Performance Python Implementation}} of the {{Random Feature Method}} with {{Applications}}},
+  author = {Chen, Jingrun and Sun, Yifei},
+  year = 2026,
+  month = jun,
+  journal = {Journal on Numerical Methods and Computer Applications},
+  volume = {47},
+  number = {2},
+  doi = {10.12288/szjs.j2025-1045},
+}
+```
