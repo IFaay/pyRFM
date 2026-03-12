@@ -1530,6 +1530,26 @@ class ImplicitFunctionBase(GeometryBase):
     def shape_func(self, p: torch.Tensor) -> torch.Tensor:
         pass
 
+    @staticmethod
+    def _as_column(values: torch.Tensor) -> torch.Tensor:
+        """Normalize implicit-function outputs to shape (N, 1)."""
+        if values.ndim == 1:
+            return values.unsqueeze(1)
+        if values.ndim == 2 and values.shape[1] == 1:
+            return values
+        raise ValueError(
+            f"Implicit function output must have shape (N,) or (N, 1), got {tuple(values.shape)}."
+        )
+
+    @staticmethod
+    def _as_mask(mask: torch.Tensor) -> torch.Tensor:
+        """Normalize boolean masks to shape (N,)."""
+        if mask.ndim == 0:
+            return mask.reshape(1)
+        if mask.ndim == 2 and mask.shape[1] == 1:
+            return mask[:, 0]
+        return mask.reshape(-1)
+
     def sdf(self, p: torch.Tensor, with_normal=False, with_curvature=False) -> Union[
         torch.Tensor, Tuple[torch.Tensor, ...]]:
         """
@@ -1548,7 +1568,7 @@ class ImplicitFunctionBase(GeometryBase):
                 - (sdf, normal, mean_curvature)
         """
         p = p.detach().requires_grad_(True)  # Detach to avoid tracking history
-        f = self.shape_func(p)
+        f = self._as_column(self.shape_func(p))
 
         if not f.requires_grad:
             # === 域外 / POU=0 / 常函数退化 ===
@@ -1566,6 +1586,7 @@ class ImplicitFunctionBase(GeometryBase):
                                    retain_graph=True)[0]
 
         grad_norm = torch.norm(grad, dim=-1, keepdim=True)
+        # grad_norm = torch.ones_like(grad_norm)
         sdf = f / grad_norm
         normal = grad / grad_norm
 
@@ -1619,12 +1640,12 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
             p[:, 1] = (y_min - eps) + rand[:, 1] * ((y_max + eps) - (y_min - eps))
             p[:, 2] = (z_min - eps) + rand[:, 2] * ((z_max + eps) - (z_min - eps))
             p.requires_grad_(True)
-            f = self.shape_func(p)
+            f = self._as_column(self.shape_func(p))
             grad = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
             grad_norm = grad.norm(dim=1, keepdim=True)
             normal = grad / grad_norm
             sdf = f / grad_norm
-            near_mask = (sdf.abs() < eps).squeeze()
+            near_mask = self._as_mask(sdf.abs() < eps)
             near_points = p[near_mask]
             near_normals = normal[near_mask]
             near_sdf = sdf[near_mask]
@@ -1634,7 +1655,7 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
                     break
                 near_points = near_points - near_sdf * near_normals
                 near_points.requires_grad_(True)
-                f_proj = self.shape_func(near_points)
+                f_proj = self._as_column(self.shape_func(near_points))
                 grad_proj = torch.autograd.grad(f_proj, near_points, torch.ones_like(f_proj), create_graph=False)[0]
                 grad_norm_proj = grad_proj.norm(dim=1, keepdim=True)
                 near_normals = grad_proj / grad_norm_proj
@@ -1644,8 +1665,8 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
 
             near_points = near_points.detach()
             if hasattr(self, 'trim_func'):
-                trim_mask = (
-                    self.trim_func(near_points) <= 0 if with_boundary else self.trim_func(near_points) < 0).squeeze()
+                trim_values = self._as_column(self.trim_func(near_points))
+                trim_mask = self._as_mask(trim_values <= 0 if with_boundary else trim_values < 0)
                 near_points = near_points[trim_mask]
             collected.append(near_points)
 
@@ -1711,15 +1732,13 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
 
             # 第一次：为 shape 投影做一次前向/反向
             p = p.detach().requires_grad_(True)
-            f = self.shape_func(p)
-            if f.ndim == 1:
-                f = f.unsqueeze(1)
+            f = self._as_column(self.shape_func(p))
 
             grad_f = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
             grad_f_norm = grad_f.norm(dim=1, keepdim=True)
 
             # 防止 grad 为零
-            valid_mask = (grad_f_norm.squeeze() > 0)
+            valid_mask = self._as_mask(grad_f_norm > 0)
             if not valid_mask.any():
                 continue
 
@@ -1732,13 +1751,11 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
             sdf = f / grad_f_norm
 
             # trim_func，用于筛选靠近修剪界的点
-            g = self.trim_func(p)
-            if g.ndim == 1:
-                g = g.unsqueeze(1)
+            g = self._as_column(self.trim_func(p))
 
             # 初筛：靠近曲面 + 靠近 trim 的 0 等值
             near_mask = (sdf.abs() < eps_band) & (g.abs() < 2 * eps_band)
-            near_mask = near_mask.squeeze()
+            near_mask = self._as_mask(near_mask)
 
             if not near_mask.any():
                 continue
@@ -1764,9 +1781,7 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
                 # 使用上一次的近似 sdf 和 normal 进行一步投影
                 p = p - sdf * normals
 
-                f = self.shape_func(p)
-                if f.ndim == 1:
-                    f = f.unsqueeze(1)
+                f = self._as_column(self.shape_func(p))
 
                 grad_f = torch.autograd.grad(f, p, torch.ones_like(f), create_graph=False)[0]
                 grad_f_norm = grad_f.norm(dim=1, keepdim=True) + 1e-12
@@ -1805,12 +1820,8 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
                 # 每次循环都重新作为 leaf 构建计算图
                 p = p.detach().requires_grad_(True)
 
-                f = self.shape_func(p)
-                g = self.trim_func(p)
-                if f.ndim == 1:
-                    f = f.unsqueeze(1)
-                if g.ndim == 1:
-                    g = g.unsqueeze(1)
+                f = self._as_column(self.shape_func(p))
+                g = self._as_column(self.trim_func(p))
 
                 ones_f = torch.ones_like(f)
                 ones_g = torch.ones_like(g)
@@ -1839,12 +1850,8 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
 
                 # 收敛：shape_func 和 trim_func 同时接近 0
                 with torch.no_grad():
-                    f_val = self.shape_func(p)
-                    g_val = self.trim_func(p)
-                    if f_val.ndim == 1:
-                        f_val = f_val.unsqueeze(1)
-                    if g_val.ndim == 1:
-                        g_val = g_val.unsqueeze(1)
+                    f_val = self._as_column(self.shape_func(p))
+                    g_val = self._as_column(self.trim_func(p))
                     res = torch.max(f_val.abs(), g_val.abs())
                     if res.max().item() < tol:
                         break
@@ -1853,13 +1860,11 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
             boundary_points = p.detach()
 
             # 再做一道 trim_func 的近 0 筛选，确保边界性
-            f_final = self.shape_func(boundary_points)
-            if f_final.ndim == 1:
-                f_final = f_final.unsqueeze(1)
-            g_final = self.trim_func(boundary_points)
-            if g_final.ndim == 1:
-                g_final = g_final.unsqueeze(1)
-            boundary_mask = (g_final.abs().squeeze() + f_final.abs().squeeze()) < (2 * tol + eps_band * 1e-3)
+            f_final = self._as_column(self.shape_func(boundary_points))
+            g_final = self._as_column(self.trim_func(boundary_points))
+            boundary_mask = self._as_mask(
+                (g_final.abs() + f_final.abs()) < (2 * tol + eps_band * 1e-3)
+            )
 
             boundary_points = boundary_points[boundary_mask]
             if boundary_points.shape[0] > 0:
@@ -1884,9 +1889,7 @@ class ImplicitSurfaceBase(ImplicitFunctionBase):
         # 4. 若需要法向，使用 shape_func 的梯度在最终点上计算
         # ------------------------------------------------------------
         points_req = points.detach().clone().requires_grad_(True)
-        f_final = self.shape_func(points_req)
-        if f_final.ndim == 1:
-            f_final = f_final.unsqueeze(1)
+        f_final = self._as_column(self.shape_func(points_req))
         grad_final = torch.autograd.grad(
             f_final, points_req, torch.ones_like(f_final), create_graph=False
         )[0]
