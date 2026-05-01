@@ -1408,20 +1408,23 @@ class RFMBase(ABC):
         new_obj = copy.deepcopy(self) if deep else copy.copy(self)
         return new_obj
 
-    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False, verbose=True):
+    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False, verbose=True, rescaling=True):
         """
         Compute the QR decomposition of matrix A.
 
         :param A: Input matrix.
         :param damp: Damping factor for regularization.
         :param use_complex: Whether to use complex numbers.
+        :param rescaling: Whether to rescale the matrix.
         :return: Self.
         """
         if use_complex:
             self.dtype = torch.complex128 if self.dtype == torch.float64 else torch.complex64
         A = A.to(dtype=self.dtype, device=self.device)
-        self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
-        # self.A_norm = torch.ones((A.shape[0], 1))
+        if rescaling:
+            self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+        else:
+            self.A_norm = torch.ones((A.shape[0], 1))
         A /= self.A_norm
         self.A_backup = A.clone().cpu()
         if abs(damp) > 0.0:
