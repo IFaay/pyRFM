@@ -1261,7 +1261,8 @@ class RFMBase(ABC):
         self.W: Union[Tensor, List, torch.tensor] = None
         self.A: Optional[torch.tensor] = None
         self.A_backup: Optional[torch.tensor] = None
-        self.A_norm: Optional[torch.tensor] = None
+        self.A_row_norm: Optional[torch.tensor] = None
+        self.A_col_norm: Optional[torch.tensor] = None
         self.tau: Optional[torch.tensor] = None
 
     def __call__(self, x, *args, **kwargs):
@@ -1408,24 +1409,52 @@ class RFMBase(ABC):
         new_obj = copy.deepcopy(self) if deep else copy.copy(self)
         return new_obj
 
-    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False, verbose=True, rescaling=True):
+    def compute(self, A: torch.Tensor, damp: float = 0.0, use_complex: bool = False, verbose=True,
+                rescaling_mode: str = "row", rescaling_func: Optional[List[int]] = None):
         """
         Compute the QR decomposition of matrix A.
 
         :param A: Input matrix.
         :param damp: Damping factor for regularization.
         :param use_complex: Whether to use complex numbers.
-        :param rescaling: Whether to rescale the matrix.
+        :param rescaling_mode: Mode to rescale the matrix.
+        :param rescaling_func: Function indices (of the matrix, 1-based) for calculating row rescaling parameters.
+        E.g., [1, 2] means the rescaling parameters depend on functions 1 and 2.
         :return: Self.
         """
+        if A.shape[1] % (self.submodels.numel() * self.n_hidden) != 0:
+            raise ValueError("The matrix column size is not a multiple of the expected size.")
         if use_complex:
             self.dtype = torch.complex128 if self.dtype == torch.float64 else torch.complex64
         A = A.to(dtype=self.dtype, device=self.device)
-        if rescaling:
-            self.A_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+        if rescaling_mode == "row":
+            if rescaling_func is None:
+                self.A_row_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+            else:
+                self.A_row_norm = torch.linalg.norm(
+                    torch.cat([A[:, (i - 1) * self.n_hidden : i * self.n_hidden] for i in rescaling_func], dim=1),
+                    ord=2, dim=1, keepdim=True)
+            A /= self.A_row_norm
+            self.A_col_norm = torch.ones((1, A.shape[1]))
+        elif rescaling_mode == "col":
+            self.A_col_norm = torch.linalg.norm(A, ord=2, dim=0, keepdim=True)
+            A /= self.A_col_norm
+            self.A_row_norm = torch.ones((A.shape[0], 1))
+        elif rescaling_mode == "col+row":
+            self.A_col_norm = torch.linalg.norm(A, ord=2, dim=0, keepdim=True)
+            A /= self.A_col_norm
+            if rescaling_func is None:
+                self.A_row_norm = torch.linalg.norm(A, ord=2, dim=1, keepdim=True)
+            else:
+                self.A_row_norm = torch.linalg.norm(
+                    torch.cat([A[:, (i - 1) * self.n_hidden : i * self.n_hidden] for i in rescaling_func], dim=1),
+                    ord=2, dim=1, keepdim=True)
+            A /= self.A_row_norm
+        elif rescaling_mode is None:
+            self.A_row_norm = torch.ones((A.shape[0], 1))
+            self.A_col_norm = torch.ones((1, A.shape[1]))
         else:
-            self.A_norm = torch.ones((A.shape[0], 1))
-        A /= self.A_norm
+            raise ValueError("Invalid rescaling_mode. Expected 'row', 'col', 'col+row' or None.")
         self.A_backup = A.clone().cpu()
         if abs(damp) > 0.0:
             A = torch.cat(
@@ -1460,7 +1489,7 @@ class RFMBase(ABC):
                 with_damping = True
             else:
                 raise ValueError("Input dimension mismatch.")
-        b /= self.A_norm
+        b /= self.A_row_norm
         b_backup = b.clone().cpu()
         b = torch.cat([b, torch.zeros((self.A.shape[0] - b.shape[0], 1), dtype=self.dtype, device=self.device)],
                       dim=0) if with_damping else b
@@ -1513,12 +1542,10 @@ class RFMBase(ABC):
         if verbose:
             print(f"Least Square Relative residual: {residual:.4e}")
 
-        if self.W.numel() % (self.submodels.numel() * self.n_hidden) == 0:
-            n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
-            self.W = self.W.view(n_out, -1).T
-        else:
-            warnings.warn("The output weight size is not a multiple of the expected size. Keeping W as a flat tensor.")
-            return self.W
+        self.W /= self.A_col_norm.T
+
+        n_out = int(self.W.numel() / (self.submodels.numel() * self.n_hidden))
+        self.W = self.W.view(n_out, -1).T
 
         return self.W
 
