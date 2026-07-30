@@ -1473,7 +1473,7 @@ class RFMBase(ABC):
 
         return self
 
-    def solve(self, b: torch.Tensor, check_condition=False, verbose=True):
+    def solve(self, b: torch.Tensor, check_condition=False, verbose=False):
         """
         Solve the linear system Ax = b using the QR decomposition.
 
@@ -1506,7 +1506,8 @@ class RFMBase(ABC):
             # diag.add_((diag_to_compare >= 0).float() * torch.finfo(self.dtype).eps)
             self.W = torch.linalg.solve_triangular(self.A[:self.A.shape[1], :], y, upper=True)
             b_ = torch.ormqr(self.A, self.tau, torch.matmul(torch.triu(self.A), self.W), transpose=False)
-            residual = torch.norm(b_ - b) / torch.norm(b)
+            residual = torch.norm(b_ - b)
+            relative_residual = residual / torch.norm(b)
 
             # w_set = []
             # b_ = b.clone()
@@ -1527,7 +1528,8 @@ class RFMBase(ABC):
                 self.W = torch.linalg.lstsq(self.A_backup, b.cpu(), driver='gelsd')[0].to(dtype=self.dtype,
                                                                                           device=self.device)
                 residual = torch.norm(
-                    torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b) / torch.norm(b)
+                    torch.matmul(self.A_backup.to(dtype=self.dtype, device=self.device), self.W) - b)
+                relative_residual = residual / torch.norm(b)
 
         except RuntimeError as e:
             # Add support for minium norm solution
@@ -1537,10 +1539,13 @@ class RFMBase(ABC):
             b = b_backup.to(dtype=self.dtype, device=self.device)
             self.W = torch.linalg.lstsq(self.A, b,
                                         driver='gels').solution
-            residual = torch.norm(torch.matmul(self.A, self.W) - b) / torch.norm(b)
+            residual = torch.norm(torch.matmul(self.A, self.W) - b)
+            relative_residual = residual / torch.norm(b)
 
         if verbose:
-            print(f"Least Square Relative residual: {residual:.4e}")
+            print(f"Least Square residual: {residual:.4e}")
+
+        print(f"Least Square Relative residual: {relative_residual:.4e}")
 
         self.W /= self.A_col_norm.T
 
