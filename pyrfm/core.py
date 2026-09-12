@@ -1647,7 +1647,12 @@ class RFMBase(ABC):
                             f"Unsupported second-order multi-index: {tuple(order.view(-1).tolist())}")
 
                 else:
-                    raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+                    order_list = [int(v) for v in order.view(-1).tolist()]
+                    for i in range(0, x.shape[0], batch_size):
+                        x_batch = x[i:i + batch_size]
+                        feat = self.features_high_order_derivative(x_batch, order_list).cat(dim=1)
+                        outputs.append(torch.matmul(feat, self.W))
+                    return torch.cat(outputs, dim=0)
 
             except RuntimeError as e:
                 # OOM 回退：批量减半重试
@@ -2403,7 +2408,8 @@ class STRFMBase(ABC):
 
         return centers.to(dtype=self.dtype, device=self.device), radii.to(dtype=self.dtype, device=self.device)
 
-    def forward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor = None, t: torch.Tensor = None, xt: torch.Tensor = None,
+                batch_size: int = 32768) -> torch.Tensor:
         xt = self.validate_and_prepare_xt(x, t, xt)
         if self.W is None:
             raise ValueError("Weights have not been computed yet.")
@@ -2412,7 +2418,22 @@ class STRFMBase(ABC):
         elif isinstance(self.W, List) and isinstance(self.W[0], torch.Tensor):
             self.W = torch.cat(self.W, dim=1)
 
-        return torch.matmul(self.features(xt=xt).cat(dim=1), self.W)
+        outputs = []
+        while True:
+            try:
+                for i in range(0, xt.shape[0], batch_size):
+                    xt_batch = xt[i:i + batch_size]
+                    feats = self.features(xt=xt_batch).cat(dim=1)
+                    outputs.append(torch.matmul(feats, self.W))
+                return torch.cat(outputs, dim=0)
+            except RuntimeError as e:
+                if any(keyword in str(e).lower() for keyword in
+                       ["out of memory", "can't allocate", "not enough memory", "std::bad_alloc"]) and batch_size > 1:
+                    batch_size //= 2
+                    outputs = []  # Clear outputs to retry
+                    torch.cuda.empty_cache()  # Clear GPU memory
+                else:
+                    raise e
 
     def dForward(
             self,
@@ -2448,7 +2469,7 @@ class STRFMBase(ABC):
 
         ord_sum = int(order.sum().item())
         if ord_sum == 0:
-            return self.forward(xt)
+            return self.forward(xt=xt, batch_size=batch_size)
 
         outputs = []
         while True:
@@ -2490,7 +2511,12 @@ class STRFMBase(ABC):
                             f"Unsupported second-order multi-index: {tuple(order.view(-1).tolist())}")
 
                 else:
-                    raise NotImplementedError("Higher-order derivatives not supported in batch mode.")
+                    order_list = [int(v) for v in order.view(-1).tolist()]
+                    for i in range(0, xt.shape[0], batch_size):
+                        xt_batch = xt[i:i + batch_size]
+                        feat = self.features_high_order_derivative(xt=xt_batch, order=order_list).cat(dim=1)
+                        outputs.append(torch.matmul(feat, self.W))
+                    return torch.cat(outputs, dim=0)
 
             except RuntimeError as e:
                 # OOM 回退：批量减半重试
